@@ -13,6 +13,11 @@ interface AppLockPinModalProps {
   showSuccessAlert?: boolean;
   /** Apelat după PIN setat cu succes, înainte de dismiss. */
   onPinSaved?: () => void;
+  /**
+   * Dacă true, salvează doar PIN-ul fără a activa app lock-ul.
+   * Folosit în onboarding unde activarea se face la commit-ul atomic.
+   */
+  deferEnable?: boolean;
 }
 
 export default function AppLockPinModal({
@@ -20,6 +25,7 @@ export default function AppLockPinModal({
   onDismiss,
   showSuccessAlert = true,
   onPinSaved,
+  deferEnable = false,
 }: AppLockPinModalProps) {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const C = Colors[scheme];
@@ -48,7 +54,9 @@ export default function AppLockPinModal({
     }
     try {
       await settings.setAppLockPin(pin1);
-      await settings.setAppLockEnabled(true);
+      if (!deferEnable) {
+        await settings.setAppLockEnabled(true);
+      }
       onPinSaved?.();
       if (showSuccessAlert) {
         Alert.alert(

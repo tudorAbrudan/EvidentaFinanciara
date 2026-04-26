@@ -1,9 +1,10 @@
 import { ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useColorScheme as useColorSchemeNative } from 'react-native';
 
 import AppLockScreen from '@/components/AppLockScreen';
+import OnboardingWizard from '@/components/OnboardingWizard';
 import { AppLightTheme, AppDarkTheme } from '@/constants/Theme';
 import { ThemePreferenceContext } from '@/hooks/useThemeScheme';
 import type { ThemePreference } from '@/hooks/useThemeScheme';
@@ -15,16 +16,27 @@ export { ErrorBoundary } from 'expo-router';
 export default function RootLayout() {
   const systemScheme = useColorSchemeNative();
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>('auto');
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const appLock = useAppLock();
 
   useEffect(() => {
     settings.getThemePreference().then(setThemePreferenceState);
+    settings.isOnboardingDone().then(done => {
+      setNeedsOnboarding(!done);
+      setOnboardingChecked(true);
+    });
   }, []);
 
-  function setPreference(p: ThemePreference) {
+  const setPreference = useCallback((p: ThemePreference) => {
     setThemePreferenceState(p);
     void settings.setThemePreference(p);
-  }
+  }, []);
+
+  const handleOnboardingComplete = useCallback(() => {
+    setNeedsOnboarding(false);
+    appLock.refreshLockEnabled();
+  }, [appLock]);
 
   const effectiveScheme: 'light' | 'dark' =
     themePreference === 'auto' ? (systemScheme === 'dark' ? 'dark' : 'light') : themePreference;
@@ -39,6 +51,9 @@ export default function RootLayout() {
             onUnlockBiometric={appLock.unlockWithBiometric}
             onUnlockPin={appLock.unlockWithPin}
           />
+        )}
+        {onboardingChecked && needsOnboarding && !appLock.locked && (
+          <OnboardingWizard onComplete={handleOnboardingComplete} />
         )}
       </ThemeProvider>
     </ThemePreferenceContext.Provider>

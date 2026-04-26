@@ -73,7 +73,7 @@ export interface ExpenseCategory {
 // Tranzacții
 // ────────────────────────────────────────────────────────────────────────────
 
-export type TransactionSource = 'manual' | 'statement' | 'ocr';
+export type TransactionSource = 'manual' | 'statement' | 'ocr' | 'demo';
 
 /**
  * Tranzacție financiară: cheltuială (amount < 0), venit (amount > 0) sau transfer.
