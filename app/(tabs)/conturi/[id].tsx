@@ -269,7 +269,7 @@ export default function FinancialAccountDetailScreen() {
             onPress={() =>
               router.push({
                 pathname: '/(tabs)/tranzactii/[id]',
-                params: { account_id: accountId },
+                params: { id: 'new', account_id: accountId },
               })
             }
             style={({ pressed }) => [
@@ -468,7 +468,7 @@ export default function FinancialAccountDetailScreen() {
         onPress={() =>
           router.push({
             pathname: '/(tabs)/tranzactii/[id]',
-            params: { account_id: accountId },
+            params: { id: 'new', account_id: accountId },
           })
         }
         safeArea

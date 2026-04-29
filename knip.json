@@ -16,17 +16,9 @@
     "constants/**/*.{ts,tsx}",
     "types/**/*.{ts,tsx}"
   ],
-  "ignore": [
-    "__mocks__/**",
-    "ios/**",
-    "android/**",
-    ".expo/**"
-  ],
   "ignoreDependencies": [
-    "expo-constants",
     "expo-status-bar",
     "expo-updates",
-    "react-dom",
     "expo-splash-screen",
     "expo-notifications",
     "expo-clipboard",

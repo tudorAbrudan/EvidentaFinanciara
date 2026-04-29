@@ -460,7 +460,7 @@ export default function FinanciarHubScreen() {
         onPress={() =>
           router.push({
             pathname: '/(tabs)/tranzactii/[id]',
-            params: accountFilter ? { account_id: accountFilter } : {},
+            params: accountFilter ? { id: 'new', account_id: accountFilter } : { id: 'new' },
           })
         }
         safeArea
