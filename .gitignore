@@ -40,5 +40,18 @@ yarn-error.*
 /ios
 /android
 
-# Claude Code session files
-.claude/
+# Claude Code session files (păstrăm config-ul de proiect: skills, agents, hooks, settings)
+.claude/*
+!.claude/skills/
+!.claude/agents/
+!.claude/hooks/
+!.claude/settings.json
+
+# Coverage
+coverage/
+
+# ESLint cache
+.eslintcache
+
+# Husky internal (păstrat — necesar pentru hook-uri)
+# .husky/_
