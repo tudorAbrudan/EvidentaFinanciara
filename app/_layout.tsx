@@ -9,6 +9,7 @@ import { AppLightTheme, AppDarkTheme } from '@/constants/Theme';
 import { ThemePreferenceContext } from '@/hooks/useThemeScheme';
 import type { ThemePreference } from '@/hooks/useThemeScheme';
 import { useAppLock } from '@/hooks/useAppLock';
+import { useCloudSync } from '@/hooks/useCloudSync';
 import * as settings from '@/services/settings';
 
 export { ErrorBoundary } from 'expo-router';
@@ -19,6 +20,7 @@ export default function RootLayout() {
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const appLock = useAppLock();
+  useCloudSync();
 
   useEffect(() => {
     settings.getThemePreference().then(setThemePreferenceState);

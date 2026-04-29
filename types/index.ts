@@ -124,3 +124,17 @@ export interface BankStatement {
   notes?: string;
   createdAt: string;
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Cloud sync
+// ────────────────────────────────────────────────────────────────────────────
+
+export type SnapshotFrequency = 'off' | 'daily' | 'every3days' | 'weekly' | 'monthly';
+
+export const SNAPSHOT_FREQUENCY_LABELS: Record<SnapshotFrequency, string> = {
+  off: 'Dezactivat',
+  daily: 'Zilnic',
+  every3days: 'La 3 zile',
+  weekly: 'Săptămânal',
+  monthly: 'Lunar',
+};

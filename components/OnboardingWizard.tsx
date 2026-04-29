@@ -986,7 +986,14 @@ function SummaryRow({
 // ───────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 9998,
+  },
   header: {
     paddingTop: 56,
     paddingHorizontal: spacing.screen,

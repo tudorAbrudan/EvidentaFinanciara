@@ -1,11 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import type { SnapshotFrequency } from '@/types';
 
 const KEY_NOTIF_DAYS = 'settings_notif_days';
 const KEY_APP_LOCK_ENABLED = 'app_lock_enabled';
 const KEY_APP_LOCK_PIN = 'app_lock_pin';
 const KEY_PUSH_ENABLED = 'settings_push_enabled';
+const KEY_CLOUD_SYNC_ENABLED = 'settings_cloud_sync_enabled';
+const KEY_CLOUD_SNAPSHOT_FREQUENCY = 'settings_cloud_snapshot_frequency';
+const KEY_CLOUD_SNAPSHOT_RETENTION = 'settings_cloud_snapshot_retention';
 
 export async function getNotificationDays(): Promise<number> {
   const v = await AsyncStorage.getItem(KEY_NOTIF_DAYS);
@@ -82,4 +86,41 @@ export async function getThemePreference(): Promise<ThemePreference> {
 
 export async function setThemePreference(pref: ThemePreference): Promise<void> {
   await AsyncStorage.setItem(KEY_THEME_PREFERENCE, pref);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Cloud sync (iCloud)
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function getCloudSyncEnabled(): Promise<boolean> {
+  const v = await AsyncStorage.getItem(KEY_CLOUD_SYNC_ENABLED);
+  return v === 'true';
+}
+
+export async function setCloudSyncEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(KEY_CLOUD_SYNC_ENABLED, enabled ? 'true' : 'false');
+}
+
+export async function getCloudSnapshotFrequency(): Promise<SnapshotFrequency> {
+  const v = await AsyncStorage.getItem(KEY_CLOUD_SNAPSHOT_FREQUENCY);
+  if (v === 'off' || v === 'daily' || v === 'every3days' || v === 'weekly' || v === 'monthly') {
+    return v;
+  }
+  return 'weekly';
+}
+
+export async function setCloudSnapshotFrequency(freq: SnapshotFrequency): Promise<void> {
+  await AsyncStorage.setItem(KEY_CLOUD_SNAPSHOT_FREQUENCY, freq);
+}
+
+export async function getCloudSnapshotRetention(): Promise<number> {
+  const v = await AsyncStorage.getItem(KEY_CLOUD_SNAPSHOT_RETENTION);
+  if (v == null) return 7;
+  const n = parseInt(v, 10);
+  return isNaN(n) ? 7 : Math.max(1, Math.min(60, n));
+}
+
+export async function setCloudSnapshotRetention(n: number): Promise<void> {
+  const v = Math.max(1, Math.min(60, n));
+  await AsyncStorage.setItem(KEY_CLOUD_SNAPSHOT_RETENTION, String(v));
 }

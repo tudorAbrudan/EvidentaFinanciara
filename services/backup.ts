@@ -401,3 +401,152 @@ export async function importBackup(path: string): Promise<BackupSummary> {
 
   return { imported, skipped, errors };
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// applyManifest: înlocuire completă din cloud (wipeFirst). Păstrează ID-urile
+// originale ca restore-ul să fie idempotent și să nu creeze duplicate la sync.
+// ────────────────────────────────────────────────────────────────────────────
+
+interface ApplyManifestOptions {
+  wipeFirst?: boolean;
+}
+
+export async function applyManifest(
+  payload: Record<string, unknown>,
+  opts: ApplyManifestOptions = {}
+): Promise<void> {
+  if (payload.app !== APP_TAG) {
+    throw new Error('Backup-ul nu provine din aplicația Finanțe.');
+  }
+  const version = payload.version;
+  if (typeof version !== 'number' || version > BACKUP_VERSION) {
+    throw new Error('Versiune backup neacceptată.');
+  }
+
+  const wipe = opts.wipeFirst !== false;
+  const accounts = (payload.financialAccounts as AnyRecord[] | undefined) ?? [];
+  const cats = (payload.expenseCategories as AnyRecord[] | undefined) ?? [];
+  const txs = (payload.transactions as AnyRecord[] | undefined) ?? [];
+  const stmts = (payload.bankStatements as AnyRecord[] | undefined) ?? [];
+  const fxs = (payload.fxRates as AnyRecord[] | undefined) ?? [];
+
+  await db.withTransactionAsync(async () => {
+    if (wipe) {
+      await db.runAsync('DELETE FROM transactions');
+      await db.runAsync('DELETE FROM bank_statements');
+      await db.runAsync('DELETE FROM expense_categories');
+      await db.runAsync('DELETE FROM financial_accounts');
+      await db.runAsync('DELETE FROM fx_rates');
+    }
+
+    for (const a of accounts) {
+      await db.runAsync(
+        `INSERT OR REPLACE INTO financial_accounts
+           (id, name, type, currency, initial_balance, initial_balance_date,
+            iban, bank_name, color, icon, archived, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          (a.id as string) || generateId(),
+          ((a.name as string) || '').trim() || 'Cont',
+          (a.type as string) || 'bank',
+          (a.currency as string) || 'RON',
+          (a.initial_balance as number) ?? 0,
+          (a.initial_balance_date as string | null) ?? null,
+          (a.iban as string | null) ?? null,
+          (a.bank_name as string | null) ?? null,
+          (a.color as string | null) ?? null,
+          (a.icon as string | null) ?? null,
+          a.archived === true || a.archived === 1 ? 1 : 0,
+          (a.notes as string | null) ?? null,
+          (a.createdAt as string) || (a.created_at as string) || new Date().toISOString(),
+        ]
+      );
+    }
+
+    for (const c of cats) {
+      await db.runAsync(
+        `INSERT OR REPLACE INTO expense_categories
+           (id, key, name, icon, color, parent_id, is_system, monthly_limit,
+            display_order, archived, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          (c.id as string) || generateId(),
+          (c.key as string | null) ?? null,
+          ((c.name as string) || '').trim() || 'Categorie',
+          (c.icon as string | null) ?? null,
+          (c.color as string | null) ?? null,
+          (c.parent_id as string | null) ?? null,
+          c.is_system === true || c.is_system === 1 ? 1 : 0,
+          (c.monthly_limit as number | null) ?? null,
+          (c.display_order as number) ?? 0,
+          c.archived === true || c.archived === 1 ? 1 : 0,
+          (c.createdAt as string) || (c.created_at as string) || new Date().toISOString(),
+        ]
+      );
+    }
+
+    for (const s of stmts) {
+      await db.runAsync(
+        `INSERT OR REPLACE INTO bank_statements
+           (id, account_id, period_from, period_to, file_path, file_hash,
+            imported_at, transaction_count, total_inflow, total_outflow, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          (s.id as string) || generateId(),
+          s.account_id as string,
+          s.period_from as string,
+          s.period_to as string,
+          (s.file_path as string | null) ?? null,
+          (s.file_hash as string | null) ?? null,
+          (s.imported_at as string) || new Date().toISOString(),
+          (s.transaction_count as number) ?? 0,
+          (s.total_inflow as number) ?? 0,
+          (s.total_outflow as number) ?? 0,
+          (s.notes as string | null) ?? null,
+          (s.createdAt as string) || (s.created_at as string) || new Date().toISOString(),
+        ]
+      );
+    }
+
+    for (const t of txs) {
+      await db.runAsync(
+        `INSERT OR REPLACE INTO transactions
+           (id, account_id, date, amount, currency, amount_ron, description, merchant,
+            category_id, source, statement_id, is_internal_transfer,
+            linked_transaction_id, is_refund, duplicate_of_id, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          (t.id as string) || generateId(),
+          (t.account_id as string | null) ?? null,
+          t.date as string,
+          t.amount as number,
+          (t.currency as string) || 'RON',
+          (t.amount_ron as number | null) ?? null,
+          (t.description as string | null) ?? null,
+          (t.merchant as string | null) ?? null,
+          (t.category_id as string | null) ?? null,
+          (t.source as string) || 'manual',
+          (t.statement_id as string | null) ?? null,
+          t.is_internal_transfer === true || t.is_internal_transfer === 1 ? 1 : 0,
+          (t.linked_transaction_id as string | null) ?? null,
+          t.is_refund === true || t.is_refund === 1 ? 1 : 0,
+          (t.duplicate_of_id as string | null) ?? null,
+          (t.notes as string | null) ?? null,
+          (t.createdAt as string) || (t.created_at as string) || new Date().toISOString(),
+        ]
+      );
+    }
+
+    for (const r of fxs) {
+      await db.runAsync(
+        'INSERT OR REPLACE INTO fx_rates (date, currency, rate, fetched_at) VALUES (?, ?, ?, ?)',
+        [
+          r.date as string,
+          r.currency as string,
+          r.rate as number,
+          (r.fetched_at as string) || new Date().toISOString(),
+        ]
+      );
+    }
+  });
+}
