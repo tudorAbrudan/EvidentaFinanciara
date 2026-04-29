@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+# 1. Test-pairing check
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+services_staged=$(echo "$staged" | grep -E '^services/.*\.ts$' | grep -v '\.test\.ts$' || true)
+tests_staged=$(echo "$staged" | grep -E '^__tests__/unit/.*\.test\.ts$' || true)
+
+if [ -n "$services_staged" ] && [ -z "$tests_staged" ]; then
+  echo "Modificare în services/ fără test nou:"
+  echo "$services_staged"
+  echo ""
+  echo "Adaugă test în __tests__/unit/ sau folosește 'git commit --no-verify'"
+  echo "cu motivul în mesajul commit."
+  exit 1
+fi
+
+# 2. Lint-staged (eslint --fix + prettier pe staged)
+npx lint-staged || exit 1
+
+# 3. Type-check rapid (pe tot proiectul)
+npm run type-check || exit 1
