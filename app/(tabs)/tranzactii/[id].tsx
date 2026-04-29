@@ -13,6 +13,7 @@ import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View, ThemedTextInput } from '@/components/Themed';
+import CategoryIcon from '@/components/CategoryIcon';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { primary, statusColors } from '@/theme/colors';
@@ -337,9 +338,14 @@ export default function TransactionEditorScreen() {
             onPress={() => setShowCategoryPicker(v => !v)}
             style={[styles.selector, { borderColor: C.border, backgroundColor: C.card }]}
           >
-            <Text style={[styles.selectorText, { color: category ? C.text : C.textSecondary }]}>
-              {category ? `${category.icon ?? ''} ${category.name}`.trim() : 'Fără categorie'}
-            </Text>
+            <View style={styles.selectorInner}>
+              {category ? (
+                <CategoryIcon icon={category.icon} size={18} color={category.color ?? primary} />
+              ) : null}
+              <Text style={[styles.selectorText, { color: category ? C.text : C.textSecondary }]}>
+                {category ? category.name : 'Fără categorie'}
+              </Text>
+            </View>
             <Ionicons
               name={showCategoryPicker ? 'chevron-up' : 'chevron-down'}
               size={16}
@@ -521,10 +527,10 @@ function CategoryPickerItem({
       onPress={onPress}
       style={({ pressed }) => [styles.pickerItem, pressed && { opacity: 0.7 }]}
     >
-      <Text style={{ color: active ? primary : C.text, flex: 1 }}>
-        {cat.icon ? `${cat.icon}  ` : ''}
-        {cat.name}
-      </Text>
+      <View style={styles.pickerItemInner}>
+        <CategoryIcon icon={cat.icon} size={18} color={cat.color ?? primary} />
+        <Text style={{ color: active ? primary : C.text, flex: 1 }}>{cat.name}</Text>
+      </View>
       {cat.monthly_limit ? (
         <Text style={{ color: C.textSecondary, fontSize: 12 }}>limită {cat.monthly_limit} RON</Text>
       ) : null}
@@ -568,6 +574,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   selectorText: { flex: 1, fontSize: 15 },
+  selectorInner: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  pickerItemInner: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   pickerCard: {
     borderWidth: 1,
     borderRadius: 12,

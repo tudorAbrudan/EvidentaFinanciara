@@ -14,6 +14,8 @@ import {
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedTextInput } from '@/components/Themed';
+import CategoryIcon from '@/components/CategoryIcon';
+import IconPicker from '@/components/IconPicker';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { primary, statusColors } from '@/theme/colors';
@@ -43,6 +45,7 @@ export default function CategoriiScreen() {
   const [editIcon, setEditIcon] = useState('');
   const [editLimit, setEditLimit] = useState('');
   const [saving, setSaving] = useState(false);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
 
   const spendingMap = new Map<string, number>();
   spending.forEach(s => spendingMap.set(s.category.id, s.spent_ron));
@@ -59,6 +62,7 @@ export default function CategoriiScreen() {
     setEditName('');
     setEditIcon('');
     setEditLimit('');
+    setIconPickerOpen(false);
   }
 
   function openEdit(cat: ExpenseCategory) {
@@ -67,11 +71,13 @@ export default function CategoriiScreen() {
     setEditName(cat.name);
     setEditIcon(cat.icon ?? '');
     setEditLimit(cat.monthly_limit !== undefined ? String(cat.monthly_limit) : '');
+    setIconPickerOpen(false);
   }
 
   function closeModal() {
     setEditing(null);
     setCreating(false);
+    setIconPickerOpen(false);
   }
 
   async function handleSave() {
@@ -172,7 +178,9 @@ export default function CategoriiScreen() {
               ]}
             >
               <RNView style={styles.cardHeader}>
-                <RNText style={styles.icon}>{cat.icon ?? '🏷️'}</RNText>
+                <RNView style={styles.iconWrap}>
+                  <CategoryIcon icon={cat.icon} size={24} color={cat.color ?? primary} />
+                </RNView>
                 <RNView style={{ flex: 1 }}>
                   <RNText style={[styles.cardTitle, { color: C.text }]} numberOfLines={1}>
                     {cat.name}
@@ -264,32 +272,62 @@ export default function CategoriiScreen() {
             <RNText style={[styles.modalTitle, { color: C.text }]}>
               {editing ? 'Editează categoria' : 'Categorie nouă'}
             </RNText>
-            <RNText style={[styles.label, { color: C.textSecondary }]}>Nume</RNText>
-            <ThemedTextInput
-              style={styles.input}
-              placeholder="ex. Mâncare livrată"
-              value={editName}
-              onChangeText={setEditName}
-            />
-            <RNText style={[styles.label, { color: C.textSecondary }]}>Iconiță (emoji)</RNText>
-            <ThemedTextInput
-              style={styles.input}
-              placeholder="🍕"
-              value={editIcon}
-              onChangeText={setEditIcon}
-              maxLength={4}
-            />
-            <RNText style={[styles.label, { color: C.textSecondary }]}>Limită lunară (RON)</RNText>
-            <ThemedTextInput
-              style={styles.input}
-              placeholder="500"
-              value={editLimit}
-              onChangeText={setEditLimit}
-              keyboardType="decimal-pad"
-            />
-            <RNText style={[styles.hint, { color: C.textSecondary }]}>
-              Lasă gol pentru fără limită. La depășire vei vedea badge roșu.
-            </RNText>
+            <ScrollView
+              style={styles.modalScroll}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <RNText style={[styles.label, { color: C.textSecondary }]}>Nume</RNText>
+              <ThemedTextInput
+                style={styles.input}
+                placeholder="ex. Mâncare livrată"
+                value={editName}
+                onChangeText={setEditName}
+              />
+              <RNText style={[styles.label, { color: C.textSecondary }]}>Iconiță</RNText>
+              <Pressable
+                onPress={() => setIconPickerOpen(o => !o)}
+                style={({ pressed }) => [
+                  styles.iconPickerToggle,
+                  { borderColor: C.border, backgroundColor: C.background },
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <RNView style={styles.iconPickerToggleLeft}>
+                  <CategoryIcon icon={editIcon} size={22} color={primary} />
+                  <RNText style={[styles.iconPickerToggleText, { color: C.text }]}>
+                    {editIcon ? 'Schimbă iconița' : 'Alege iconiță'}
+                  </RNText>
+                </RNView>
+                <Ionicons
+                  name={iconPickerOpen ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={C.textSecondary}
+                />
+              </Pressable>
+              {iconPickerOpen ? (
+                <RNView style={styles.iconPickerWrap}>
+                  <IconPicker
+                    value={editIcon}
+                    onChange={icon => {
+                      setEditIcon(icon);
+                      setIconPickerOpen(false);
+                    }}
+                  />
+                </RNView>
+              ) : null}
+              <RNText style={[styles.label, { color: C.textSecondary }]}>Limită lunară (RON)</RNText>
+              <ThemedTextInput
+                style={styles.input}
+                placeholder="500"
+                value={editLimit}
+                onChangeText={setEditLimit}
+                keyboardType="decimal-pad"
+              />
+              <RNText style={[styles.hint, { color: C.textSecondary }]}>
+                Lasă gol pentru fără limită. La depășire vei vedea badge roșu.
+              </RNText>
+            </ScrollView>
 
             <RNView style={styles.modalActions}>
               <Pressable
@@ -338,7 +376,20 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  icon: { fontSize: 22 },
+  iconWrap: { width: 28, alignItems: 'center', justifyContent: 'center' },
+  iconPickerWrap: { marginBottom: 12, marginTop: 4 },
+  iconPickerToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  iconPickerToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  iconPickerToggleText: { fontSize: 15 },
   cardTitle: { fontSize: 15, fontWeight: '600' },
   cardSub: { fontSize: 12, marginTop: 2 },
   systemBadge: { fontSize: 11, fontWeight: '400' },
@@ -360,7 +411,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 32,
+    maxHeight: '85%',
   },
+  modalScroll: { maxHeight: '85%' },
   modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 16 },
   label: { fontSize: 12, fontWeight: '600', marginBottom: 6, marginTop: 4 },
   input: {
