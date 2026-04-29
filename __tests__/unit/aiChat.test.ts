@@ -118,3 +118,52 @@ describe('askAssistant', () => {
     expect(r.assistant.content.toLowerCase()).toContain('reformulează');
   });
 });
+
+describe('askAssistant integration — răspunde corect pentru exemplele user', () => {
+  it.each([
+    {
+      q: 'La ce bănci am cont?',
+      sql: 'SELECT id, name, type, currency, initial_balance FROM financial_accounts WHERE archived = 0 LIMIT 50',
+      template: 'list_accounts' as const,
+      params: {},
+      rows: [
+        { id: 'a1', name: 'BT', type: 'bank', currency: 'RON', initial_balance: 100 },
+        { id: 'a2', name: 'ING', type: 'bank', currency: 'RON', initial_balance: 200 },
+      ],
+      expectInText: ['2 conturi', 'BT', 'ING'],
+    },
+    {
+      q: 'Tranzacții McDonalds în BT',
+      sql: "SELECT id, date, amount, amount_ron, merchant, account_id, category_id, description FROM transactions WHERE merchant LIKE '%MCD%' LIMIT 100",
+      template: 'search_merchant' as const,
+      params: { merchant: 'MCDONALDS' },
+      rows: [
+        {
+          id: 't1',
+          date: '2026-03-12',
+          amount: -25,
+          amount_ron: -25,
+          merchant: 'MCDONALDS',
+          account_id: 'a1',
+          category_id: null,
+          description: null,
+        },
+      ],
+      expectInText: ['1 tranzacții', 'MCDONALDS'],
+    },
+  ])('răspunde la: $q', async ({ q, sql, template, params, rows, expectInText }) => {
+    sendAiRequestMock.mockResolvedValue(
+      JSON.stringify({
+        sql,
+        template,
+        params,
+        explanation_short: 'x',
+      })
+    );
+    (db.getAllAsync as jest.Mock).mockResolvedValue(rows);
+    const r = await askAssistant(q);
+    for (const expected of expectInText) {
+      expect(r.assistant.content).toContain(expected);
+    }
+  });
+});
