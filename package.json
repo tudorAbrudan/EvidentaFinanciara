@@ -38,7 +38,19 @@
     ],
     "testPathIgnorePatterns": [
       "/node_modules/"
-    ]
+    ],
+    "collectCoverageFrom": [
+      "services/**/*.ts",
+      "!services/**/*.d.ts"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 20,
+        "branches": 20,
+        "functions": 20,
+        "statements": 20
+      }
+    }
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
