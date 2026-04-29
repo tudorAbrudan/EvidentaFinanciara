@@ -264,7 +264,9 @@ recentPairs(n: number): Promise<{ user: ChatMessage; assistant: ChatMessage }[]>
 
 ### Locație
 
-`app/(tabs)/assistant.tsx`. Adăugat în `app/(tabs)/_layout.tsx` ca al 5-lea tab cu icon `chatbubbles` (Ionicons) și titlu „Asistent".
+`app/(tabs)/assistant.tsx`. Adăugat în `app/(tabs)/_layout.tsx` cu icon `chatbubbles` (Ionicons) și titlu „Asistent". **Tab bar-ul rămâne la 5 tab-uri vizibile** prin mutarea Setări dintr-un tab într-un buton ⚙️ în header-ul Sumar (`app/(tabs)/index.tsx`). Setări existent (`app/(tabs)/setari.tsx`) e mutat la o rută plată `app/setari.tsx` (Stack-style, accesibil prin `router.push('/setari')`).
+
+Tab bar nou: **Sumar | Conturi | Tranzacții | Categorii | Asistent**. Setări → header Sumar.
 
 ### Layout
 
@@ -328,7 +330,7 @@ Chips de exemplu (empty state):
 ### Header menu (⋮)
 
 - „Șterge conversația" → confirmation dialog → `clearAll()` → reload listă goală.
-- „Setări AI" → navigare la ecranul Setări AI existent.
+- „Setări AI" → `router.push('/setari')` (ecranul Setări mutat din tab).
 
 ### Cota indicator
 
