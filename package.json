@@ -15,7 +15,8 @@
     "prebuild": "expo prebuild --clean",
     "test": "jest",
     "test:watch": "jest --watch",
-    "knip": "knip"
+    "knip": "knip",
+    "madge": "madge --circular --extensions ts,tsx services components hooks app"
   },
   "jest": {
     "preset": "jest-expo",
@@ -90,6 +91,7 @@
     "jest": "^29.7.0",
     "jest-expo": "^55.0.11",
     "knip": "^5.88.1",
+    "madge": "^7.0.0",
     "prettier": "^3.2.5",
     "typescript": "~5.9.2"
   },
