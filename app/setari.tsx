@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
+import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   View,
@@ -385,7 +386,16 @@ export default function Settings() {
       style={[styles.container, { backgroundColor: C.background }]}
       contentContainerStyle={styles.scrollContent}
     >
-      <Text style={[styles.heading, { color: C.text }]}>Setări</Text>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: 'Setări',
+          headerStyle: { backgroundColor: C.background },
+          headerTitleStyle: { color: C.text },
+          headerTintColor: C.text,
+          headerBackTitle: 'Înapoi',
+        }}
+      />
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: C.text }]}>Backup & restaurare</Text>
@@ -768,7 +778,6 @@ export default function Settings() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 40 },
-  heading: { fontSize: 22, fontWeight: '600', marginBottom: 16 },
   section: { marginBottom: 28 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   body: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
