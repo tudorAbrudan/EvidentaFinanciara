@@ -39,6 +39,11 @@ Aplicația e **local-first**: nu există backend obligatoriu. Backup și sync (i
 | `aiProvider.ts`              | abstracție provider AI (built-in cu cotă, sau cheie proprie) |
 | `aiStatementMapper.ts`       | mapare tranzacții necategorizate prin AI                     |
 | `aiStatementVisionMapper.ts` | OCR + mapare AI pentru extrase imagine                       |
+| `aiChat.ts`                  | orchestrator chat AI (SQL gen → guard → execute → format)    |
+| `aiChatPrompt.ts`            | construire system prompt + history compaction                |
+| `aiChatSqlGuard.ts`          | validare SQL allowlist + clamp `LIMIT`                       |
+| `aiChatTemplates.ts`         | template-uri formatare răspuns determinist                   |
+| `aiChatRepo.ts`              | CRUD pe tabel `chat_messages`                                |
 | `pdfExtractor.ts`            | extragere text PDF                                           |
 | `pdfOcr.ts`                  | OCR pe PDF când text-extraction eșuează                      |
 | `ocr.ts`                     | wrapper ML Kit pentru OCR imagini                            |
@@ -83,6 +88,7 @@ Site static (HTML + CSS) deploy-uit pe GitHub Pages la fiecare push pe `main` ca
 | `transactions`       | tranzacții cu sumă, dată, categorie, cont, notă       |
 | `bank_statements`    | evidență import-uri pentru deduplicate                |
 | `settings`           | preferințe utilizator (key-value)                     |
+| `chat_messages`      | istoric conversație Asistent AI                       |
 
 Detalii complete în `services/db.ts`.
 

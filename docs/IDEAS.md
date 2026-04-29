@@ -1,12 +1,13 @@
 # Idei și roadmap — Finanțe
 
 > Aplicație publică, local-first, posibil monetizată. Principii:
+>
 > 1. Datele rămân pe device. Niciun backend obligatoriu.
 > 2. AI-ul e opțional și transparent (consent explicit, fără dark patterns).
-> 3. Nu adăugăm complexitate inutilă — fiecare idee răspunde la: *câți utilizatori beneficiază real, merită complexitatea?*
+> 3. Nu adăugăm complexitate inutilă — fiecare idee răspunde la: _câți utilizatori beneficiază real, merită complexitatea?_
 
 **Status:** roadmap inițial, înainte de primul spec implementat.
-**Ultima actualizare:** 2026-04-26.
+**Ultima actualizare:** 2026-04-29.
 
 ---
 
@@ -48,27 +49,33 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 
 ---
 
+## Implementat (post-MVP fundație)
+
+- **Asistent AI conversațional** (2026-04-29) — tab dedicat „Asistent" în tab bar, Setări mutat în header Sumar (⚙️). AI traduce întrebări în limba română în SQL SELECT (read-only, defense-in-depth: allowlist tabele/cuvinte cheie + PRAGMA `query_only` + clamp `LIMIT 500` + timeout 3s). App formează răspunsul prin template-uri locale (zero halucinare numerică): `search_merchant`, `top_merchants`, `monthly_total`, `category_evolution`, `period_compare`, `list_accounts`, `list_categories`, `raw_list`, `cannot_answer`. Spec: `docs/specs/2026-04-29-ai-chatbot-design.md`. Plan: `docs/plans/2026-04-29-ai-chatbot.md`.
+
+---
+
 ## Premium (post-lansare, monetizare)
 
 24. **AI vision nelimitat** — free: cota built-in actuală (20 cereri/zi). Premium: nelimitat sau cheie proprie acceptată (ce e deja implementat ca `external` provider).
 25. **Backup automat în iCloud / Google Drive** — free: export manual ZIP. Premium: programat săptămânal/lunar fără intervenție.
 26. **Rapoarte PDF brandate** — pentru oameni care vor să trimită cuiva (contabil, partener) un raport oficial pe perioadă. Template + logo + formate predefinite.
-27. **Multi-device sync E2E** — *decis ulterior.* Costă infrastructură; poate să nu apară niciodată dacă local-first e poziționarea.
+27. **Multi-device sync E2E** — _decis ulterior._ Costă infrastructură; poate să nu apară niciodată dacă local-first e poziționarea.
 
 ---
 
 ## Respinse / amânate
 
-| Idee | Motiv |
-|---|---|
-| Conectare directă API bănci (PSD2/Plaid) | RO acoperit slab, costă, fragil. PDF/CSV import e suficient pentru MVP. |
-| Sync cloud proprietar | Împotriva poziționării local-first. Backup ZIP e suficient. |
-| Login/cont online obligatoriu | Împotriva poziționării. App lock-ul biometric/PIN e tot ce trebuie. |
-| Vânzare date | Niciodată — e selling point invers. |
-| Notificări push de pe server | Nu există backend; notificările locale sunt suficiente. |
-| Widget homescreen iOS/Android | Amânat — costă timp de implementare per platformă. Poate intra după monetizare. |
-| Wear OS / Apple Watch | Out of scope pentru produs financiar. |
-| Family sharing / household partajat | Decis după monetizare; necesită infrastructură. |
+| Idee                                     | Motiv                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------- |
+| Conectare directă API bănci (PSD2/Plaid) | RO acoperit slab, costă, fragil. PDF/CSV import e suficient pentru MVP.         |
+| Sync cloud proprietar                    | Împotriva poziționării local-first. Backup ZIP e suficient.                     |
+| Login/cont online obligatoriu            | Împotriva poziționării. App lock-ul biometric/PIN e tot ce trebuie.             |
+| Vânzare date                             | Niciodată — e selling point invers.                                             |
+| Notificări push de pe server             | Nu există backend; notificările locale sunt suficiente.                         |
+| Widget homescreen iOS/Android            | Amânat — costă timp de implementare per platformă. Poate intra după monetizare. |
+| Wear OS / Apple Watch                    | Out of scope pentru produs financiar.                                           |
+| Family sharing / household partajat      | Decis după monetizare; necesită infrastructură.                                 |
 
 ---
 
