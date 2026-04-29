@@ -17,7 +17,8 @@
     "test:watch": "jest --watch",
     "knip": "knip",
     "madge": "madge --circular --extensions ts,tsx services components hooks app",
-    "dep-cruise": "depcruise --validate .dependency-cruiser.cjs services components hooks app"
+    "dep-cruise": "depcruise --validate .dependency-cruiser.cjs services components hooks app",
+    "type-coverage": "type-coverage --strict --at-least 97"
   },
   "jest": {
     "preset": "jest-expo",
@@ -95,6 +96,7 @@
     "knip": "^5.88.1",
     "madge": "^7.0.0",
     "prettier": "^3.2.5",
+    "type-coverage": "^2.29.7",
     "typescript": "~5.9.2"
   },
   "private": true
