@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finanțe — gestiune financiară personală</title>
+  <meta name="description" content="Aplicație iOS & Android pentru cheltuieli, conturi și extrase bancare. Datele rămân pe telefonul tău. Backup automat în iCloud." />
+  <meta property="og:title" content="Finanțe — gestiune financiară personală" />
+  <meta property="og:description" content="Cheltuieli, conturi, extrase bancare. Local-first, fără cloud obligatoriu, fără publicitate." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hero">
+    <nav>
+      <div class="logo">
+        <span class="logo-mark">₣</span>
+        <span class="logo-text">Finanțe</span>
+      </div>
+      <a href="#features" class="nav-link">Funcționalități</a>
+      <a href="#privacy" class="nav-link">Confidențialitate</a>
+      <a href="#download" class="nav-cta">Descarcă</a>
+    </nav>
+
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1>Banii tăi.<br /><span class="accent">Pe telefonul tău.</span></h1>
+        <p class="lede">
+          Gestiune financiară personală pentru iPhone și Android.
+          Importă extrase bancare, urmărește cheltuielile pe categorii și înțelege unde-ți pleacă banii.
+          Totul stocat local — fără cont, fără cloud obligatoriu, fără publicitate.
+        </p>
+        <div class="cta-row">
+          <a href="#download" class="btn btn-primary">Descarcă aplicația</a>
+          <a href="#features" class="btn btn-ghost">Vezi cum funcționează</a>
+        </div>
+        <ul class="hero-stats">
+          <li><strong>Local-first</strong><br /><span>Datele tale rămân pe telefon</span></li>
+          <li><strong>iCloud opțional</strong><br /><span>Backup automat doar dacă vrei tu</span></li>
+          <li><strong>Open data</strong><br /><span>Export JSON oricând</span></li>
+        </ul>
+      </div>
+
+      <div class="hero-screens">
+        <img src="screenshots/dashboard.png" alt="Dashboard Finanțe" class="phone phone-1" />
+        <img src="screenshots/evolution.png" alt="Evoluție cheltuieli" class="phone phone-2" />
+        <img src="screenshots/categories.png" alt="Cheltuieli pe categorii" class="phone phone-3" />
+      </div>
+    </div>
+  </header>
+
+  <section id="features" class="features">
+    <div class="container">
+      <h2>Tot ce-ți trebuie pentru a-ți ține banii sub control</h2>
+
+      <div class="grid">
+        <article class="card">
+          <div class="icon">📥</div>
+          <h3>Importă extrase bancare</h3>
+          <p>
+            PDF sau CSV de la BT, ING, Revolut, OTP. Tranzacțiile se categorizează automat
+            și se deduplică, ca să nu numeri de două ori același cumpărat.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="icon">📊</div>
+          <h3>Cheltuieli pe categorii</h3>
+          <p>
+            Casă, mâncare, transport, utilități, abonamente. Vezi imediat unde se duc banii
+            și ce categorii cresc lună de lună.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="icon">📈</div>
+          <h3>Evoluție pe 3, 6 sau 12 luni</h3>
+          <p>
+            Grafic cu cheltuielile lunare și media — ușor de văzut tendințele
+            și de prins lunile aberante.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="icon">💼</div>
+          <h3>Mai multe conturi</h3>
+          <p>
+            Cont bancar, card, numerar, economii, investiții. Solduri în RON, EUR, USD —
+            cu conversie automată la cursul BNR.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="icon">☁️</div>
+          <h3>Backup automat în iCloud</h3>
+          <p>
+            Configurabil — zilnic, săptămânal sau lunar. Snapshot-urile se rotesc automat,
+            iar restaurarea durează câteva secunde.
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="icon">🤖</div>
+          <h3>Asistent AI opțional</h3>
+          <p>
+            Întrebi „cât am cheltuit pe mâncare luna asta?" și primești răspuns.
+            Folosești fie cheia ta proprie, fie modelul integrat — sau deloc.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="privacy" class="privacy">
+    <div class="container">
+      <h2>Datele tale, pe telefonul tău</h2>
+      <p class="privacy-lede">
+        Finanțe e o aplicație <strong>local-first</strong>. Toate datele —
+        tranzacții, extrase, conturi — sunt stocate într-o bază SQLite pe telefon.
+        Nu trimitem nimic pe servere proprii. Nu avem servere proprii.
+      </p>
+
+      <ul class="privacy-list">
+        <li>
+          <strong>Fără cont, fără înregistrare.</strong>
+          Deschizi aplicația și începi.
+        </li>
+        <li>
+          <strong>Fără tracking, fără analytics.</strong>
+          Nu știm cine ești și nici nu vrem să știm.
+        </li>
+        <li>
+          <strong>Backup în iCloud doar dacă activezi tu.</strong>
+          Sincronizarea folosește iCloud Drive — datele rămân în contul tău Apple.
+        </li>
+        <li>
+          <strong>Export oricând.</strong>
+          Buton de export JSON — datele sunt ale tale, le poți lua cu tine.
+        </li>
+        <li>
+          <strong>AI doar cu acordul tău.</strong>
+          Asistentul AI e opțional. Dacă-l activezi, alegi tu provider-ul.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="download" class="download">
+    <div class="container">
+      <h2>Descarcă Finanțe</h2>
+      <p>În curând în App Store și Google Play.</p>
+      <div class="store-row">
+        <a href="#" class="store-badge disabled" aria-disabled="true">
+          <span class="store-eyebrow">În curând pe</span>
+          <span class="store-name">App Store</span>
+        </a>
+        <a href="#" class="store-badge disabled" aria-disabled="true">
+          <span class="store-eyebrow">În curând pe</span>
+          <span class="store-name">Google Play</span>
+        </a>
+      </div>
+      <p class="hint">
+        Vrei să fii anunțat când iese? Trimite un email la
+        <a href="mailto:tudor.abrudan1@gmail.com">tudor.abrudan1@gmail.com</a>.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <span>© 2026 Finanțe. Făcut în România.</span>
+      <span class="footer-links">
+        <a href="#privacy">Confidențialitate</a>
+      </span>
+    </div>
+  </footer>
+</body>
+</html>
