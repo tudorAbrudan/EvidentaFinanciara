@@ -1,0 +1,43 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "app/**/*.{ts,tsx}",
+    "components/useColorScheme.web.ts",
+    "services/**/*.{ts,tsx}",
+    "theme/**/*.{ts,tsx}",
+    "types/**/*.{ts,tsx}"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "hooks/**/*.{ts,tsx}",
+    "services/**/*.{ts,tsx}",
+    "theme/**/*.{ts,tsx}",
+    "constants/**/*.{ts,tsx}",
+    "types/**/*.{ts,tsx}"
+  ],
+  "ignore": [
+    "__mocks__/**",
+    "ios/**",
+    "android/**",
+    ".expo/**"
+  ],
+  "ignoreDependencies": [
+    "expo-constants",
+    "expo-status-bar",
+    "expo-updates",
+    "react-dom",
+    "expo-splash-screen",
+    "expo-notifications",
+    "expo-clipboard",
+    "expo-haptics",
+    "expo-image-picker",
+    "expo-image-manipulator",
+    "react-native-worklets",
+    "@react-navigation/elements"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "ignoreUnresolved": [
+    "@/modules/pdf-renderer/src"
+  ]
+}
