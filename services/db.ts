@@ -85,6 +85,18 @@ db.execSync(`
     PRIMARY KEY (date, currency)
   );
 
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id TEXT PRIMARY KEY,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    template TEXT,
+    sql_used TEXT,
+    evidence_json TEXT,
+    explanation_short TEXT,
+    error_kind TEXT,
+    created_at TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_fa_archived ON financial_accounts(archived);
   CREATE INDEX IF NOT EXISTS idx_cat_system ON expense_categories(is_system, archived);
   CREATE INDEX IF NOT EXISTS idx_cat_parent ON expense_categories(parent_id);
@@ -96,6 +108,7 @@ db.execSync(`
   CREATE INDEX IF NOT EXISTS idx_tx_transfer ON transactions(linked_transaction_id);
   CREATE INDEX IF NOT EXISTS idx_bs_account_period ON bank_statements(account_id, period_to DESC);
   CREATE INDEX IF NOT EXISTS idx_fx_rates_currency_date ON fx_rates(currency, date DESC);
+  CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at DESC);
 `);
 
 try {
