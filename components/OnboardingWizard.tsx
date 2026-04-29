@@ -455,7 +455,7 @@ function WelcomeStep({ C }: ThemedProps) {
       <StepHeader
         C={C}
         icon="sparkles"
-        title="Bine ai venit la Finanțe"
+        title="Bine ai venit la Finanțe Personale"
         subtitle="O aplicație simplă pentru a-ți urmări banii — local, fără conturi online."
       />
       <BulletList

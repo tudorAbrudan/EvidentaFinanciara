@@ -278,7 +278,7 @@ export async function restoreFromCloud(
     throw new Error('Backup-ul a fost creat cu o versiune mai nouă a aplicației.');
   }
   if (payload.app !== APP_TAG) {
-    throw new Error('Backup-ul nu provine din aplicația Finanțe.');
+    throw new Error('Backup-ul nu provine din aplicația Finanțe Personale.');
   }
   onProgress?.({ phase: 'manifest', current: 1, total: 1 });
 

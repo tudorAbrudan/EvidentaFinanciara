@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Finanțe",
+    "name": "Finanțe Personale",
     "slug": "finante",
     "scheme": "finante",
     "version": "0.1.0",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ax.finante",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "deploymentTarget": "16.0"
     },
     "android": {

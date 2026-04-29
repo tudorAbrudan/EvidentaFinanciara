@@ -96,7 +96,7 @@ export async function exportBackup(): Promise<string> {
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(path, {
       mimeType: 'application/json',
-      dialogTitle: 'Backup Finanțe',
+      dialogTitle: 'Backup Finanțe Personale',
     });
   }
   return path;
@@ -112,7 +112,7 @@ export async function importBackup(path: string): Promise<BackupSummary> {
   }
   const payload = (raw ?? {}) as Record<string, unknown>;
   if (payload.app !== APP_TAG) {
-    throw new Error('Backup-ul nu provine din aplicația Finanțe.');
+    throw new Error('Backup-ul nu provine din aplicația Finanțe Personale.');
   }
   const version = payload.version;
   if (typeof version !== 'number' || version > BACKUP_VERSION) {
@@ -418,7 +418,7 @@ export async function applyManifest(
   opts: ApplyManifestOptions = {}
 ): Promise<void> {
   if (payload.app !== APP_TAG) {
-    throw new Error('Backup-ul nu provine din aplicația Finanțe.');
+    throw new Error('Backup-ul nu provine din aplicația Finanțe Personale.');
   }
   const version = payload.version;
   if (typeof version !== 'number' || version > BACKUP_VERSION) {
