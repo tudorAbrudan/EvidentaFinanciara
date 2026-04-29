@@ -3,7 +3,7 @@ name: sqlite-migration
 description: Use when modifying schema in services/db.ts, adding tables, columns, or changing serialized structures — enforces migration safety, backup compatibility, and manifest hash updates.
 ---
 
-# SQLite migration — Finanțe
+# SQLite migration — Finanțe Personale
 
 Reguli pentru modificarea schemei SQLite. Aplică **înainte** de orice modificare la `services/db.ts`.
 

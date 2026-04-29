@@ -1,4 +1,4 @@
-# Arhitectură — Finanțe
+# Arhitectură — Finanțe Personale
 
 > Document point-in-time. Hook-ul `sync-docs` semnalează când conținutul poate fi învechit.
 > **Ultima actualizare:** 2026-04-29.

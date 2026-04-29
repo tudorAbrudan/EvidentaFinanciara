@@ -1,4 +1,4 @@
-# Idei și roadmap — Finanțe
+# Idei și roadmap — Finanțe Personale
 
 > Aplicație publică, local-first, posibil monetizată. Principii:
 >

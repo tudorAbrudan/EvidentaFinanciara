@@ -3,7 +3,7 @@ name: feature-checklist
 description: Use when finishing a feature from docs/IDEAS.md — checklist final cu spec, plan, teste, IDEAS update, landing update, CLAUDE.md/ARCHITECTURE.md update.
 ---
 
-# Feature checklist — Finanțe
+# Feature checklist — Finanțe Personale
 
 La finalizarea unui feature din `docs/IDEAS.md`, înainte de ultimul commit, parcurge checklist-ul:
 

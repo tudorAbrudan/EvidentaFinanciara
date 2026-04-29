@@ -1,4 +1,4 @@
-# Finanțe — context proiect pentru Claude
+# Finanțe Personale — context proiect pentru Claude
 
 Aplicație React Native + Expo (TypeScript) pentru gestiunea financiară personală.
 Local-first: datele rămân pe device, AI și cloud sync sunt opționale și transparente.

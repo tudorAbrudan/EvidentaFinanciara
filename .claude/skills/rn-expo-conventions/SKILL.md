@@ -3,7 +3,7 @@ name: rn-expo-conventions
 description: Use when editing files in app/, components/, hooks/, theme/, or any TSX file in this project — enforces project conventions for TypeScript, theme tokens, useColorScheme imports, alias paths, and Romanian UI text.
 ---
 
-# RN/Expo conventions — Finanțe
+# RN/Expo conventions — Finanțe Personale
 
 Reguli proiect pentru editarea de cod RN/Expo. Aplică-le proactiv, fără ca userul să le ceară explicit.
 

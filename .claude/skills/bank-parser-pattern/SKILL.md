@@ -3,7 +3,7 @@ name: bank-parser-pattern
 description: Use when editing or adding parsers in services/bankStatement*.ts — enforces fixture-based testing, regex robustness, deduplication, and edge cases for RO bank statements (BT, ING, Revolut, OTP).
 ---
 
-# Bank parser pattern — Finanțe
+# Bank parser pattern — Finanțe Personale
 
 Reguli pentru parser-uri de extrase bancare RO.
 

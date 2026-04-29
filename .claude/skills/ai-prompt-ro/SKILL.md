@@ -3,7 +3,7 @@ name: ai-prompt-ro
 description: Use when editing services/aiProvider.ts, aiStatementMapper.ts, or aiStatementVisionMapper.ts — enforces Romanian prompts, stable JSON schemas, rate-limit awareness, and snapshot tests for AI responses.
 ---
 
-# AI prompts RO — Finanțe
+# AI prompts RO — Finanțe Personale
 
 Reguli pentru cod care interacționează cu provider AI.
 
