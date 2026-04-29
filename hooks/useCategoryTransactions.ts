@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+
 import * as tx from '@/services/transactions';
 import type { Transaction } from '@/types';
 
@@ -61,7 +62,7 @@ export function useCategoryTransactions(
   }, [yearMonth, categoryKey, accountId]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   return { transactions, loading, error, refresh };

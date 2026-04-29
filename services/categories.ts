@@ -1,4 +1,5 @@
 import { db, generateId } from './db';
+
 import type { CategoryKey, ExpenseCategory } from '@/types';
 
 type Row = {

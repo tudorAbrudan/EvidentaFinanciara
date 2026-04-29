@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, Text, StyleSheet, View, Platform } from 'react-native';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { radius } from '@/theme/layout';

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 

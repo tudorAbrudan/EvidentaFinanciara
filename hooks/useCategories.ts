@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { ExpenseCategory } from '@/types';
+
 import * as cats from '@/services/categories';
+import type { ExpenseCategory } from '@/types';
 
 export function useCategories(includeArchived = false) {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
@@ -26,7 +27,7 @@ export function useCategories(includeArchived = false) {
   }, [includeArchived]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   return {

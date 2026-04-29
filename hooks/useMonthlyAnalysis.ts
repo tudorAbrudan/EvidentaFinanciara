@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+
 import * as tx from '@/services/transactions';
 import type { Transaction } from '@/types';
 
@@ -46,7 +47,7 @@ export function useMonthlyAnalysis(yearMonth: string, accountId?: string) {
   }, [yearMonth, accountId]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   return { analysis, loading, error, refresh };

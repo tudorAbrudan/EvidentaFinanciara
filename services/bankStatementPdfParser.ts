@@ -146,7 +146,9 @@ function parseBt(text: string, defaultCurrency: string): PdfParseResult {
   flush();
 
   if (rows.length === 0) {
-    warnings.push('Niciun rând nu a fost extras din extrasul BT — verifică OCR-ul sau folosește fallback AI.');
+    warnings.push(
+      'Niciun rând nu a fost extras din extrasul BT — verifică OCR-ul sau folosește fallback AI.'
+    );
   }
 
   return { rows, format: 'bt', warnings };
@@ -209,7 +211,10 @@ function extractTransaction(
 
   // Eliminăm și restul sumelor (sold, etc.)
   for (let i = 1; i < matches.length; i++) {
-    description = description.replace(matches[i].raw, ' ').replace(/\s{2,}/g, ' ').trim();
+    description = description
+      .replace(matches[i].raw, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   }
 
   // Heuristic merchant: primele 2-3 cuvinte semnificative după curățire

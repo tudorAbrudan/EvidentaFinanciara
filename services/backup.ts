@@ -1,9 +1,11 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+
+import * as categories from './categories';
 import { db, generateId } from './db';
 import * as financialAccounts from './financialAccounts';
-import * as categories from './categories';
 import * as transactions from './transactions';
+
 import type {
   FinancialAccount,
   FinancialAccountType,

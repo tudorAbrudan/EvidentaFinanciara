@@ -1,4 +1,9 @@
 import * as db from '@/services/db';
+import {
+  getCurrentBalance,
+  getCurrentBalances,
+  createFinancialAccount,
+} from '@/services/financialAccounts';
 
 jest.mock('@/services/db', () => ({
   __esModule: true,
@@ -9,12 +14,6 @@ jest.mock('@/services/db', () => ({
   },
   generateId: () => 'acc-test-id',
 }));
-
-import {
-  getCurrentBalance,
-  getCurrentBalances,
-  createFinancialAccount,
-} from '@/services/financialAccounts';
 
 describe('getCurrentBalance', () => {
   it('returns initial_balance + sum of transactions', async () => {

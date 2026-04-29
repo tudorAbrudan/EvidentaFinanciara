@@ -1,7 +1,4 @@
-import {
-  detectStatementFormat,
-  parseStatementPdf,
-} from '@/services/bankStatementPdfParser';
+import { detectStatementFormat, parseStatementPdf } from '@/services/bankStatementPdfParser';
 
 describe('detectStatementFormat', () => {
   it('detects BT from header keyword', () => {
@@ -58,7 +55,7 @@ Data tranzactie  Detalii  Suma
       (r.description ?? '').toLowerCase().includes('kaufland')
     );
     expect(kaufland).toBeDefined();
-    expect(Math.abs((kaufland!.amount + 125.5))).toBeLessThan(0.01);
+    expect(Math.abs(kaufland!.amount + 125.5)).toBeLessThan(0.01);
   });
 
   it('suggests category from merchant keywords', () => {

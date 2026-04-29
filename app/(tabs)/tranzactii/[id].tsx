@@ -1,3 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   StyleSheet,
@@ -9,17 +12,14 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { useHeaderHeight } from '@react-navigation/elements';
-import { Ionicons } from '@expo/vector-icons';
-import { Text, View, ThemedTextInput } from '@/components/Themed';
+
 import CategoryIcon from '@/components/CategoryIcon';
+import { Text, View, ThemedTextInput } from '@/components/Themed';
+import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary, statusColors } from '@/theme/colors';
-import { BottomActionBar } from '@/components/ui/BottomActionBar';
-import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useCategories } from '@/hooks/useCategories';
+import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
 import {
   getTransaction,
@@ -27,6 +27,7 @@ import {
   findInternalTransferCandidatesNear,
   linkAsInternalTransfer,
 } from '@/services/transactions';
+import { primary, statusColors } from '@/theme/colors';
 import type { ExpenseCategory, FinancialAccount, Transaction } from '@/types';
 
 type TxKind = 'expense' | 'income';
@@ -89,7 +90,7 @@ export default function TransactionEditorScreen() {
   useEffect(() => {
     if (!editingId) return;
     let cancelled = false;
-    getTransaction(editingId)
+    void getTransaction(editingId)
       .then((tx: Transaction | null) => {
         if (cancelled || !tx) return;
         setKind(tx.amount >= 0 ? 'income' : 'expense');
@@ -187,18 +188,20 @@ export default function TransactionEditorScreen() {
               {
                 text: 'Adaugă oricum',
                 style: 'destructive',
-                onPress: async () => {
-                  setLoading(true);
-                  try {
-                    await performSave(signedAmount);
-                  } catch (e) {
-                    Alert.alert(
-                      'Eroare',
-                      e instanceof Error ? e.message : 'Nu s-a putut salva tranzacția'
-                    );
-                  } finally {
-                    setLoading(false);
-                  }
+                onPress: () => {
+                  void (async () => {
+                    setLoading(true);
+                    try {
+                      await performSave(signedAmount);
+                    } catch (e) {
+                      Alert.alert(
+                        'Eroare',
+                        e instanceof Error ? e.message : 'Nu s-a putut salva tranzacția'
+                      );
+                    } finally {
+                      setLoading(false);
+                    }
+                  })();
                 },
               },
             ]
@@ -222,14 +225,16 @@ export default function TransactionEditorScreen() {
       {
         text: 'Șterge',
         style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteTransaction(editingId);
-            await refresh();
-            if (router.canGoBack()) router.back();
-          } catch (e) {
-            Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut șterge.');
-          }
+        onPress: () => {
+          void (async () => {
+            try {
+              await deleteTransaction(editingId);
+              await refresh();
+              if (router.canGoBack()) router.back();
+            } catch (e) {
+              Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut șterge.');
+            }
+          })();
         },
       },
     ]);
@@ -451,7 +456,7 @@ export default function TransactionEditorScreen() {
           )}
         </ScrollView>
       </Pressable>
-      <BottomActionBar label="Salvează" onPress={handleSubmit} loading={loading} safeArea />
+      <BottomActionBar label="Salvează" onPress={() => { void handleSubmit(); }} loading={loading} safeArea />
     </KeyboardAvoidingView>
   );
 }

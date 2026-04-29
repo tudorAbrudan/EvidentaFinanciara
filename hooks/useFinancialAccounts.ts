@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { FinancialAccount } from '@/types';
+
 import * as fa from '@/services/financialAccounts';
+import type { FinancialAccount } from '@/types';
 
 export interface AccountWithBalance extends FinancialAccount {
   balance: number;
@@ -28,7 +29,7 @@ export function useFinancialAccounts(includeArchived = false) {
   }, [includeArchived]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   return {

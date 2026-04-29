@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, Text, StyleSheet, View, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { radius } from '@/theme/layout';

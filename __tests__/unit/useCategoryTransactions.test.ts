@@ -1,12 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
 
+import { useCategoryTransactions } from '@/hooks/useCategoryTransactions';
+import * as txService from '@/services/transactions';
+
 jest.mock('@/services/transactions', () => ({
   __esModule: true,
   getTransactions: jest.fn(),
 }));
-
-import * as txService from '@/services/transactions';
-import { useCategoryTransactions } from '@/hooks/useCategoryTransactions';
 
 describe('useCategoryTransactions', () => {
   beforeEach(() => {
@@ -53,13 +53,9 @@ describe('useCategoryTransactions', () => {
       ({ key }: { key: string | null }) => useCategoryTransactions('2026-04', key),
       { initialProps: { key: 'cat-abc' as string | null } }
     );
-    await waitFor(() =>
-      expect((txService.getTransactions as jest.Mock).mock.calls.length).toBe(1)
-    );
+    await waitFor(() => expect((txService.getTransactions as jest.Mock).mock.calls.length).toBe(1));
     rerender({ key: 'cat-xyz' });
-    await waitFor(() =>
-      expect((txService.getTransactions as jest.Mock).mock.calls.length).toBe(2)
-    );
+    await waitFor(() => expect((txService.getTransactions as jest.Mock).mock.calls.length).toBe(2));
   });
 
   it('exposes error message in Romanian on failure', async () => {

@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useFocusEffect } from 'expo-router';
+import { useState } from 'react';
+import { useCallback } from 'react';
 import {
   StyleSheet,
   Pressable,
@@ -7,22 +10,19 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
   View as RNView,
   Text as RNText,
 } from 'react-native';
-import { router, Stack, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { ThemedTextInput } from '@/components/Themed';
+
 import CategoryIcon from '@/components/CategoryIcon';
 import IconPicker from '@/components/IconPicker';
+import { ThemedTextInput } from '@/components/Themed';
+import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary, statusColors } from '@/theme/colors';
-import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useCategories } from '@/hooks/useCategories';
+import { primary, statusColors } from '@/theme/colors';
 import type { ExpenseCategory } from '@/types';
-import { useCallback } from 'react';
 
 export default function CategoriiScreen() {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
@@ -52,7 +52,7 @@ export default function CategoriiScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      refresh();
+      void refresh();
     }, [refresh])
   );
 
@@ -118,7 +118,9 @@ export default function CategoriiScreen() {
   function handleArchiveToggle(cat: ExpenseCategory) {
     archiveCategory(cat.id, !cat.archived)
       .then(refresh)
-      .catch(e => Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut actualiza.'));
+      .catch(e =>
+        Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut actualiza.')
+      );
   }
 
   function handleDelete(cat: ExpenseCategory) {
@@ -137,13 +139,15 @@ export default function CategoriiScreen() {
         {
           text: 'Șterge',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteCategory(cat.id);
-              await refresh();
-            } catch (e) {
-              Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut șterge.');
-            }
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteCategory(cat.id);
+                await refresh();
+              } catch (e) {
+                Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut șterge.');
+              }
+            })();
           },
         },
       ]
@@ -157,9 +161,7 @@ export default function CategoriiScreen() {
         {categories.length === 0 && !loading && (
           <RNView style={styles.emptyWrap}>
             <Ionicons name="pricetags-outline" size={48} color={C.textSecondary} />
-            <RNText style={[styles.emptyTitle, { color: C.text }]}>
-              Nu există categorii încă
-            </RNText>
+            <RNText style={[styles.emptyTitle, { color: C.text }]}>Nu există categorii încă</RNText>
           </RNView>
         )}
         {categories.map(cat => {
@@ -185,7 +187,10 @@ export default function CategoriiScreen() {
                   <RNText style={[styles.cardTitle, { color: C.text }]} numberOfLines={1}>
                     {cat.name}
                     {cat.is_system ? (
-                      <RNText style={[styles.systemBadge, { color: C.textSecondary }]}> · sistem</RNText>
+                      <RNText style={[styles.systemBadge, { color: C.textSecondary }]}>
+                        {' '}
+                        · sistem
+                      </RNText>
                     ) : null}
                   </RNText>
                   {cat.monthly_limit ? (
@@ -316,7 +321,9 @@ export default function CategoriiScreen() {
                   />
                 </RNView>
               ) : null}
-              <RNText style={[styles.label, { color: C.textSecondary }]}>Limită lunară (RON)</RNText>
+              <RNText style={[styles.label, { color: C.textSecondary }]}>
+                Limită lunară (RON)
+              </RNText>
               <ThemedTextInput
                 style={styles.input}
                 placeholder="500"
@@ -341,7 +348,7 @@ export default function CategoriiScreen() {
                 <RNText style={{ color: C.text, fontWeight: '500' }}>Anulează</RNText>
               </Pressable>
               <Pressable
-                onPress={handleSave}
+                onPress={() => { void handleSave(); }}
                 disabled={saving}
                 style={({ pressed }) => [
                   styles.modalBtn,

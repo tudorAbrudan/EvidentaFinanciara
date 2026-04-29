@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
+
 import * as cloudSync from '@/services/cloudSync';
 import * as settings from '@/services/settings';
 

@@ -298,9 +298,10 @@ function mapColumns(header: string[], format: ParseResult['format']): ColumnMap 
     merchant,
     reference,
     // some formats reuse columns
-    ...(format === 'revolut' && {
-      // Revolut split debit/credit not used; "Amount" is signed already.
-    }),
+    ...(format === 'revolut' &&
+      {
+        // Revolut split debit/credit not used; "Amount" is signed already.
+      }),
   };
 }
 

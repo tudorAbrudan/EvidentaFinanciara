@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { Stack } from 'expo-router';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
@@ -8,13 +10,12 @@ import {
   Text as RNText,
   ActivityIndicator,
 } from 'react-native';
-import { Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary, statusColors } from '@/theme/colors';
 import { useCategories } from '@/hooks/useCategories';
 import * as tx from '@/services/transactions';
+import { primary, statusColors } from '@/theme/colors';
 
 const RANGE_OPTIONS = [
   { months: 3, label: '3 luni' },
@@ -82,7 +83,7 @@ export default function EvolutieScreen() {
   }, [categories, monthsBack]);
 
   useEffect(() => {
-    if (categories.length > 0) refresh();
+    if (categories.length > 0) void refresh();
   }, [refresh, categories.length]);
 
   const maxTotal = useMemo(() => Math.max(1, ...totalsByMonth.map(t => t.total)), [totalsByMonth]);
@@ -113,7 +114,7 @@ export default function EvolutieScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={C.primary} />
+          <RefreshControl refreshing={loading} onRefresh={() => { void refresh(); }} tintColor={C.primary} />
         }
       >
         {/* Range picker */}

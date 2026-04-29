@@ -1,4 +1,5 @@
 import { db, generateId } from './db';
+
 import type { FinancialAccount, FinancialAccountType } from '@/types';
 
 type Row = {

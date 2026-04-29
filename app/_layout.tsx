@@ -6,10 +6,10 @@ import { useColorScheme as useColorSchemeNative } from 'react-native';
 import AppLockScreen from '@/components/AppLockScreen';
 import OnboardingWizard from '@/components/OnboardingWizard';
 import { AppLightTheme, AppDarkTheme } from '@/constants/Theme';
-import { ThemePreferenceContext } from '@/hooks/useThemeScheme';
-import type { ThemePreference } from '@/hooks/useThemeScheme';
 import { useAppLock } from '@/hooks/useAppLock';
 import { useCloudSync } from '@/hooks/useCloudSync';
+import { ThemePreferenceContext } from '@/hooks/useThemeScheme';
+import type { ThemePreference } from '@/hooks/useThemeScheme';
 import * as settings from '@/services/settings';
 
 export { ErrorBoundary } from 'expo-router';
@@ -23,8 +23,8 @@ export default function RootLayout() {
   useCloudSync();
 
   useEffect(() => {
-    settings.getThemePreference().then(setThemePreferenceState);
-    settings.isOnboardingDone().then(done => {
+    void settings.getThemePreference().then(setThemePreferenceState);
+    void settings.isOnboardingDone().then(done => {
       setNeedsOnboarding(!done);
       setOnboardingChecked(true);
     });

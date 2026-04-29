@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
 import { useState, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
@@ -8,17 +10,16 @@ import {
   View as RNView,
   Text as RNText,
 } from 'react-native';
-import { router, useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+
+import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary, statusColors } from '@/theme/colors';
-import { BottomActionBar } from '@/components/ui/BottomActionBar';
+import { useCategories } from '@/hooks/useCategories';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
-import { useCategories } from '@/hooks/useCategories';
 import { getBankStatementsForAccount, deleteBankStatement } from '@/services/bankStatements';
 import { backfillMissingRates, countMissingRates } from '@/services/transactions';
+import { primary, statusColors } from '@/theme/colors';
 import { FINANCIAL_ACCOUNT_TYPE_LABELS, type BankStatement, type Transaction } from '@/types';
 
 export default function FinancialAccountDetailScreen() {
@@ -67,11 +68,11 @@ export default function FinancialAccountDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      refreshAccounts();
-      refresh();
-      loadStatements();
-      loadMissingRates();
-    }, [loadStatements, loadMissingRates])
+      void refreshAccounts();
+      void refresh();
+      void loadStatements();
+      void loadMissingRates();
+    }, [loadStatements, loadMissingRates, refresh, refreshAccounts])
   );
 
   async function handleBackfillRates() {
@@ -130,14 +131,19 @@ export default function FinancialAccountDetailScreen() {
         {
           text: 'Șterge',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteAccount(accountId);
-              if (router.canGoBack()) router.back();
-              else router.replace('/(tabs)/conturi');
-            } catch (e) {
-              Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut șterge contul.');
-            }
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteAccount(accountId);
+                if (router.canGoBack()) router.back();
+                else router.replace('/(tabs)/conturi');
+              } catch (e) {
+                Alert.alert(
+                  'Eroare',
+                  e instanceof Error ? e.message : 'Nu s-a putut șterge contul.'
+                );
+              }
+            })();
           },
         },
       ]
@@ -159,31 +165,35 @@ export default function FinancialAccountDetailScreen() {
         { text: 'Anulează', style: 'cancel' },
         {
           text: 'Doar importul',
-          onPress: async () => {
-            try {
-              await deleteBankStatement(s.id, false);
-              await Promise.all([loadStatements(), refresh(), refreshAccounts()]);
-            } catch (e) {
-              Alert.alert(
-                'Eroare',
-                e instanceof Error ? e.message : 'Nu s-a putut șterge importul.'
-              );
-            }
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteBankStatement(s.id, false);
+                await Promise.all([loadStatements(), refresh(), refreshAccounts()]);
+              } catch (e) {
+                Alert.alert(
+                  'Eroare',
+                  e instanceof Error ? e.message : 'Nu s-a putut șterge importul.'
+                );
+              }
+            })();
           },
         },
         {
           text: 'Cu tranzacții',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteBankStatement(s.id, true);
-              await Promise.all([loadStatements(), refresh(), refreshAccounts()]);
-            } catch (e) {
-              Alert.alert(
-                'Eroare',
-                e instanceof Error ? e.message : 'Nu s-a putut șterge importul.'
-              );
-            }
+          onPress: () => {
+            void (async () => {
+              try {
+                await deleteBankStatement(s.id, true);
+                await Promise.all([loadStatements(), refresh(), refreshAccounts()]);
+              } catch (e) {
+                Alert.alert(
+                  'Eroare',
+                  e instanceof Error ? e.message : 'Nu s-a putut șterge importul.'
+                );
+              }
+            })();
           },
         },
       ]
@@ -196,7 +206,7 @@ export default function FinancialAccountDetailScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={C.primary} />
+          <RefreshControl refreshing={loading} onRefresh={() => { void refresh(); }} tintColor={C.primary} />
         }
       >
         {/* Balance card */}
@@ -310,7 +320,7 @@ export default function FinancialAccountDetailScreen() {
               </RNText>
             </RNView>
             <Pressable
-              onPress={handleBackfillRates}
+              onPress={() => { void handleBackfillRates(); }}
               disabled={backfilling}
               hitSlop={8}
               style={({ pressed }) => [

@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import * as db from '@/services/db';
+import { createDemoData, deleteDemoData, hasDemoData, getDemoAccountId } from '@/services/demoData';
 
 jest.mock('@/services/db', () => ({
   __esModule: true,
@@ -11,8 +13,6 @@ jest.mock('@/services/db', () => ({
   },
   generateId: jest.fn(() => 'demo-acc-id'),
 }));
-
-import { createDemoData, deleteDemoData, hasDemoData, getDemoAccountId } from '@/services/demoData';
 
 const DEMO_KEY = 'settings_demo_account_id';
 

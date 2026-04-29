@@ -1,6 +1,6 @@
-import { Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
+import { Text } from 'react-native';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -13,12 +13,7 @@ interface Props {
   fallback?: string;
 }
 
-export default function CategoryIcon({
-  icon,
-  size = 24,
-  color,
-  fallback = '🏷️',
-}: Props) {
+export default function CategoryIcon({ icon, size = 24, color, fallback = '🏷️' }: Props) {
   if (icon && IONICON_NAME_RE.test(icon)) {
     return <Ionicons name={icon as IoniconName} size={size} color={color} />;
   }

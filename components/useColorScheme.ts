@@ -1,5 +1,6 @@
-import { useColorScheme as useColorSchemeCore } from 'react-native';
 import { useContext } from 'react';
+import { useColorScheme as useColorSchemeCore } from 'react-native';
+
 import { ThemePreferenceContext } from '@/hooks/useThemeScheme';
 
 export const useColorScheme = () => {

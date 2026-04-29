@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect, Stack } from 'expo-router';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   StyleSheet,
@@ -9,17 +11,16 @@ import {
   Text as RNText,
   Modal,
 } from 'react-native';
-import { router, useFocusEffect, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+
+import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary, statusColors } from '@/theme/colors';
-import { BottomActionBar } from '@/components/ui/BottomActionBar';
-import { useMonthlyAnalysis } from '@/hooks/useMonthlyAnalysis';
-import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useCategories } from '@/hooks/useCategories';
-import { formatYearMonth, updateTransaction } from '@/services/transactions';
 import { useCategoryTransactions, UNCATEGORIZED_KEY } from '@/hooks/useCategoryTransactions';
+import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
+import { useMonthlyAnalysis } from '@/hooks/useMonthlyAnalysis';
+import { formatYearMonth, updateTransaction } from '@/services/transactions';
+import { primary, statusColors } from '@/theme/colors';
 import type { Transaction, ExpenseCategory } from '@/types';
 
 const RO_MONTHS = [
@@ -83,9 +84,9 @@ export default function FinanciarHubScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      refreshAccounts();
-      refresh();
-      refreshExpanded();
+      void refreshAccounts();
+      void refresh();
+      void refreshExpanded();
     }, [refreshAccounts, refresh, refreshExpanded])
   );
 
@@ -207,7 +208,7 @@ export default function FinanciarHubScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={C.primary} />
+          <RefreshControl refreshing={loading} onRefresh={() => { void refresh(); }} tintColor={C.primary} />
         }
       >
         {/* Month picker */}
@@ -396,7 +397,7 @@ export default function FinanciarHubScreen() {
                       transactions={expandedTxs}
                       categoryMap={categoryMap}
                       C={C}
-                      onRetry={refreshExpanded}
+                      onRetry={() => { void refreshExpanded(); }}
                       onCategoryEdit={txId => setPickerTxId(txId)}
                     />
                   )}
@@ -471,7 +472,7 @@ export default function FinanciarHubScreen() {
         currentCategoryId={
           pickerTxId ? (expandedTxs.find(t => t.id === pickerTxId)?.category_id ?? null) : null
         }
-        onPick={handleCategoryPick}
+        onPick={catId => { void handleCategoryPick(catId); }}
         onClose={() => !pickerSaving && setPickerTxId(null)}
         C={C}
         saving={pickerSaving}

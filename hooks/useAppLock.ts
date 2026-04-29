@@ -1,6 +1,7 @@
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useEffect, useState, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import * as LocalAuthentication from 'expo-local-authentication';
+
 import * as settings from '@/services/settings';
 
 export function useAppLock() {
@@ -9,7 +10,7 @@ export function useAppLock() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   useEffect(() => {
-    settings.getAppLockEnabled().then(enabled => {
+    void settings.getAppLockEnabled().then(enabled => {
       setLockEnabledState(enabled);
       if (enabled) setLocked(true);
     });
@@ -17,9 +18,9 @@ export function useAppLock() {
 
   useEffect(() => {
     if (!lockEnabled) return;
-    LocalAuthentication.hasHardwareAsync().then(has => {
+    void LocalAuthentication.hasHardwareAsync().then(has => {
       if (has)
-        LocalAuthentication.supportedAuthenticationTypesAsync().then(() =>
+        void LocalAuthentication.supportedAuthenticationTypesAsync().then(() =>
           setBiometricAvailable(true)
         );
     });
@@ -51,7 +52,7 @@ export function useAppLock() {
   }, []);
 
   const refreshLockEnabled = useCallback(() => {
-    settings.getAppLockEnabled().then(setLockEnabledState);
+    void settings.getAppLockEnabled().then(setLockEnabledState);
   }, []);
 
   return {

@@ -1,3 +1,5 @@
+import { useHeaderHeight } from '@react-navigation/elements';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   StyleSheet,
@@ -8,18 +10,14 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useHeaderHeight } from '@react-navigation/elements';
+
 import { Text, View, ThemedTextInput } from '@/components/Themed';
+import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary } from '@/theme/colors';
-import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
-import {
-  FINANCIAL_ACCOUNT_TYPE_LABELS,
-  type FinancialAccountType,
-} from '@/types';
+import { primary } from '@/theme/colors';
+import { FINANCIAL_ACCOUNT_TYPE_LABELS, type FinancialAccountType } from '@/types';
 
 const ACCOUNT_TYPES: FinancialAccountType[] = [
   'bank',
@@ -54,9 +52,7 @@ export default function AddFinancialAccountScreen() {
       Alert.alert('Eroare', 'Introdu un nume pentru cont.');
       return;
     }
-    const balanceNum = initialBalance.trim()
-      ? Number(initialBalance.replace(',', '.'))
-      : 0;
+    const balanceNum = initialBalance.trim() ? Number(initialBalance.replace(',', '.')) : 0;
     if (Number.isNaN(balanceNum)) {
       Alert.alert('Eroare', 'Soldul inițial nu e un număr valid.');
       return;
@@ -113,12 +109,7 @@ export default function AddFinancialAccountScreen() {
                     pressed && { opacity: 0.7 },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.typeChipText,
-                      { color: selected ? primary : C.text },
-                    ]}
-                  >
+                  <Text style={[styles.typeChipText, { color: selected ? primary : C.text }]}>
                     {FINANCIAL_ACCOUNT_TYPE_LABELS[t]}
                   </Text>
                 </Pressable>
@@ -158,12 +149,7 @@ export default function AddFinancialAccountScreen() {
                     pressed && { opacity: 0.7 },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.typeChipText,
-                      { color: selected ? primary : C.text },
-                    ]}
-                  >
+                  <Text style={[styles.typeChipText, { color: selected ? primary : C.text }]}>
                     {c}
                   </Text>
                 </Pressable>
@@ -214,7 +200,7 @@ export default function AddFinancialAccountScreen() {
           />
         </ScrollView>
       </Pressable>
-      <BottomActionBar label="Salvează" onPress={handleSubmit} loading={loading} safeArea />
+      <BottomActionBar label="Salvează" onPress={() => { void handleSubmit(); }} loading={loading} safeArea />
     </KeyboardAvoidingView>
   );
 }

@@ -10,7 +10,12 @@
  */
 
 import { sendAiRequest, type AiMessage } from './aiProvider';
-import { normalizeDate, normalizeAmount, suggestCategory, type ParsedRow } from './bankStatementParser';
+import {
+  normalizeDate,
+  normalizeAmount,
+  suggestCategory,
+  type ParsedRow,
+} from './bankStatementParser';
 import type { PdfParseResult } from './bankStatementPdfParser';
 
 const MAX_OCR_CHARS = 15000;
@@ -100,8 +105,7 @@ function parseResponse(response: string, defaultCurrency: string): ParsedRow[] {
     if (!r.date || r.amount === undefined) continue;
     const isoDate = normalizeDate(String(r.date));
     if (!isoDate) continue;
-    const amount =
-      typeof r.amount === 'number' ? r.amount : normalizeAmount(String(r.amount));
+    const amount = typeof r.amount === 'number' ? r.amount : normalizeAmount(String(r.amount));
     if (amount === null || !Number.isFinite(amount)) continue;
     const currency = r.currency?.toUpperCase() || defaultCurrency;
     const description = r.description?.trim() || undefined;

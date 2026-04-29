@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform } from 'react-native';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { radius } from '@/theme/layout';
-import { Platform } from 'react-native';
 
 interface SurfaceCardProps {
   children: React.ReactNode;

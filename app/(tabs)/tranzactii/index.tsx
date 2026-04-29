@@ -1,13 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { statusColors } from '@/theme/colors';
-import { useTransactions } from '@/hooks/useTransactions';
-import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useCategories } from '@/hooks/useCategories';
+import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
+import { useTransactions } from '@/hooks/useTransactions';
+import { statusColors } from '@/theme/colors';
 
 export default function TransactionsList() {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
@@ -72,9 +73,7 @@ export default function TransactionsList() {
         />
       )}
       <Pressable
-        onPress={() =>
-          router.push({ pathname: '/(tabs)/tranzactii/[id]', params: { id: 'new' } })
-        }
+        onPress={() => router.push({ pathname: '/(tabs)/tranzactii/[id]', params: { id: 'new' } })}
         style={({ pressed }) => [
           styles.fab,
           { backgroundColor: C.primary, opacity: pressed ? 0.85 : 1 },

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { Transaction } from '@/types';
+
 import * as tx from '@/services/transactions';
+import type { Transaction } from '@/types';
 
 export function useTransactions(filter: tx.TransactionFilter = {}) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -28,7 +29,7 @@ export function useTransactions(filter: tx.TransactionFilter = {}) {
   }, [filterKey]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   return {

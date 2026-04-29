@@ -1,11 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as cloudStorage from './cloudStorage';
+
 import { applyManifest, type BackupPayload } from './backup';
-import { buildCanonicalManifest, hashManifestAsync } from './manifestHash';
+import * as categories from './categories';
+import * as cloudStorage from './cloudStorage';
 import { db, generateId } from './db';
 import * as financialAccounts from './financialAccounts';
-import * as categories from './categories';
+import { buildCanonicalManifest, hashManifestAsync } from './manifestHash';
 import * as transactions from './transactions';
+
 import type { SnapshotFrequency } from '@/types';
 
 const CLOUD_ROOT = 'Finante';

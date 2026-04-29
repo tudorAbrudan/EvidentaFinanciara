@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+
 import type { SnapshotFrequency } from '@/types';
 
 const KEY_NOTIF_DAYS = 'settings_notif_days';

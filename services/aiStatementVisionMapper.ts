@@ -18,7 +18,6 @@
  * Privacy: extrasul nu conține `private_notes` (acel câmp e doar pe `Document`).
  */
 
-import { renderAllPdfPagesAsBase64 } from './pdfOcr';
 import { sendAiRequestWithImage, AiContextOverflowError, getAiConfig } from './aiProvider';
 import {
   normalizeDate,
@@ -27,6 +26,7 @@ import {
   type ParsedRow,
 } from './bankStatementParser';
 import type { PdfParseResult } from './bankStatementPdfParser';
+import { renderAllPdfPagesAsBase64 } from './pdfOcr';
 
 const MAX_TOKENS = 4000;
 const CHUNK_SIZE = 3;

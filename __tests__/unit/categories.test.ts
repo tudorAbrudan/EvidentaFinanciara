@@ -1,3 +1,4 @@
+import { getMonthlySpending, deleteCategory } from '@/services/categories';
 import * as db from '@/services/db';
 
 jest.mock('@/services/db', () => ({
@@ -9,11 +10,6 @@ jest.mock('@/services/db', () => ({
   },
   generateId: () => 'cat-test-id',
 }));
-
-import {
-  getMonthlySpending,
-  deleteCategory,
-} from '@/services/categories';
 
 describe('getMonthlySpending', () => {
   it('returns categories with spent_ron and pct_used when limit is set', async () => {
@@ -123,9 +119,7 @@ describe('getMonthlySpending', () => {
 describe('deleteCategory', () => {
   it('throws if category is system', async () => {
     (db.db.getFirstAsync as jest.Mock).mockResolvedValue({ is_system: 1 });
-    await expect(deleteCategory('c1')).rejects.toThrow(
-      /Categoriile sistem nu pot fi șterse/
-    );
+    await expect(deleteCategory('c1')).rejects.toThrow(/Categoriile sistem nu pot fi șterse/);
   });
 
   it('deletes if category is user-defined', async () => {

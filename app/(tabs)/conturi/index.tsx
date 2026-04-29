@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect, Stack } from 'expo-router';
 import { useCallback } from 'react';
 import {
   StyleSheet,
@@ -7,13 +9,12 @@ import {
   View as RNView,
   Text as RNText,
 } from 'react-native';
-import { router, useFocusEffect, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+
+import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary, statusColors } from '@/theme/colors';
-import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
+import { primary, statusColors } from '@/theme/colors';
 import { FINANCIAL_ACCOUNT_TYPE_LABELS } from '@/types';
 
 export default function ConturiListScreen() {
@@ -24,8 +25,8 @@ export default function ConturiListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      refresh();
-    }, [])
+      void refresh();
+    }, [refresh])
   );
 
   const totalRon = accounts
@@ -41,7 +42,7 @@ export default function ConturiListScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={C.primary} />
+          <RefreshControl refreshing={loading} onRefresh={() => { void refresh(); }} tintColor={C.primary} />
         }
       >
         {/* Total RON sumar */}

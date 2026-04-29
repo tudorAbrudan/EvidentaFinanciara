@@ -1,3 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useState } from 'react';
 import {
   View,
@@ -11,15 +14,22 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import AppLockPinModal from '@/components/AppLockPinModal';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary } from '@/theme/colors';
-import { radius } from '@/theme/layout';
+import {
+  AI_CONSENT_KEY,
+  DAILY_AI_LIMIT,
+  PROVIDER_DEFAULTS,
+  type AiProviderType,
+  getAiConfig,
+  saveAiConfig,
+  saveAiApiKey,
+  getAiUsageToday,
+} from '@/services/aiProvider';
 import { exportBackup, importBackup } from '@/services/backup';
+import * as cloudSync from '@/services/cloudSync';
 import { hasDemoData, deleteDemoData } from '@/services/demoData';
 import {
   resetOnboarding,
@@ -31,20 +41,10 @@ import {
   getCloudSnapshotFrequency,
   setCloudSnapshotFrequency,
   getCloudSnapshotRetention,
-  setCloudSnapshotRetention,
 } from '@/services/settings';
-import * as cloudSync from '@/services/cloudSync';
+import { primary } from '@/theme/colors';
+import { radius } from '@/theme/layout';
 import { SNAPSHOT_FREQUENCY_LABELS, type SnapshotFrequency } from '@/types';
-import {
-  AI_CONSENT_KEY,
-  DAILY_AI_LIMIT,
-  PROVIDER_DEFAULTS,
-  type AiProviderType,
-  getAiConfig,
-  saveAiConfig,
-  saveAiApiKey,
-  getAiUsageToday,
-} from '@/services/aiProvider';
 
 export default function Settings() {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
@@ -189,18 +189,20 @@ export default function Settings() {
         {
           text: 'Restaurează',
           style: 'destructive',
-          onPress: async () => {
-            if (cloudRestoring) return;
-            setCloudRestoring(true);
-            try {
-              const res = await cloudSync.restoreFromCloud();
-              Alert.alert('Restaurat', `${res.recordCount} înregistrări restaurate din iCloud.`);
-              refreshDemoStatus();
-            } catch (e) {
-              Alert.alert('Eroare', e instanceof Error ? e.message : 'Eroare necunoscută');
-            } finally {
-              setCloudRestoring(false);
-            }
+          onPress: () => {
+            void (async () => {
+              if (cloudRestoring) return;
+              setCloudRestoring(true);
+              try {
+                const res = await cloudSync.restoreFromCloud();
+                Alert.alert('Restaurat', `${res.recordCount} înregistrări restaurate din iCloud.`);
+                refreshDemoStatus();
+              } catch (e) {
+                Alert.alert('Eroare', e instanceof Error ? e.message : 'Eroare necunoscută');
+              } finally {
+                setCloudRestoring(false);
+              }
+            })();
           },
         },
       ]
@@ -267,17 +269,19 @@ export default function Settings() {
         {
           text: 'Șterge',
           style: 'destructive',
-          onPress: async () => {
-            if (deletingDemo) return;
-            setDeletingDemo(true);
-            try {
-              await deleteDemoData();
-              setDemoExists(false);
-            } catch (e) {
-              Alert.alert('Eroare', e instanceof Error ? e.message : 'Eroare necunoscută');
-            } finally {
-              setDeletingDemo(false);
-            }
+          onPress: () => {
+            void (async () => {
+              if (deletingDemo) return;
+              setDeletingDemo(true);
+              try {
+                await deleteDemoData();
+                setDemoExists(false);
+              } catch (e) {
+                Alert.alert('Eroare', e instanceof Error ? e.message : 'Eroare necunoscută');
+              } finally {
+                setDeletingDemo(false);
+              }
+            })();
           },
         },
       ]
@@ -292,13 +296,15 @@ export default function Settings() {
         { text: 'Anulare', style: 'cancel' },
         {
           text: 'Confirmă',
-          onPress: async () => {
-            try {
-              await resetOnboarding();
-              Alert.alert('Gata', 'Repornește aplicația ca să vezi onboarding-ul.');
-            } catch (e) {
-              Alert.alert('Eroare', e instanceof Error ? e.message : 'Eroare necunoscută');
-            }
+          onPress: () => {
+            void (async () => {
+              try {
+                await resetOnboarding();
+                Alert.alert('Gata', 'Repornește aplicația ca să vezi onboarding-ul.');
+              } catch (e) {
+                Alert.alert('Eroare', e instanceof Error ? e.message : 'Eroare necunoscută');
+              }
+            })();
           },
         },
       ]
@@ -353,14 +359,16 @@ export default function Settings() {
           {
             text: 'Dezactivează',
             style: 'destructive',
-            onPress: async () => {
-              try {
-                await setAppLockEnabled(false);
-                await clearAppLockPin();
-                setLockEnabled(false);
-              } catch (e) {
-                Alert.alert('Eroare', e instanceof Error ? e.message : 'Eroare necunoscută');
-              }
+            onPress: () => {
+              void (async () => {
+                try {
+                  await setAppLockEnabled(false);
+                  await clearAppLockPin();
+                  setLockEnabled(false);
+                } catch (e) {
+                  Alert.alert('Eroare', e instanceof Error ? e.message : 'Eroare necunoscută');
+                }
+              })();
             },
           },
         ]
@@ -386,7 +394,7 @@ export default function Settings() {
         </Text>
 
         <Pressable
-          onPress={handleExport}
+          onPress={() => { void handleExport(); }}
           disabled={exporting || importing}
           style={({ pressed }) => [
             styles.button,
@@ -404,7 +412,7 @@ export default function Settings() {
         </Pressable>
 
         <Pressable
-          onPress={handleImport}
+          onPress={() => { void handleImport(); }}
           disabled={exporting || importing}
           style={({ pressed }) => [
             styles.button,
@@ -427,7 +435,8 @@ export default function Settings() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: C.text }]}>Backup în iCloud</Text>
           <Text style={[styles.body, { color: C.textSecondary }]}>
-            Sincronizare automată în iCloud Drive. Datele se urcă la pornirea sau închiderea aplicației.
+            Sincronizare automată în iCloud Drive. Datele se urcă la pornirea sau închiderea
+            aplicației.
           </Text>
 
           {cloudLoading ? (
@@ -456,30 +465,28 @@ export default function Settings() {
                 <>
                   <Text style={[styles.fieldLabel, { color: C.text }]}>Frecvență snapshot</Text>
                   <View style={styles.chipRow}>
-                    {(['off', 'daily', 'every3days', 'weekly', 'monthly'] as SnapshotFrequency[]).map(
-                      f => {
-                        const selected = cloudFreq === f;
-                        return (
-                          <Pressable
-                            key={f}
-                            onPress={() => void handleChangeFrequency(f)}
-                            style={[
-                              styles.chip,
-                              {
-                                backgroundColor: selected ? primary : 'transparent',
-                                borderColor: selected ? primary : C.border,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[styles.chipText, { color: selected ? '#fff' : C.text }]}
-                            >
-                              {SNAPSHOT_FREQUENCY_LABELS[f]}
-                            </Text>
-                          </Pressable>
-                        );
-                      }
-                    )}
+                    {(
+                      ['off', 'daily', 'every3days', 'weekly', 'monthly'] as SnapshotFrequency[]
+                    ).map(f => {
+                      const selected = cloudFreq === f;
+                      return (
+                        <Pressable
+                          key={f}
+                          onPress={() => void handleChangeFrequency(f)}
+                          style={[
+                            styles.chip,
+                            {
+                              backgroundColor: selected ? primary : 'transparent',
+                              borderColor: selected ? primary : C.border,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.chipText, { color: selected ? '#fff' : C.text }]}>
+                            {SNAPSHOT_FREQUENCY_LABELS[f]}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
                   </View>
 
                   <Text style={[styles.hintSmall, { color: C.textSecondary }]}>
@@ -487,7 +494,7 @@ export default function Settings() {
                   </Text>
 
                   <Pressable
-                    onPress={handleSyncNow}
+                    onPress={() => { void handleSyncNow(); }}
                     disabled={cloudSyncing}
                     style={({ pressed }) => [
                       styles.button,
@@ -663,7 +670,7 @@ export default function Settings() {
             ) : null}
 
             <Pressable
-              onPress={handleSaveAi}
+              onPress={() => { void handleSaveAi(); }}
               disabled={!aiCanSave()}
               style={({ pressed }) => [
                 styles.button,

@@ -1,3 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   StyleSheet,
@@ -8,27 +13,20 @@ import {
   View as RNView,
   Text as RNText,
 } from 'react-native';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+
+import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary, statusColors } from '@/theme/colors';
-import { BottomActionBar } from '@/components/ui/BottomActionBar';
-import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useCategories } from '@/hooks/useCategories';
-import { parseBankStatementCsv, type ParsedRow } from '@/services/bankStatementParser';
-import { parseStatementPdf, type PdfStatementFormat } from '@/services/bankStatementPdfParser';
+import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
+import { AI_CONSENT_KEY, getAiConfig, type AiProviderType } from '@/services/aiProvider';
 import { mapStatementWithAi } from '@/services/aiStatementMapper';
 import { mapStatementWithVisionAi } from '@/services/aiStatementVisionMapper';
+import { parseBankStatementCsv, type ParsedRow } from '@/services/bankStatementParser';
+import { parseStatementPdf, type PdfStatementFormat } from '@/services/bankStatementPdfParser';
+import { db, generateId } from '@/services/db';
+import { getRateRon } from '@/services/fxRates';
 import { extractTextFromPdf } from '@/services/pdfExtractor';
-import {
-  AI_CONSENT_KEY,
-  getAiConfig,
-  type AiProviderType,
-} from '@/services/aiProvider';
 import {
   createTransaction,
   findInternalTransferCandidates,
@@ -36,8 +34,7 @@ import {
   linkAsInternalTransfer,
   markAsDuplicate,
 } from '@/services/transactions';
-import { getRateRon } from '@/services/fxRates';
-import { db, generateId } from '@/services/db';
+import { primary, statusColors } from '@/theme/colors';
 
 type SourceKind = 'csv' | 'pdf';
 type ParseFormat = string | PdfStatementFormat;
@@ -260,11 +257,7 @@ export default function ImportScreen() {
   }
 
   const aiButtonMode: 'vision' | 'ocr-text' | 'hidden' =
-    aiProviderType === 'external'
-      ? 'vision'
-      : aiProviderType === 'none'
-        ? 'hidden'
-        : 'ocr-text';
+    aiProviderType === 'external' ? 'vision' : aiProviderType === 'none' ? 'hidden' : 'ocr-text';
 
   async function runImport() {
     if (!accountId) {
@@ -418,7 +411,7 @@ export default function ImportScreen() {
           Pasul 1 — Selectează fișierul (PDF sau CSV)
         </RNText>
         <Pressable
-          onPress={pickFile}
+          onPress={() => { void pickFile(); }}
           disabled={parsing || importing}
           style={({ pressed }) => [
             styles.pickBtn,
@@ -443,7 +436,7 @@ export default function ImportScreen() {
 
         {sourceKind === 'pdf' && !parsing && pickedName && aiButtonMode !== 'hidden' && (
           <Pressable
-            onPress={aiButtonMode === 'vision' ? runVisionFlow : reanalyzeWithAi}
+            onPress={() => { void (aiButtonMode === 'vision' ? runVisionFlow() : reanalyzeWithAi()); }}
             style={({ pressed }) => [
               styles.aiBtn,
               { borderColor: primary, backgroundColor: C.card },
@@ -586,7 +579,7 @@ export default function ImportScreen() {
         <BottomActionBar
           label={`Importă ${rows.length} tranzacții`}
           icon={<Ionicons name="cloud-upload" size={18} color="#fff" />}
-          onPress={runImport}
+          onPress={() => { void runImport(); }}
           loading={importing}
           safeArea
         />

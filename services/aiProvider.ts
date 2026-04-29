@@ -207,7 +207,7 @@ export interface AiMessage {
 }
 
 interface OpenAiResponse {
-  choices: Array<{ message: { content: string } }>;
+  choices: { message: { content: string } }[];
 }
 
 // ─── Eroare specială: depășire context (folosită de mappers pentru fallback chunked) ─

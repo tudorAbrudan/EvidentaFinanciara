@@ -1,3 +1,5 @@
+import { useHeaderHeight } from '@react-navigation/elements';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   StyleSheet,
@@ -9,14 +11,13 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { useHeaderHeight } from '@react-navigation/elements';
+
 import { Text, View, ThemedTextInput } from '@/components/Themed';
+import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { primary } from '@/theme/colors';
-import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
+import { primary } from '@/theme/colors';
 import {
   FINANCIAL_ACCOUNT_TYPE_LABELS,
   type FinancialAccount,
@@ -54,7 +55,7 @@ export default function EditFinancialAccountScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    getAccount(accountId)
+    void getAccount(accountId)
       .then((acc: FinancialAccount | null) => {
         if (cancelled || !acc) return;
         setType(acc.type);
@@ -226,7 +227,7 @@ export default function EditFinancialAccountScreen() {
           />
         </ScrollView>
       </Pressable>
-      <BottomActionBar label="Salvează" onPress={handleSubmit} loading={loading} safeArea />
+      <BottomActionBar label="Salvează" onPress={() => { void handleSubmit(); }} loading={loading} safeArea />
     </KeyboardAvoidingView>
   );
 }

@@ -6,9 +6,10 @@
  * Fallback robust pentru orice tip de PDF (scan, encoding custom etc.)
  */
 
-import { extractText } from '@/services/ocr';
 import * as FileSystem from 'expo-file-system/legacy';
 import { EncodingType } from 'expo-file-system/legacy';
+
+import { extractText } from '@/services/ocr';
 
 // Import lazy pentru a evita crash dacă modulul nativ nu e disponibil în build
 let _getPdfPageCount: ((filePath: string) => Promise<number>) | null = null;
@@ -97,7 +98,9 @@ export async function renderAllPdfPagesAsBase64(fileUri: string): Promise<string
     let imageUri: string | null = null;
     try {
       imageUri = await _renderPdfPage(uri, i, 2.0);
-      const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: EncodingType.Base64 });
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: EncodingType.Base64,
+      });
       results.push(base64);
     } catch {
       // pagina nu poate fi randată — continuăm

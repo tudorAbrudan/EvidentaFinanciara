@@ -1,7 +1,6 @@
 import { db } from './db';
 
-const BNR_YEAR_URL = (year: number) =>
-  `https://www.bnr.ro/files/xml/years/nbrfxrates${year}.xml`;
+const BNR_YEAR_URL = (year: number) => `https://www.bnr.ro/files/xml/years/nbrfxrates${year}.xml`;
 const BNR_CURRENT_URL = 'https://www.bnr.ro/nbrfxrates.xml';
 
 const STALE_DAYS = 7;
@@ -37,7 +36,7 @@ function parseBnrXml(xml: string): RateRow[] {
 
 async function getMostRecentCachedDate(year: number): Promise<string | null> {
   const row = await db.getFirstAsync<{ max_date: string | null }>(
-    "SELECT MAX(date) AS max_date FROM fx_rates WHERE substr(date, 1, 4) = ?",
+    'SELECT MAX(date) AS max_date FROM fx_rates WHERE substr(date, 1, 4) = ?',
     [String(year)]
   );
   return row?.max_date ?? null;

@@ -5,6 +5,7 @@
  */
 
 import * as FileSystem from 'expo-file-system/legacy';
+
 import { extractTextFromPdfViaOcr } from '@/services/pdfOcr';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pako = require('pako') as { inflate: (data: Uint8Array) => Uint8Array };

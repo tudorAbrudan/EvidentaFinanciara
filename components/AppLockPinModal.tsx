@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TextInput, Pressable, StyleSheet, Alert, Platform } from 'react-native';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import * as settings from '@/services/settings';
 import { primary } from '@/theme/colors';
 import { radius } from '@/theme/layout';
-import * as settings from '@/services/settings';
 
 interface AppLockPinModalProps {
   visible: boolean;
@@ -108,7 +109,7 @@ export default function AppLockPinModal({
             </Pressable>
             <Pressable
               style={[styles.btnPrimary, { backgroundColor: primary }]}
-              onPress={handleSubmit}
+              onPress={() => { void handleSubmit(); }}
             >
               <Text style={styles.btnPrimaryText}>Salvează</Text>
             </Pressable>

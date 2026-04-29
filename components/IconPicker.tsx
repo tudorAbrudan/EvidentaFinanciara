@@ -1,6 +1,7 @@
-import { View, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
+import { View, Pressable, StyleSheet } from 'react-native';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { primary } from '@/theme/colors';

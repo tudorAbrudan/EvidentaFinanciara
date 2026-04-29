@@ -1,3 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,18 +16,10 @@ import {
   useColorScheme as useColorSchemeNative,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as LocalAuthentication from 'expo-local-authentication';
 
 import AppLockPinModal from '@/components/AppLockPinModal';
 import Colors from '@/constants/Colors';
 import { useThemePreference } from '@/hooks/useThemeScheme';
-import { primary, primaryMuted, primaryTint, statusColors } from '@/theme/colors';
-import { radius, spacing } from '@/theme/layout';
-import * as settings from '@/services/settings';
-import type { ThemePreference } from '@/services/settings';
-import { createFinancialAccount } from '@/services/financialAccounts';
-import { createDemoData, hasDemoData } from '@/services/demoData';
 import {
   AI_CONSENT_KEY,
   PROVIDER_DEFAULTS,
@@ -32,7 +27,12 @@ import {
   saveAiConfig,
   type AiProviderType,
 } from '@/services/aiProvider';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createDemoData, hasDemoData } from '@/services/demoData';
+import { createFinancialAccount } from '@/services/financialAccounts';
+import * as settings from '@/services/settings';
+import type { ThemePreference } from '@/services/settings';
+import { primary, primaryMuted, primaryTint, statusColors } from '@/theme/colors';
+import { radius, spacing } from '@/theme/layout';
 import { FINANCIAL_ACCOUNT_TYPE_LABELS, type FinancialAccountType } from '@/types';
 
 interface OnboardingWizardProps {
@@ -336,7 +336,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {step === 'SUMMARY' ? (
           <Pressable
             style={[styles.btnPrimary, { backgroundColor: primary, opacity: committing ? 0.7 : 1 }]}
-            onPress={handleCommit}
+            onPress={() => { void handleCommit(); }}
             disabled={committing}
           >
             {committing ? (

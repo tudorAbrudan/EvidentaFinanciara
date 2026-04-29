@@ -1,4 +1,10 @@
 import * as db from '@/services/db';
+import {
+  findDuplicateCandidates,
+  findInternalTransferCandidates,
+  getMonthlyTotals,
+  getTransactions,
+} from '@/services/transactions';
 
 // Mock the db module so we can return arbitrary rows.
 jest.mock('@/services/db', () => ({
@@ -10,13 +16,6 @@ jest.mock('@/services/db', () => ({
   },
   generateId: () => 'test-id',
 }));
-
-import {
-  findDuplicateCandidates,
-  findInternalTransferCandidates,
-  getMonthlyTotals,
-  getTransactions,
-} from '@/services/transactions';
 
 type Row = {
   id: string;

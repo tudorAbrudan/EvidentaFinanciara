@@ -9,6 +9,10 @@
  * 5. Provider != external → eroare clară (hard guard).
  */
 
+import { sendAiRequestWithImage, getAiConfig, AiContextOverflowError } from '@/services/aiProvider';
+import { mapStatementWithVisionAi } from '@/services/aiStatementVisionMapper';
+import { renderAllPdfPagesAsBase64 } from '@/services/pdfOcr';
+
 jest.mock('@/services/aiProvider', () => {
   const actual = jest.requireActual('@/services/aiProvider');
   return {
@@ -23,10 +27,6 @@ jest.mock('@/services/pdfOcr', () => ({
   extractTextFromPdfViaOcr: jest.fn(),
   renderPdfFirstPageForVision: jest.fn(),
 }));
-
-import { sendAiRequestWithImage, getAiConfig, AiContextOverflowError } from '@/services/aiProvider';
-import { renderAllPdfPagesAsBase64 } from '@/services/pdfOcr';
-import { mapStatementWithVisionAi } from '@/services/aiStatementVisionMapper';
 
 const mockSend = sendAiRequestWithImage as jest.MockedFunction<typeof sendAiRequestWithImage>;
 const mockGetConfig = getAiConfig as jest.MockedFunction<typeof getAiConfig>;

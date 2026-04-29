@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+
 import type { ThemePreference } from '@/services/settings';
 
 export type { ThemePreference };
