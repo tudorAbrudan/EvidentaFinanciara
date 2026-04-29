@@ -47,6 +47,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="pricetags" size={22} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="assistant"
+        options={{
+          title: 'Asistent',
+          tabBarIcon: ({ color }) => <Ionicons name="chatbubbles" size={22} color={color} />,
+        }}
+      />
       <Tabs.Screen name="evolutie" options={{ href: null }} />
     </Tabs>
   );
