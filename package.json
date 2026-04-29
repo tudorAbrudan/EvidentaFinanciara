@@ -16,7 +16,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "knip": "knip",
-    "madge": "madge --circular --extensions ts,tsx services components hooks app"
+    "madge": "madge --circular --extensions ts,tsx services components hooks app",
+    "dep-cruise": "depcruise --validate .dependency-cruiser.cjs services components hooks app"
   },
   "jest": {
     "preset": "jest-expo",
@@ -81,6 +82,7 @@
     "@types/react": "~19.2.2",
     "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.59.1",
+    "dependency-cruiser": "^16.10.4",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~8.0.0",
     "eslint-config-prettier": "^9.1.0",
