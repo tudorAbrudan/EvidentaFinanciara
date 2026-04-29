@@ -204,11 +204,30 @@ export default function FinanciarHubScreen() {
 
   return (
     <RNView style={[styles.container, { backgroundColor: C.background }]}>
-      <Stack.Screen options={{ title: 'Gestiune financiară' }} />
+      <Stack.Screen
+        options={{
+          title: 'Gestiune financiară',
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/setari' as never)}
+              style={{ marginRight: 12 }}
+              hitSlop={8}
+            >
+              <Ionicons name="settings-outline" size={22} color={C.text} />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={() => { void refresh(); }} tintColor={C.primary} />
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => {
+              void refresh();
+            }}
+            tintColor={C.primary}
+          />
         }
       >
         {/* Month picker */}
@@ -397,7 +416,9 @@ export default function FinanciarHubScreen() {
                       transactions={expandedTxs}
                       categoryMap={categoryMap}
                       C={C}
-                      onRetry={() => { void refreshExpanded(); }}
+                      onRetry={() => {
+                        void refreshExpanded();
+                      }}
                       onCategoryEdit={txId => setPickerTxId(txId)}
                     />
                   )}
@@ -472,7 +493,9 @@ export default function FinanciarHubScreen() {
         currentCategoryId={
           pickerTxId ? (expandedTxs.find(t => t.id === pickerTxId)?.category_id ?? null) : null
         }
-        onPick={catId => { void handleCategoryPick(catId); }}
+        onPick={catId => {
+          void handleCategoryPick(catId);
+        }}
         onClose={() => !pickerSaving && setPickerTxId(null)}
         C={C}
         saving={pickerSaving}

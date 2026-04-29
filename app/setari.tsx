@@ -394,7 +394,9 @@ export default function Settings() {
         </Text>
 
         <Pressable
-          onPress={() => { void handleExport(); }}
+          onPress={() => {
+            void handleExport();
+          }}
           disabled={exporting || importing}
           style={({ pressed }) => [
             styles.button,
@@ -412,7 +414,9 @@ export default function Settings() {
         </Pressable>
 
         <Pressable
-          onPress={() => { void handleImport(); }}
+          onPress={() => {
+            void handleImport();
+          }}
           disabled={exporting || importing}
           style={({ pressed }) => [
             styles.button,
@@ -494,7 +498,9 @@ export default function Settings() {
                   </Text>
 
                   <Pressable
-                    onPress={() => { void handleSyncNow(); }}
+                    onPress={() => {
+                      void handleSyncNow();
+                    }}
                     disabled={cloudSyncing}
                     style={({ pressed }) => [
                       styles.button,
@@ -670,7 +676,9 @@ export default function Settings() {
             ) : null}
 
             <Pressable
-              onPress={() => { void handleSaveAi(); }}
+              onPress={() => {
+                void handleSaveAi();
+              }}
               disabled={!aiCanSave()}
               style={({ pressed }) => [
                 styles.button,
