@@ -348,7 +348,9 @@ export default function CategoriiScreen() {
                 <RNText style={{ color: C.text, fontWeight: '500' }}>Anulează</RNText>
               </Pressable>
               <Pressable
-                onPress={() => { void handleSave(); }}
+                onPress={() => {
+                  void handleSave();
+                }}
                 disabled={saving}
                 style={({ pressed }) => [
                   styles.modalBtn,

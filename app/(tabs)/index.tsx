@@ -153,7 +153,7 @@ export default function FinanciarHubScreen() {
           { text: 'Anulează', style: 'cancel' },
           {
             text: 'Creează cont',
-            onPress: () => router.push('/(tabs)/conturi/add'),
+            onPress: () => router.push('/conturi/add'),
           },
         ]
       );
@@ -162,7 +162,7 @@ export default function FinanciarHubScreen() {
     // Filtru deja activ → folosește-l
     if (accountFilter) {
       router.push({
-        pathname: '/(tabs)/conturi/import',
+        pathname: '/conturi/import',
         params: { account_id: accountFilter },
       });
       return;
@@ -170,7 +170,7 @@ export default function FinanciarHubScreen() {
     // Un singur cont → direct la import
     if (accounts.length === 1) {
       router.push({
-        pathname: '/(tabs)/conturi/import',
+        pathname: '/conturi/import',
         params: { account_id: accounts[0].id },
       });
       return;
@@ -185,7 +185,7 @@ export default function FinanciarHubScreen() {
           text: a.name,
           onPress: () =>
             router.push({
-              pathname: '/(tabs)/conturi/import',
+              pathname: '/conturi/import',
               params: { account_id: a.id },
             }),
         })),
@@ -193,7 +193,7 @@ export default function FinanciarHubScreen() {
           ? [
               {
                 text: 'Alt cont…',
-                onPress: () => router.push('/(tabs)/conturi'),
+                onPress: () => router.push('/conturi'),
               },
             ]
           : []),
@@ -353,7 +353,7 @@ export default function FinanciarHubScreen() {
             <RNText style={[styles.actionTextSecondary, { color: C.text }]}>Evoluție</RNText>
           </Pressable>
           <Pressable
-            onPress={() => router.push('/(tabs)/conturi')}
+            onPress={() => router.push('/conturi')}
             style={({ pressed }) => [
               styles.actionBtnSecondary,
               { borderColor: C.border, backgroundColor: C.card },
@@ -364,7 +364,7 @@ export default function FinanciarHubScreen() {
             <RNText style={[styles.actionTextSecondary, { color: C.text }]}>Conturi</RNText>
           </Pressable>
           <Pressable
-            onPress={() => router.push('/(tabs)/categorii')}
+            onPress={() => router.push('/categorii')}
             style={({ pressed }) => [
               styles.actionBtnSecondary,
               { borderColor: C.border, backgroundColor: C.card },
@@ -464,7 +464,7 @@ export default function FinanciarHubScreen() {
                   C={C}
                   onPress={() =>
                     router.push({
-                      pathname: '/(tabs)/tranzactii/[id]',
+                      pathname: '/tranzactii/[id]',
                       params: { id: t.id },
                     })
                   }
@@ -480,7 +480,7 @@ export default function FinanciarHubScreen() {
         icon={<Ionicons name="add" size={18} color="#fff" />}
         onPress={() =>
           router.push({
-            pathname: '/(tabs)/tranzactii/[id]',
+            pathname: '/tranzactii/[id]',
             params: accountFilter ? { id: 'new', account_id: accountFilter } : { id: 'new' },
           })
         }
@@ -591,7 +591,7 @@ function CategoryTransactionsList({
           C={C}
           onPress={() =>
             router.push({
-              pathname: '/(tabs)/tranzactii/[id]',
+              pathname: '/tranzactii/[id]',
               params: { id: t.id },
             })
           }

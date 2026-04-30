@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -25,36 +25,39 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="conturi"
+        name="evolutie"
         options={{
-          title: 'Conturi',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <Ionicons name="wallet" size={22} color={color} />,
+          title: 'Evoluție',
+          tabBarIcon: ({ color }) => <Ionicons name="trending-up" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="tranzactii"
+        name="adauga"
         options={{
-          title: 'Tranzacții',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <Ionicons name="list" size={22} color={color} />,
+          title: 'Adaugă',
+          tabBarIcon: ({ color }) => <Ionicons name="add-circle" size={28} color={color} />,
         }}
-      />
-      <Tabs.Screen
-        name="categorii"
-        options={{
-          title: 'Categorii',
-          tabBarIcon: ({ color }) => <Ionicons name="pricetags" size={22} color={color} />,
+        listeners={{
+          tabPress: e => {
+            e.preventDefault();
+            router.push({ pathname: '/tranzactii/[id]', params: { id: 'new' } });
+          },
         }}
       />
       <Tabs.Screen
         name="assistant"
         options={{
-          title: 'Asistent',
+          title: 'Chat',
           tabBarIcon: ({ color }) => <Ionicons name="chatbubbles" size={22} color={color} />,
         }}
       />
-      <Tabs.Screen name="evolutie" options={{ href: null }} />
+      <Tabs.Screen
+        name="setari"
+        options={{
+          title: 'Setări',
+          tabBarIcon: ({ color }) => <Ionicons name="settings" size={22} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

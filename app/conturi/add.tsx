@@ -72,7 +72,7 @@ export default function AddFinancialAccountScreen() {
       });
       await refresh();
       if (router.canGoBack()) router.back();
-      else router.replace('/(tabs)/conturi');
+      else router.replace('/conturi');
     } catch (e) {
       Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut crea contul');
     } finally {
@@ -200,7 +200,14 @@ export default function AddFinancialAccountScreen() {
           />
         </ScrollView>
       </Pressable>
-      <BottomActionBar label="Salvează" onPress={() => { void handleSubmit(); }} loading={loading} safeArea />
+      <BottomActionBar
+        label="Salvează"
+        onPress={() => {
+          void handleSubmit();
+        }}
+        loading={loading}
+        safeArea
+      />
     </KeyboardAvoidingView>
   );
 }

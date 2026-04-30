@@ -136,7 +136,7 @@ export default function FinancialAccountDetailScreen() {
               try {
                 await deleteAccount(accountId);
                 if (router.canGoBack()) router.back();
-                else router.replace('/(tabs)/conturi');
+                else router.replace('/conturi');
               } catch (e) {
                 Alert.alert(
                   'Eroare',
@@ -206,7 +206,13 @@ export default function FinancialAccountDetailScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={() => { void refresh(); }} tintColor={C.primary} />
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => {
+              void refresh();
+            }}
+            tintColor={C.primary}
+          />
         }
       >
         {/* Balance card */}
@@ -268,7 +274,7 @@ export default function FinancialAccountDetailScreen() {
           <Pressable
             onPress={() =>
               router.push({
-                pathname: '/(tabs)/tranzactii/[id]',
+                pathname: '/tranzactii/[id]',
                 params: { id: 'new', account_id: accountId },
               })
             }
@@ -284,7 +290,7 @@ export default function FinancialAccountDetailScreen() {
           <Pressable
             onPress={() =>
               router.push({
-                pathname: '/(tabs)/conturi/import',
+                pathname: '/conturi/import',
                 params: { account_id: accountId },
               })
             }
@@ -320,7 +326,9 @@ export default function FinancialAccountDetailScreen() {
               </RNText>
             </RNView>
             <Pressable
-              onPress={() => { void handleBackfillRates(); }}
+              onPress={() => {
+                void handleBackfillRates();
+              }}
               disabled={backfilling}
               hitSlop={8}
               style={({ pressed }) => [
@@ -408,7 +416,7 @@ export default function FinancialAccountDetailScreen() {
               C={C}
               onPress={() =>
                 router.push({
-                  pathname: '/(tabs)/tranzactii/[id]',
+                  pathname: '/tranzactii/[id]',
                   params: { id: t.id },
                 })
               }
@@ -419,9 +427,7 @@ export default function FinancialAccountDetailScreen() {
         {/* Manage actions */}
         <RNView style={styles.manageRow}>
           <Pressable
-            onPress={() =>
-              router.push({ pathname: '/(tabs)/conturi/edit', params: { id: accountId } })
-            }
+            onPress={() => router.push({ pathname: '/conturi/edit', params: { id: accountId } })}
             style={({ pressed }) => [
               styles.manageBtn,
               { borderColor: C.border, backgroundColor: C.card },
@@ -467,7 +473,7 @@ export default function FinancialAccountDetailScreen() {
         icon={<Ionicons name="add" size={18} color="#fff" />}
         onPress={() =>
           router.push({
-            pathname: '/(tabs)/tranzactii/[id]',
+            pathname: '/tranzactii/[id]',
             params: { id: 'new', account_id: accountId },
           })
         }

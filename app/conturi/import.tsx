@@ -411,7 +411,9 @@ export default function ImportScreen() {
           Pasul 1 — Selectează fișierul (PDF sau CSV)
         </RNText>
         <Pressable
-          onPress={() => { void pickFile(); }}
+          onPress={() => {
+            void pickFile();
+          }}
           disabled={parsing || importing}
           style={({ pressed }) => [
             styles.pickBtn,
@@ -436,7 +438,9 @@ export default function ImportScreen() {
 
         {sourceKind === 'pdf' && !parsing && pickedName && aiButtonMode !== 'hidden' && (
           <Pressable
-            onPress={() => { void (aiButtonMode === 'vision' ? runVisionFlow() : reanalyzeWithAi()); }}
+            onPress={() => {
+              void (aiButtonMode === 'vision' ? runVisionFlow() : reanalyzeWithAi());
+            }}
             style={({ pressed }) => [
               styles.aiBtn,
               { borderColor: primary, backgroundColor: C.card },
@@ -579,7 +583,9 @@ export default function ImportScreen() {
         <BottomActionBar
           label={`Importă ${rows.length} tranzacții`}
           icon={<Ionicons name="cloud-upload" size={18} color="#fff" />}
-          onPress={() => { void runImport(); }}
+          onPress={() => {
+            void runImport();
+          }}
           loading={importing}
           safeArea
         />

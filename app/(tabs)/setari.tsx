@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   View,
@@ -396,6 +396,46 @@ export default function Settings() {
           headerBackTitle: 'Înapoi',
         }}
       />
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: C.text }]}>Date</Text>
+
+        <Pressable
+          onPress={() => router.push('/conturi')}
+          style={({ pressed }) => [
+            styles.linkRow,
+            { backgroundColor: C.card, borderColor: C.border, opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <Ionicons name="wallet" size={20} color={C.tint} />
+          <Text style={[styles.linkLabel, { color: C.text }]}>Conturi</Text>
+          <Ionicons name="chevron-forward" size={18} color={C.textSecondary} />
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/categorii')}
+          style={({ pressed }) => [
+            styles.linkRow,
+            { backgroundColor: C.card, borderColor: C.border, opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <Ionicons name="pricetags" size={20} color={C.tint} />
+          <Text style={[styles.linkLabel, { color: C.text }]}>Categorii</Text>
+          <Ionicons name="chevron-forward" size={18} color={C.textSecondary} />
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/tranzactii')}
+          style={({ pressed }) => [
+            styles.linkRow,
+            { backgroundColor: C.card, borderColor: C.border, opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <Ionicons name="list" size={20} color={C.tint} />
+          <Text style={[styles.linkLabel, { color: C.text }]}>Toate tranzacțiile</Text>
+          <Ionicons name="chevron-forward" size={18} color={C.textSecondary} />
+        </Pressable>
+      </View>
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: C.text }]}>Backup & restaurare</Text>
@@ -836,4 +876,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#D84C4C',
   },
   buttonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 8,
+  },
+  linkLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+  },
 });

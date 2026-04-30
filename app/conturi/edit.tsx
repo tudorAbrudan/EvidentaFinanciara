@@ -227,7 +227,14 @@ export default function EditFinancialAccountScreen() {
           />
         </ScrollView>
       </Pressable>
-      <BottomActionBar label="Salvează" onPress={() => { void handleSubmit(); }} loading={loading} safeArea />
+      <BottomActionBar
+        label="Salvează"
+        onPress={() => {
+          void handleSubmit();
+        }}
+        loading={loading}
+        safeArea
+      />
     </KeyboardAvoidingView>
   );
 }

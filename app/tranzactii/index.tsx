@@ -40,7 +40,7 @@ export default function TransactionsList() {
               <Pressable
                 onPress={() =>
                   router.push({
-                    pathname: '/(tabs)/tranzactii/[id]',
+                    pathname: '/tranzactii/[id]',
                     params: { id: item.id },
                   })
                 }
@@ -73,7 +73,7 @@ export default function TransactionsList() {
         />
       )}
       <Pressable
-        onPress={() => router.push({ pathname: '/(tabs)/tranzactii/[id]', params: { id: 'new' } })}
+        onPress={() => router.push({ pathname: '/tranzactii/[id]', params: { id: 'new' } })}
         style={({ pressed }) => [
           styles.fab,
           { backgroundColor: C.primary, opacity: pressed ? 0.85 : 1 },

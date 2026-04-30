@@ -42,7 +42,13 @@ export default function ConturiListScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={() => { void refresh(); }} tintColor={C.primary} />
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => {
+              void refresh();
+            }}
+            tintColor={C.primary}
+          />
         }
       >
         {/* Total RON sumar */}
@@ -129,7 +135,7 @@ export default function ConturiListScreen() {
       <BottomActionBar
         label="Adaugă cont"
         icon={<Ionicons name="add" size={18} color="#fff" />}
-        onPress={() => router.push('/(tabs)/conturi/add')}
+        onPress={() => router.push('/conturi/add')}
         safeArea
       />
     </RNView>
@@ -149,7 +155,7 @@ function AccountRow({
   const balanceColor = balance >= 0 ? statusColors.ok : statusColors.critical;
   return (
     <Pressable
-      onPress={() => router.push(`/(tabs)/conturi/${account.id}` as const)}
+      onPress={() => router.push(`/conturi/${account.id}` as const)}
       style={({ pressed }) => [
         styles.accountCard,
         {
