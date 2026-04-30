@@ -254,7 +254,27 @@ export default function TransactionEditorScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
     >
-      <Stack.Screen options={{ title: editingId ? 'Editează tranzacție' : 'Tranzacție nouă' }} />
+      <Stack.Screen
+        options={{
+          title: editingId ? 'Editează tranzacție' : 'Tranzacție nouă',
+          headerLeft: () => (
+            <Pressable
+              onPress={() => {
+                if (router.canGoBack()) router.back();
+                else router.replace('/');
+              }}
+              style={({ pressed }) => [
+                { paddingHorizontal: 12, paddingVertical: 6 },
+                pressed && { opacity: 0.6 },
+              ]}
+              hitSlop={8}
+              accessibilityLabel="Închide"
+            >
+              <Ionicons name="close" size={26} color={C.text} />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.inner}

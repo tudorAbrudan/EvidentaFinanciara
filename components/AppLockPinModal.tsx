@@ -109,7 +109,9 @@ export default function AppLockPinModal({
             </Pressable>
             <Pressable
               style={[styles.btnPrimary, { backgroundColor: primary }]}
-              onPress={() => { void handleSubmit(); }}
+              onPress={() => {
+                void handleSubmit();
+              }}
             >
               <Text style={styles.btnPrimaryText}>Salvează</Text>
             </Pressable>

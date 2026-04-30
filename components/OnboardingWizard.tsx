@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 
+import AiDisclosureExpandable from '@/components/AiDisclosureExpandable';
 import AppLockPinModal from '@/components/AppLockPinModal';
 import Colors from '@/constants/Colors';
 import { useThemePreference } from '@/hooks/useThemeScheme';
@@ -29,6 +30,7 @@ import {
 } from '@/services/aiProvider';
 import { createDemoData, hasDemoData } from '@/services/demoData';
 import { createFinancialAccount } from '@/services/financialAccounts';
+import { AI_PROVIDER_LEGAL, AI_PROVIDER_NAME } from '@/services/privacyPolicy';
 import * as settings from '@/services/settings';
 import type { ThemePreference } from '@/services/settings';
 import { primary, primaryMuted, primaryTint, statusColors } from '@/theme/colors';
@@ -336,7 +338,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         {step === 'SUMMARY' ? (
           <Pressable
             style={[styles.btnPrimary, { backgroundColor: primary, opacity: committing ? 0.7 : 1 }]}
-            onPress={() => { void handleCommit(); }}
+            onPress={() => {
+              void handleCommit();
+            }}
             disabled={committing}
           >
             {committing ? (
@@ -820,23 +824,26 @@ function AiStep({
       ) : null}
 
       {provider !== 'none' ? (
-        <Pressable style={styles.consentRow} onPress={() => setConsent(!consent)}>
-          <View
-            style={[
-              styles.checkbox,
-              {
-                borderColor: consent ? primary : C.border,
-                backgroundColor: consent ? primary : 'transparent',
-              },
-            ]}
-          >
-            {consent ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
-          </View>
-          <Text style={[styles.consentText, { color: C.text }]}>
-            Sunt de acord ca textul tranzacțiilor pe care îl trimit la AI să fie procesat de
-            provider. Datele sensibile rămân local cât timp nu fac un request.
-          </Text>
-        </Pressable>
+        <>
+          <Pressable style={styles.consentRow} onPress={() => setConsent(!consent)}>
+            <View
+              style={[
+                styles.checkbox,
+                {
+                  borderColor: consent ? primary : C.border,
+                  backgroundColor: consent ? primary : 'transparent',
+                },
+              ]}
+            >
+              {consent ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+            </View>
+            <Text style={[styles.consentText, { color: C.text }]}>
+              Sunt de acord ca datele descrise mai jos să fie trimise la {AI_PROVIDER_NAME} (
+              {AI_PROVIDER_LEGAL}) pentru procesare. Pot revoca oricând din Setări.
+            </Text>
+          </Pressable>
+          <AiDisclosureExpandable />
+        </>
       ) : null}
     </View>
   );

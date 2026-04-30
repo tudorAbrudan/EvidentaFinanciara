@@ -42,6 +42,12 @@ module.exports = {
         '@typescript-eslint/await-thenable': 'off',
       },
     },
+    {
+      files: ['scripts/**/*.ts'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
   ],
   ignorePatterns: [
     'node_modules/',

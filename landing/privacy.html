@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finanțe Personale — Politica de confidențialitate</title>
+  <meta name="description" content="Politica de confidențialitate Finanțe Personale — date pe device, AI opțional, fără tracking." />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="legal">
+  <header class="hero" style="min-height: auto;">
+    <nav>
+      <div class="logo">
+        <span class="logo-mark">₣</span>
+        <span class="logo-text">Finanțe Personale</span>
+      </div>
+      <a href="index.html" class="nav-link">Acasă</a>
+    </nav>
+  </header>
+
+  <main class="container legal-content">
+    <h1>Politica de confidențialitate</h1>
+    <p class="legal-meta">Versiunea 2026-04-30</p>
+
+<h2>1. Cine suntem</h2>
+<p>Finanțe Personale este o aplicație mobilă pentru gestiunea finanțelor personale. Aplicația este local-first: toate datele rămân pe device-ul tău, în afară de cazurile descrise în secțiunea 3 (Asistent AI opțional) și secțiunea 4 (Backup iCloud opțional).</p>
+<p>Nu avem servere proprii. Nu folosim analytics. Nu vindem date.</p>
+
+<h2>2. Ce date păstrăm pe device</h2>
+<p>Aplicația stochează local, într-o bază SQLite criptată de iOS:</p>
+<ul>
+<li>Conturi financiare (nume, tip, valută, sold inițial).</li>
+<li>Categorii de cheltuieli (nume, iconiță, limită lunară opțională).</li>
+<li>Tranzacții (sumă, dată, descriere, merchant, categorie, notițe).</li>
+<li>Fișiere extras bancar importate (PDF/CSV) — doar până le procesezi, apoi șterse.</li>
+<li>Setări locale: aspect (light/dark), preferințe AI, configurare blocare app (PIN/biometric).</li>
+</ul>
+
+<h2>3. Asistent AI (opțional) — date trimise terților</h2>
+<p>Aplicația include un asistent AI opțional. Dacă îl activezi și accepți consimțământul, anumite date sunt trimise către Mistral AI (operat de Mistral SAS, Franța) sau către furnizorul propriu ales de tine.</p>
+<p>Datele trimise diferă în funcție de funcționalitate:</p>
+<ul>
+<li>Asistent conversațional: textul întrebărilor tale + sumar al ultimelor 4 schimburi din conversație. Conținutul tranzacțiilor NU se trimite — AI primește doar schema bazei de date și generează interogarea, care rulează local pe device.</li>
+<li>Mapare extras CSV/text: textul integral al fișierului bancar (descrieri tranzacții, sume, date, eventual nume titular sau IBAN dacă apar).</li>
+<li>Mapare extras PDF (vision): paginile PDF ca imagini base64. Conține tot ce e vizibil — nume titular, IBAN, adresă, sume, descrieri tranzacții.</li>
+</ul>
+
+<h2>3.1. Scopul prelucrării</h2>
+<p>Datele sunt trimise pentru clasificarea automată a tranzacțiilor și răspunsuri la întrebări despre finanțele tale. Nu sunt folosite pentru reclame, profilare sau vânzare către terți.</p>
+
+<h2>3.2. Politica Mistral AI &amp; reținere</h2>
+<p>Cererile sunt procesate conform termenilor Mistral AI (<a href="https://mistral.ai/terms)." target="_blank" rel="noopener">https://mistral.ai/terms).</a> Mistral declară că nu folosește input-urile API pentru antrenarea implicită a modelelor; cererile pot fi reținute temporar în scopuri de abuz și securitate, conform politicii lor curente.</p>
+<p>Dacă folosești „Cheia mea API&quot; în loc de varianta inclusă, datele merg direct la furnizorul tău (OpenAI, Mistral self-hosted etc.) — guvernate de termenii lui.</p>
+
+<h2>3.3. Controlul tău</h2>
+<p>Ai control total asupra trimiterii:</p>
+<ul>
+<li>Opt-in: nimic nu se trimite dacă nu ai bifat consimțământul în onboarding sau Setări → Asistent AI.</li>
+<li>Revocare oricând: Setări → Asistent AI → debifezi consimțământul sau alegi „Fără AI&quot;.</li>
+<li>Pre-flight la upload: pentru import PDF/CSV apare un dialog separat cu numele fișierului înainte de fiecare trimitere.</li>
+</ul>
+
+<h2>4. Backup iCloud (opțional)</h2>
+<p>Dacă activezi sincronizarea iCloud din Setări, aplicația încarcă în iCloud Drive un fișier ZIP cu backup-ul tău (conturi, tranzacții, categorii). Fișierul rămâne în spațiul tău iCloud personal — nu trecem prin niciun server propriu.</p>
+<p>Frecvența și retenția snapshot-urilor sunt configurabile. Apple guvernează stocarea iCloud conform termenilor lor.</p>
+
+<h2>5. Securitate device</h2>
+<p>Cheile API (dacă folosești cheie proprie pentru AI) sunt stocate în iOS Keychain prin `expo-secure-store`.</p>
+<p>Poți activa blocarea aplicației cu PIN sau Face ID / Touch ID (Setări → Blocare app). PIN-ul e stocat în Keychain, nu în baza de date.</p>
+
+<h2>6. Drepturile tale</h2>
+<p>Export: poți exporta toate datele într-un fișier JSON oricând (Setări → Export). Fișierul e al tău, îl poți lua cu tine.</p>
+<p>Ștergere: dezinstalarea aplicației șterge complet baza de date locală. Backup-urile iCloud (dacă există) se șterg din contul tău Apple în Setări → Apple ID → iCloud → Gestionează spațiu.</p>
+<p>Revocare consimțământ AI: oricând, din Setări → Asistent AI.</p>
+
+<h2>7. Modificări ale politicii</h2>
+<p>Versiunea curentă: 2026-04-30.</p>
+<p>Modificările sunt versionate public în repository-ul aplicației. La modificări semnificative ale fluxului AI sau backup, vom cere consimțământ nou la următoarea pornire.</p>
+
+<h2>8. Contact</h2>
+<p>Întrebări sau sesizări: apps.tudor@gmail.com.</p>
+
+    <hr />
+    <p class="legal-footer">
+      Dacă ai întrebări sau sesizări, scrie la
+      <a href="mailto:apps.tudor@gmail.com">apps.tudor@gmail.com</a>.
+    </p>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>© 2026 Finanțe Personale. Făcut în România.</span>
+      <span class="footer-links">
+        <a href="index.html">Acasă</a>
+      </span>
+    </div>
+  </footer>
+</body>
+</html>

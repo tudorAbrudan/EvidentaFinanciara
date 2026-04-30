@@ -7,7 +7,7 @@
 > 3. Nu adăugăm complexitate inutilă — fiecare idee răspunde la: _câți utilizatori beneficiază real, merită complexitatea?_
 
 **Status:** roadmap inițial, înainte de primul spec implementat.
-**Ultima actualizare:** 2026-04-29.
+**Ultima actualizare:** 2026-04-30.
 
 ---
 
@@ -22,7 +22,7 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 3. **Empty states** — pe fiecare ecran (Sumar, Conturi, Tranzacții, Categorii) când nu există date. Mesaj prietenos + acțiune sugerată.
 4. **Backup/restore vizibil** — în onboarding (pas dedicat) și în Setări. Alertă „nu ai făcut backup de X zile" cu CTA. Folosește implementarea existentă din `services/backup.ts`.
 5. **Date demo opționale** — la onboarding, toggle „adaugă tranzacții demo ca să vezi cum arată". Deletable cu un tap din Setări (un singur buton: „Șterge datele demo").
-6. **Pagini legale** — `docs/privacy.html` + `docs/terms.html`, link-uri din Setări. Local-first e selling point — exploatăm asta.
+6. ~~**Pagini legale**~~ — implementat 2026-04-30 (vezi mai jos). Privacy ✓; Terms rămâne TBD dacă apare nevoie reală.
 7. **Localizare structurală** — separi string-urile în `i18n/ro.ts` (sau echivalent) chiar dacă lansezi RO-only. Pregătire EN fără refactor.
 
 ### Diferențiator (de ce ar alege cineva app-ul tău)
@@ -50,6 +50,8 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 ---
 
 ## Implementat (post-MVP fundație)
+
+- **Politică confidențialitate + AI consent explicit Mistral** (2026-04-30) — răspuns la respingerea Apple (5.1.1(i) / 5.1.2(i) și 2.1(b)). Sursa unică `services/privacyPolicy.ts` exportă `AI_DISCLOSURE` (consent surface) și `PRIVACY_POLICY_FULL` (ecran + landing). Componente: `AiDisclosureExpandable` (onboarding + Setări), `AiPreflightDialog` (per-fișier la import PDF/CSV), `PrivacyPolicyView` (ecran `app/confidentialitate.tsx`). Numire explicită „Mistral AI (Mistral SAS, Franța)" + link la termeni; clarificare „tranzacțiile NU se trimit la chatbot — AI primește doar schema, query rulează local". Pagină publică `landing/privacy.html` generată din TS via `npm run build:privacy`. Spec: `docs/specs/2026-04-30-app-store-rejection-privacy-design.md`.
 
 - **Redesign navigație — focus pe evoluție** (2026-04-30) — tab bar restructurat: `Sumar | Evoluție | Adaugă | Chat | Setări`. Conturi/Tranzacții/Categorii mutate din `(tabs)/` în root pentru push real cu back button; accesibile din Setări (hub) și din Sumar (drill-down). Tab „Adaugă" cu listener pe tabPress care deschide formular tranzacție nouă fără a schimba tabul activ. Bug fix scroll formular cu tastatura deschisă (`keyboardDismissMode='on-drag'` în loc de wrapper Pressable). Spec: `docs/specs/2026-04-30-redesign-navigatie-design.md`. Plan: `docs/plans/2026-04-30-redesign-navigatie.md`.
 

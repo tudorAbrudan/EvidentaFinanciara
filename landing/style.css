@@ -422,6 +422,73 @@ footer a {
   margin-left: 18px;
 }
 
+/* ─── LEGAL PAGES (privacy.html) ───────────────────── */
+
+body.legal .hero {
+  background: linear-gradient(160deg, var(--sage-50) 0%, #ffffff 100%);
+  padding-bottom: 0;
+}
+
+.legal-content {
+  padding: 60px 24px 80px;
+  max-width: 800px;
+}
+
+.legal-content h1 {
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.legal-content h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 36px 0 12px;
+}
+
+.legal-content p {
+  color: var(--ink-soft);
+  font-size: 16px;
+  margin: 12px 0;
+}
+
+.legal-content ul {
+  list-style: disc;
+  padding-left: 22px;
+  margin: 12px 0;
+  color: var(--ink-soft);
+  font-size: 16px;
+}
+
+.legal-content li {
+  margin: 8px 0;
+}
+
+.legal-content a {
+  color: var(--sage-dark);
+  text-decoration: underline;
+}
+
+.legal-meta {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.legal-content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 40px 0 24px;
+}
+
+.legal-footer {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 /* ─── RESPONSIVE ───────────────────────────────────── */
 
 @media (max-width: 900px) {

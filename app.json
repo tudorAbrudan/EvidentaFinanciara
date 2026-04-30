@@ -16,8 +16,23 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ax.finante",
-      "buildNumber": "4",
-      "deploymentTarget": "16.0"
+      "buildNumber": "6",
+      "deploymentTarget": "16.0",
+      "usesIcloudStorage": true,
+      "entitlements": {
+        "com.apple.developer.icloud-services": ["CloudDocuments"],
+        "com.apple.developer.icloud-container-identifiers": ["iCloud.com.ax.finante"],
+        "com.apple.developer.ubiquity-container-identifiers": ["iCloud.com.ax.finante"]
+      },
+      "infoPlist": {
+        "NSUbiquitousContainers": {
+          "iCloud.com.ax.finante": {
+            "NSUbiquitousContainerIsDocumentScopePublic": true,
+            "NSUbiquitousContainerName": "Finanțe Personale",
+            "NSUbiquitousContainerSupportedFolderLevels": "Any"
+          }
+        }
+      }
     },
     "android": {
       "package": "com.ax.finante",
@@ -44,8 +59,7 @@
             "deploymentTarget": "16.0"
           }
         }
-      ],
-      "react-native-cloud-storage"
+      ]
     ],
     "experiments": {
       "typedRoutes": true

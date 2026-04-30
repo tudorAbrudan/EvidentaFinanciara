@@ -1,7 +1,7 @@
 # Arhitectură — Finanțe Personale
 
 > Document point-in-time. Hook-ul `sync-docs` semnalează când conținutul poate fi învechit.
-> **Ultima actualizare:** 2026-04-29.
+> **Ultima actualizare:** 2026-04-30.
 
 ## Overview
 
@@ -58,6 +58,7 @@ Root `_layout.tsx` setează tema, autentificarea (PIN/biometric) și onboarding 
 | `settings.ts`                | preferințe utilizator (theme, lock, AI consent)              |
 | `demoData.ts`                | tranzacții demo pentru onboarding                            |
 | `manifestHash.ts`            | hash structură DB pentru invalidare cache                    |
+| `privacyPolicy.ts`           | sursa unică text confidențialitate (consent + politică)      |
 
 **Regulă arhitecturală:** `services/` nu importă din `components/`, `app/`, `hooks/`. Logica e portabilă, testabilă, fără dependențe UI.
 
@@ -79,7 +80,7 @@ Hook-uri care încapsulează state + side effects (ex. `useCategoryTransactions`
 
 ### `landing/`
 
-Site static (HTML + CSS) deploy-uit pe GitHub Pages la fiecare push pe `main` care atinge `landing/**`.
+Site static (HTML + CSS) deploy-uit pe GitHub Pages la fiecare push pe `main` care atinge `landing/**`. `privacy.html` e generat din `services/privacyPolicy.ts` via `npm run build:privacy` (`scripts/build-privacy-html.ts`) — sursa unică de adevăr pentru textele de confidențialitate (in-app + landing).
 
 ## Date
 
@@ -109,9 +110,11 @@ Manifest-hash din `services/manifestHash.ts` permite invalidare cache la schimb�
 ## Securitate / privacy
 
 - **App lock** — biometric (`expo-local-authentication`) sau PIN, configurabil în Setări.
-- **AI consent** — opt-in explicit la onboarding sau în Setări. Free tier 20 cereri/zi (cotă built-in). Premium: nelimitat sau cheie proprie (provider `external`).
+- **AI consent** — opt-in explicit la onboarding sau în Setări, cu denumire explicită „Mistral AI (Mistral SAS, Franța)" + link la termenii furnizorului. Free tier 20 cereri/zi (cotă built-in). Premium: nelimitat sau cheie proprie (provider `external`).
+- **Pre-flight la upload** — pentru import PDF/CSV, `AiPreflightDialog` cere confirmare per-fișier înainte de fiecare trimitere către AI (afișează nume fișier + dimensiune + ce conține).
+- **Politică confidențialitate** — sursa unică `services/privacyPolicy.ts` alimentează ecranul in-app `app/confidentialitate.tsx` și pagina publică `landing/privacy.html` (generată via `npm run build:privacy`). Acoperă cerințele Apple 5.1.1(i)/5.1.2(i): ce date, cui, scopuri, third-party.
 - **Cloud sync** — opțional, opt-in. Fără cont online obligatoriu.
-- **Date externe trimise** — doar la provider AI selectat, doar conținut tranzacție necesar pentru categorizare. Niciun analytics, fără tracking.
+- **Date externe trimise** — doar la provider AI selectat. Pentru chatbot conversațional, conținutul tranzacțiilor NU se trimite (AI primește doar schema DB; query-ul rulează local). Pentru import extras, conținutul fișierului se trimite explicit cu pre-flight per-upload. Niciun analytics, fără tracking.
 
 ## Mentenanță
 

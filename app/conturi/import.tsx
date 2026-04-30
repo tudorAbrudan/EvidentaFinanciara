@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
   Pressable,
@@ -14,6 +14,7 @@ import {
   Text as RNText,
 } from 'react-native';
 
+import AiPreflightDialog from '@/components/AiPreflightDialog';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -27,6 +28,7 @@ import { parseStatementPdf, type PdfStatementFormat } from '@/services/bankState
 import { db, generateId } from '@/services/db';
 import { getRateRon } from '@/services/fxRates';
 import { extractTextFromPdf } from '@/services/pdfExtractor';
+import type { PreflightInfo } from '@/services/privacyPolicy';
 import {
   createTransaction,
   findInternalTransferCandidates,
@@ -61,6 +63,25 @@ export default function ImportScreen() {
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState<number | null>(null);
   const [aiProviderType, setAiProviderType] = useState<AiProviderType>('builtin');
+  const [preflightInfo, setPreflightInfo] = useState<PreflightInfo | null>(null);
+  const pendingAiActionRef = useRef<(() => void) | null>(null);
+
+  function openPreflight(info: PreflightInfo, action: () => void) {
+    pendingAiActionRef.current = action;
+    setPreflightInfo(info);
+  }
+
+  function cancelPreflight() {
+    pendingAiActionRef.current = null;
+    setPreflightInfo(null);
+  }
+
+  function confirmPreflight() {
+    const action = pendingAiActionRef.current;
+    pendingAiActionRef.current = null;
+    setPreflightInfo(null);
+    action?.();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -168,6 +189,19 @@ export default function ImportScreen() {
       }
       return;
     }
+    openPreflight(
+      {
+        fileName: pickedName ?? 'extras.pdf',
+        sizeKb: Math.max(1, Math.round(text.length / 1024)),
+        contentKind: 'pdf-text',
+      },
+      () => {
+        void performAiFallback(text, currency, automatic);
+      }
+    );
+  }
+
+  async function performAiFallback(text: string, currency: string, automatic: boolean) {
     try {
       setParsingStage('Se trimite la AI pentru analiză avansată…');
       setParsing(true);
@@ -223,6 +257,29 @@ export default function ImportScreen() {
       );
       return;
     }
+    let sizeKb: number | undefined;
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(pickedUri);
+      if (fileInfo.exists && typeof fileInfo.size === 'number') {
+        sizeKb = Math.max(1, Math.round(fileInfo.size / 1024));
+      }
+    } catch {
+      // mărime opțională, continuăm fără
+    }
+    openPreflight(
+      {
+        fileName: pickedName ?? 'extras.pdf',
+        sizeKb,
+        contentKind: 'pdf-images',
+      },
+      () => {
+        void performVisionFlow();
+      }
+    );
+  }
+
+  async function performVisionFlow() {
+    if (sourceKind !== 'pdf' || !pickedUri) return;
     const currency = account?.currency ?? 'RON';
     setParsing(true);
     setParsingStage('Se randează paginile PDF…');
@@ -590,6 +647,13 @@ export default function ImportScreen() {
           safeArea
         />
       )}
+
+      <AiPreflightDialog
+        visible={preflightInfo !== null}
+        info={preflightInfo}
+        onCancel={cancelPreflight}
+        onConfirm={confirmPreflight}
+      />
     </RNView>
   );
 }

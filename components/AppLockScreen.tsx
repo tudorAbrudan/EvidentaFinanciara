@@ -91,7 +91,13 @@ export default function AppLockScreen({
       <View style={styles.inner}>
         <Text style={styles.title}>Aplicația e blocată</Text>
         {biometricAvailable && (
-          <Pressable style={styles.bioBtn} onPress={() => { void handleBiometric(); }} disabled={loading}>
+          <Pressable
+            style={styles.bioBtn}
+            onPress={() => {
+              void handleBiometric();
+            }}
+            disabled={loading}
+          >
             <SymbolView
               name={{ ios: 'faceid', android: 'fingerprint', web: 'lock' }}
               tintColor={dark.text}
@@ -115,11 +121,15 @@ export default function AppLockScreen({
             secureTextEntry
             maxLength={8}
             editable={!loading}
-            onSubmitEditing={() => { void handlePinSubmit(); }}
+            onSubmitEditing={() => {
+              void handlePinSubmit();
+            }}
           />
           <Pressable
             style={[styles.pinBtn, loading && styles.pinBtnDisabled]}
-            onPress={() => { void handlePinSubmit(); }}
+            onPress={() => {
+              void handlePinSubmit();
+            }}
             disabled={loading || pin.length < 4}
           >
             <Text style={styles.pinBtnText}>Deschide</Text>

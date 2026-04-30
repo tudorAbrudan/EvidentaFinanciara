@@ -114,7 +114,13 @@ export default function EvolutieScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={() => { void refresh(); }} tintColor={C.primary} />
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => {
+              void refresh();
+            }}
+            tintColor={C.primary}
+          />
         }
       >
         {/* Range picker */}
