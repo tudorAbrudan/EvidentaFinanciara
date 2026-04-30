@@ -25,7 +25,7 @@ Rescriem tab bar-ul cu 5 sloturi orientate pe ce face utilizatorul des:
 └─────────┴──────────┴─────────┴──────┴─────────┘
 ```
 
-Conturi, Tranzacții și Categorii rămân ca **rute accesibile** din Setări (hub) și din Sumar (drill-down), dar nu mai apar ca tab-uri.
+Conturi, Tranzacții și Categorii sunt **mutate fizic din `app/(tabs)/` în `app/`** (rădăcină) ca să fie push-ate corect din Setări/Sumar pe root Stack, cu back button funcțional. Lăsarea lor cu `href: null` în `(tabs)/` ar schimba tabul activ la push, nu ar genera un Stack push real.
 
 ## Tab bar — detalii
 
@@ -37,11 +37,13 @@ Conturi, Tranzacții și Categorii rămân ca **rute accesibile** din Setări (h
 | 4    | `assistant`        | `chatbubbles` | Chat     | titlu „Chat" în loc de „Asistent"     |
 | 5    | `setari`           | `settings`    | Setări   | mutat din root în `(tabs)/setari.tsx` |
 
-Rutele scoase din tab bar (păstrate cu `href: null`):
+Rutele scoase complet din `(tabs)/` și mutate în rădăcină:
 
-- `conturi` (cu sub-rutele add/edit/import/[id])
-- `tranzactii` (cu sub-ruta [id])
-- `categorii`
+- `app/(tabs)/conturi/` → `app/conturi/` (cu sub-rutele add/edit/import/[id])
+- `app/(tabs)/tranzactii/` → `app/tranzactii/` (cu sub-ruta [id])
+- `app/(tabs)/categorii.tsx` → `app/categorii.tsx`
+
+Toate referințele `router.push('/(tabs)/conturi/...')`, `/(tabs)/tranzactii/...`, `/(tabs)/categorii` se actualizează la path-uri root (`/conturi/...`, `/tranzactii/...`, `/categorii`).
 
 ## Tab „Adaugă" — implementare
 
@@ -70,10 +72,10 @@ Stilul rândurilor link folosește tokens existente (`Colors[scheme]`, `radius.m
 ### `app/(tabs)/_layout.tsx` (rescris)
 
 - Înlocuiește lista actuală de `Tabs.Screen` cu noua ordine.
-- `conturi`, `tranzactii`, `categorii` rămân declarate dar cu `href: null`.
+- `conturi`, `tranzactii`, `categorii` **nu** mai sunt declarate aici (au fost mutate în rădăcină).
 - `evolutie` capătă vizibilitate (titlu + icon).
 - `setari` adăugat ca tab.
-- `adauga` adăugat cu listener pe `tabPress`.
+- `adauga` adăugat cu listener pe `tabPress` + ecran placeholder gol `app/(tabs)/adauga.tsx`.
 
 ### `app/setari.tsx` → `app/(tabs)/setari.tsx`
 
