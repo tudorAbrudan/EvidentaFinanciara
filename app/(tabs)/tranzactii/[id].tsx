@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Pressable,
   Alert,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -256,207 +255,213 @@ export default function TransactionEditorScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
     >
       <Stack.Screen options={{ title: editingId ? 'Editează tranzacție' : 'Tranzacție nouă' }} />
-      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss} accessible={false}>
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.inner}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Kind */}
-          <Text style={styles.label}>Tip</Text>
-          <View style={styles.kindRow}>
-            <KindButton
-              active={kind === 'expense'}
-              color={statusColors.critical}
-              icon="arrow-up-circle"
-              label="Cheltuială"
-              onPress={() => setKind('expense')}
-              C={C}
-            />
-            <KindButton
-              active={kind === 'income'}
-              color={statusColors.ok}
-              icon="arrow-down-circle"
-              label="Venit"
-              onPress={() => setKind('income')}
-              C={C}
-            />
-          </View>
-
-          {/* Amount */}
-          <Text style={styles.label}>Sumă ({currency})</Text>
-          <ThemedTextInput
-            style={styles.input}
-            placeholder="0.00"
-            value={amountStr}
-            onChangeText={setAmountStr}
-            keyboardType="decimal-pad"
-            editable={!loading}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        {/* Kind */}
+        <Text style={styles.label}>Tip</Text>
+        <View style={styles.kindRow}>
+          <KindButton
+            active={kind === 'expense'}
+            color={statusColors.critical}
+            icon="arrow-up-circle"
+            label="Cheltuială"
+            onPress={() => setKind('expense')}
+            C={C}
           />
+          <KindButton
+            active={kind === 'income'}
+            color={statusColors.ok}
+            icon="arrow-down-circle"
+            label="Venit"
+            onPress={() => setKind('income')}
+            C={C}
+          />
+        </View>
 
-          {/* Account */}
-          <Text style={styles.label}>Cont</Text>
-          <Pressable
-            onPress={() => setShowAccountPicker(v => !v)}
-            style={[styles.selector, { borderColor: C.border, backgroundColor: C.card }]}
-          >
-            <Text style={[styles.selectorText, { color: account ? C.text : C.textSecondary }]}>
-              {account ? `${account.name} (${account.currency})` : 'Fără cont (numerar liber)'}
-            </Text>
-            <Ionicons
-              name={showAccountPicker ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={C.textSecondary}
-            />
-          </Pressable>
-          {showAccountPicker && (
-            <View style={[styles.pickerCard, { borderColor: C.border, backgroundColor: C.card }]}>
-              <Pressable
+        {/* Amount */}
+        <Text style={styles.label}>Sumă ({currency})</Text>
+        <ThemedTextInput
+          style={styles.input}
+          placeholder="0.00"
+          value={amountStr}
+          onChangeText={setAmountStr}
+          keyboardType="decimal-pad"
+          editable={!loading}
+        />
+
+        {/* Account */}
+        <Text style={styles.label}>Cont</Text>
+        <Pressable
+          onPress={() => setShowAccountPicker(v => !v)}
+          style={[styles.selector, { borderColor: C.border, backgroundColor: C.card }]}
+        >
+          <Text style={[styles.selectorText, { color: account ? C.text : C.textSecondary }]}>
+            {account ? `${account.name} (${account.currency})` : 'Fără cont (numerar liber)'}
+          </Text>
+          <Ionicons
+            name={showAccountPicker ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={C.textSecondary}
+          />
+        </Pressable>
+        {showAccountPicker && (
+          <View style={[styles.pickerCard, { borderColor: C.border, backgroundColor: C.card }]}>
+            <Pressable
+              onPress={() => {
+                setAccountId(undefined);
+                setShowAccountPicker(false);
+              }}
+              style={({ pressed }) => [styles.pickerItem, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={{ color: !accountId ? primary : C.text }}>
+                Fără cont (numerar liber)
+              </Text>
+            </Pressable>
+            {accounts.map(a => (
+              <AccountPickerItem
+                key={a.id}
+                acc={a}
+                active={a.id === accountId}
                 onPress={() => {
-                  setAccountId(undefined);
+                  setAccountId(a.id);
                   setShowAccountPicker(false);
                 }}
-                style={({ pressed }) => [styles.pickerItem, pressed && { opacity: 0.7 }]}
-              >
-                <Text style={{ color: !accountId ? primary : C.text }}>
-                  Fără cont (numerar liber)
-                </Text>
-              </Pressable>
-              {accounts.map(a => (
-                <AccountPickerItem
-                  key={a.id}
-                  acc={a}
-                  active={a.id === accountId}
-                  onPress={() => {
-                    setAccountId(a.id);
-                    setShowAccountPicker(false);
-                  }}
-                  C={C}
-                />
-              ))}
-            </View>
-          )}
+                C={C}
+              />
+            ))}
+          </View>
+        )}
 
-          {/* Category */}
-          <Text style={styles.label}>Categorie</Text>
-          <Pressable
-            onPress={() => setShowCategoryPicker(v => !v)}
-            style={[styles.selector, { borderColor: C.border, backgroundColor: C.card }]}
-          >
-            <View style={styles.selectorInner}>
-              {category ? (
-                <CategoryIcon icon={category.icon} size={18} color={category.color ?? primary} />
-              ) : null}
-              <Text style={[styles.selectorText, { color: category ? C.text : C.textSecondary }]}>
-                {category ? category.name : 'Fără categorie'}
-              </Text>
-            </View>
-            <Ionicons
-              name={showCategoryPicker ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={C.textSecondary}
-            />
-          </Pressable>
-          {showCategoryPicker && (
-            <View style={[styles.pickerCard, { borderColor: C.border, backgroundColor: C.card }]}>
-              <Pressable
+        {/* Category */}
+        <Text style={styles.label}>Categorie</Text>
+        <Pressable
+          onPress={() => setShowCategoryPicker(v => !v)}
+          style={[styles.selector, { borderColor: C.border, backgroundColor: C.card }]}
+        >
+          <View style={styles.selectorInner}>
+            {category ? (
+              <CategoryIcon icon={category.icon} size={18} color={category.color ?? primary} />
+            ) : null}
+            <Text style={[styles.selectorText, { color: category ? C.text : C.textSecondary }]}>
+              {category ? category.name : 'Fără categorie'}
+            </Text>
+          </View>
+          <Ionicons
+            name={showCategoryPicker ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={C.textSecondary}
+          />
+        </Pressable>
+        {showCategoryPicker && (
+          <View style={[styles.pickerCard, { borderColor: C.border, backgroundColor: C.card }]}>
+            <Pressable
+              onPress={() => {
+                setCategoryId(undefined);
+                setShowCategoryPicker(false);
+              }}
+              style={({ pressed }) => [styles.pickerItem, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={{ color: !categoryId ? primary : C.text }}>Fără categorie</Text>
+            </Pressable>
+            {categories.map(c => (
+              <CategoryPickerItem
+                key={c.id}
+                cat={c}
+                active={c.id === categoryId}
                 onPress={() => {
-                  setCategoryId(undefined);
+                  setCategoryId(c.id);
                   setShowCategoryPicker(false);
                 }}
-                style={({ pressed }) => [styles.pickerItem, pressed && { opacity: 0.7 }]}
-              >
-                <Text style={{ color: !categoryId ? primary : C.text }}>Fără categorie</Text>
-              </Pressable>
-              {categories.map(c => (
-                <CategoryPickerItem
-                  key={c.id}
-                  cat={c}
-                  active={c.id === categoryId}
-                  onPress={() => {
-                    setCategoryId(c.id);
-                    setShowCategoryPicker(false);
-                  }}
-                  C={C}
-                />
-              ))}
-            </View>
-          )}
-
-          {/* Date */}
-          <Text style={styles.label}>Data (YYYY-MM-DD)</Text>
-          <ThemedTextInput
-            style={styles.input}
-            placeholder="2026-01-15"
-            value={date}
-            onChangeText={setDate}
-            autoCapitalize="none"
-            editable={!loading}
-          />
-
-          {/* Merchant */}
-          <Text style={styles.label}>Magazin / Comerciant (opțional)</Text>
-          <ThemedTextInput
-            style={styles.input}
-            placeholder="ex. Kaufland, Petrom"
-            value={merchant}
-            onChangeText={setMerchant}
-            editable={!loading}
-          />
-
-          {/* Description */}
-          <Text style={styles.label}>Descriere (opțional)</Text>
-          <ThemedTextInput
-            style={styles.input}
-            placeholder="ex. Cumpărături săptămânale"
-            value={description}
-            onChangeText={setDescription}
-            editable={!loading}
-          />
-
-          {/* Refund toggle */}
-          {kind === 'income' && (
-            <Pressable
-              onPress={() => setIsRefund(v => !v)}
-              style={[styles.toggleRow, { borderColor: C.border }]}
-            >
-              <Ionicons
-                name={isRefund ? 'checkbox' : 'square-outline'}
-                size={20}
-                color={isRefund ? primary : C.textSecondary}
+                C={C}
               />
-              <Text style={{ flex: 1, color: C.text }}>Este retur la o cheltuială</Text>
-            </Pressable>
-          )}
+            ))}
+          </View>
+        )}
 
-          {/* Notes */}
-          <Text style={styles.label}>Note (opțional)</Text>
-          <ThemedTextInput
-            style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            editable={!loading}
-          />
+        {/* Date */}
+        <Text style={styles.label}>Data (YYYY-MM-DD)</Text>
+        <ThemedTextInput
+          style={styles.input}
+          placeholder="2026-01-15"
+          value={date}
+          onChangeText={setDate}
+          autoCapitalize="none"
+          editable={!loading}
+        />
 
-          {editingId && (
-            <Pressable
-              onPress={handleDelete}
-              style={({ pressed }) => [
-                styles.deleteBtn,
-                { borderColor: statusColors.critical },
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              <Ionicons name="trash-outline" size={16} color={statusColors.critical} />
-              <Text style={{ color: statusColors.critical, fontWeight: '500' }}>
-                Șterge tranzacția
-              </Text>
-            </Pressable>
-          )}
-        </ScrollView>
-      </Pressable>
-      <BottomActionBar label="Salvează" onPress={() => { void handleSubmit(); }} loading={loading} safeArea />
+        {/* Merchant */}
+        <Text style={styles.label}>Magazin / Comerciant (opțional)</Text>
+        <ThemedTextInput
+          style={styles.input}
+          placeholder="ex. Kaufland, Petrom"
+          value={merchant}
+          onChangeText={setMerchant}
+          editable={!loading}
+        />
+
+        {/* Description */}
+        <Text style={styles.label}>Descriere (opțional)</Text>
+        <ThemedTextInput
+          style={styles.input}
+          placeholder="ex. Cumpărături săptămânale"
+          value={description}
+          onChangeText={setDescription}
+          editable={!loading}
+        />
+
+        {/* Refund toggle */}
+        {kind === 'income' && (
+          <Pressable
+            onPress={() => setIsRefund(v => !v)}
+            style={[styles.toggleRow, { borderColor: C.border }]}
+          >
+            <Ionicons
+              name={isRefund ? 'checkbox' : 'square-outline'}
+              size={20}
+              color={isRefund ? primary : C.textSecondary}
+            />
+            <Text style={{ flex: 1, color: C.text }}>Este retur la o cheltuială</Text>
+          </Pressable>
+        )}
+
+        {/* Notes */}
+        <Text style={styles.label}>Note (opțional)</Text>
+        <ThemedTextInput
+          style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          editable={!loading}
+        />
+
+        {editingId && (
+          <Pressable
+            onPress={handleDelete}
+            style={({ pressed }) => [
+              styles.deleteBtn,
+              { borderColor: statusColors.critical },
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Ionicons name="trash-outline" size={16} color={statusColors.critical} />
+            <Text style={{ color: statusColors.critical, fontWeight: '500' }}>
+              Șterge tranzacția
+            </Text>
+          </Pressable>
+        )}
+      </ScrollView>
+      <BottomActionBar
+        label="Salvează"
+        onPress={() => {
+          void handleSubmit();
+        }}
+        loading={loading}
+        safeArea
+      />
     </KeyboardAvoidingView>
   );
 }
