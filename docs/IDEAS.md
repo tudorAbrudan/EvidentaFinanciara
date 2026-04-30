@@ -51,6 +51,8 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 
 ## Implementat (post-MVP fundație)
 
+- **Redesign navigație — focus pe evoluție** (2026-04-30) — tab bar restructurat: `Sumar | Evoluție | Adaugă | Chat | Setări`. Conturi/Tranzacții/Categorii mutate din `(tabs)/` în root pentru push real cu back button; accesibile din Setări (hub) și din Sumar (drill-down). Tab „Adaugă" cu listener pe tabPress care deschide formular tranzacție nouă fără a schimba tabul activ. Bug fix scroll formular cu tastatura deschisă (`keyboardDismissMode='on-drag'` în loc de wrapper Pressable). Spec: `docs/specs/2026-04-30-redesign-navigatie-design.md`. Plan: `docs/plans/2026-04-30-redesign-navigatie.md`.
+
 - **Asistent AI conversațional** (2026-04-29) — tab dedicat „Asistent" în tab bar, Setări mutat în header Sumar (⚙️). AI traduce întrebări în limba română în SQL SELECT (read-only, defense-in-depth: allowlist tabele/cuvinte cheie + PRAGMA `query_only` + clamp `LIMIT 500` + timeout 3s). App formează răspunsul prin template-uri locale (zero halucinare numerică): `search_merchant`, `top_merchants`, `monthly_total`, `category_evolution`, `period_compare`, `list_accounts`, `list_categories`, `raw_list`, `cannot_answer`. Spec: `docs/specs/2026-04-29-ai-chatbot-design.md`. Plan: `docs/plans/2026-04-29-ai-chatbot.md`.
 
 ---

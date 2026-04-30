@@ -23,7 +23,11 @@ Aplicația e **local-first**: nu există backend obligatoriu. Backup și sync (i
 
 ### `app/` — rute Expo Router
 
-`(tabs)/` conține ecranele principale (Sumar, Conturi, Tranzacții, Categorii). `_layout.tsx` setează tema, autentificarea și onboarding wizard la prima rulare. Nu pune logică de business aici — extrage în `services/` sau `hooks/`.
+`(tabs)/` conține tab-urile principale (Sumar, Evoluție, Adaugă, Chat, Setări). Tabul „Adaugă" e virtual: listenerul din `(tabs)/_layout.tsx` deschide formularul de tranzacție nouă fără a schimba tabul activ.
+
+Ecranele de management date — `app/conturi/` (cu sub-rute add/edit/import/[id]), `app/tranzactii/` (cu [id]), `app/categorii.tsx` — sunt rute root, accesibile din Setări (hub) și din Sumar (drill-down). Sunt în root, nu în `(tabs)/`, ca să fie push-ate corect pe root Stack cu back button.
+
+Root `_layout.tsx` setează tema, autentificarea (PIN/biometric) și onboarding wizard la prima rulare. Nu pune logică de business aici — extrage în `services/` sau `hooks/`.
 
 ### `services/` — logică pură
 
