@@ -1,7 +1,7 @@
 # Arhitectură — Finanțe Personale
 
 > Document point-in-time. Hook-ul `sync-docs` semnalează când conținutul poate fi învechit.
-> **Ultima actualizare:** 2026-04-30.
+> **Ultima actualizare:** 2026-05-04.
 
 ## Overview
 
@@ -31,35 +31,35 @@ Root `_layout.tsx` setează tema, autentificarea (PIN/biometric) și onboarding 
 
 ### `services/` — logică pură
 
-| Fișier                       | Rol                                                           |
-| ---------------------------- | ------------------------------------------------------------- |
-| `db.ts`                      | conexiune SQLite + schema + migrații                          |
-| `transactions.ts`            | CRUD tranzacții, filtre, agregări                             |
-| `categories.ts`              | CRUD categorii, sugestii prin regex                           |
-| `financialAccounts.ts`       | CRUD conturi                                                  |
-| `bankStatementParser.ts`     | parser CSV pentru extrase BT/ING/Revolut/OTP                  |
-| `bankStatementPdfParser.ts`  | parser PDF (text extraction)                                  |
-| `bankStatements.ts`          | orchestrare import + deduplicate                              |
-| `cashSuggestion.ts`          | detectare retrageri + conversie în transfer intern către Cash |
-| `aiProvider.ts`              | abstracție provider AI (built-in cu cotă, sau cheie proprie)  |
-| `aiStatementMapper.ts`       | mapare tranzacții necategorizate prin AI                      |
-| `aiStatementVisionMapper.ts` | OCR + mapare AI pentru extrase imagine                        |
-| `aiChat.ts`                  | orchestrator chat AI (SQL gen → guard → execute → format)     |
-| `aiChatPrompt.ts`            | construire system prompt + history compaction                 |
-| `aiChatSqlGuard.ts`          | validare SQL allowlist + clamp `LIMIT`                        |
-| `aiChatTemplates.ts`         | template-uri formatare răspuns determinist                    |
-| `aiChatRepo.ts`              | CRUD pe tabel `chat_messages`                                 |
-| `pdfExtractor.ts`            | extragere text PDF                                            |
-| `pdfOcr.ts`                  | OCR pe PDF când text-extraction eșuează                       |
-| `ocr.ts`                     | wrapper ML Kit pentru OCR imagini                             |
-| `backup.ts`                  | export/import ZIP cu manifest                                 |
-| `cloudStorage.ts`            | iCloud Drive / Google Drive abstracție                        |
-| `cloudSync.ts`               | sync periodic cu cloud storage                                |
-| `fxRates.ts`                 | rate de schimb (cache local)                                  |
-| `settings.ts`                | preferințe utilizator (theme, lock, AI consent)               |
-| `demoData.ts`                | tranzacții demo pentru onboarding                             |
-| `manifestHash.ts`            | hash structură DB pentru invalidare cache                     |
-| `privacyPolicy.ts`           | sursa unică text confidențialitate (consent + politică)       |
+| Fișier                          | Rol                                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| `db.ts`                         | conexiune SQLite + schema + migrații                                                |
+| `transactions.ts`               | CRUD tranzacții, filtre, agregări                                                   |
+| `categories.ts`                 | CRUD categorii, sugestii prin regex                                                 |
+| `financialAccounts.ts`          | CRUD conturi                                                                        |
+| `bankStatementParser.ts`        | parser CSV pentru extrase BT/ING/Revolut/OTP                                        |
+| `bankStatementPdfParser.ts`     | parser PDF (text extraction)                                                        |
+| `bankStatements.ts`             | orchestrare import + deduplicate                                                    |
+| `internalTransferSuggestion.ts` | detectare cash/savings_out/savings_in + conversie bidirecțională în transfer intern |
+| `aiProvider.ts`                 | abstracție provider AI (built-in cu cotă, sau cheie proprie)                        |
+| `aiStatementMapper.ts`          | mapare tranzacții necategorizate prin AI                                            |
+| `aiStatementVisionMapper.ts`    | OCR + mapare AI pentru extrase imagine                                              |
+| `aiChat.ts`                     | orchestrator chat AI (SQL gen → guard → execute → format)                           |
+| `aiChatPrompt.ts`               | construire system prompt + history compaction                                       |
+| `aiChatSqlGuard.ts`             | validare SQL allowlist + clamp `LIMIT`                                              |
+| `aiChatTemplates.ts`            | template-uri formatare răspuns determinist                                          |
+| `aiChatRepo.ts`                 | CRUD pe tabel `chat_messages`                                                       |
+| `pdfExtractor.ts`               | extragere text PDF                                                                  |
+| `pdfOcr.ts`                     | OCR pe PDF când text-extraction eșuează                                             |
+| `ocr.ts`                        | wrapper ML Kit pentru OCR imagini                                                   |
+| `backup.ts`                     | export/import ZIP cu manifest                                                       |
+| `cloudStorage.ts`               | iCloud Drive / Google Drive abstracție                                              |
+| `cloudSync.ts`                  | sync periodic cu cloud storage                                                      |
+| `fxRates.ts`                    | rate de schimb (cache local)                                                        |
+| `settings.ts`                   | preferințe utilizator (theme, lock, AI consent)                                     |
+| `demoData.ts`                   | tranzacții demo pentru onboarding                                                   |
+| `manifestHash.ts`               | hash structură DB pentru invalidare cache                                           |
+| `privacyPolicy.ts`              | sursa unică text confidențialitate (consent + politică)                             |
 
 **Regulă arhitecturală:** `services/` nu importă din `components/`, `app/`, `hooks/`. Logica e portabilă, testabilă, fără dependențe UI.
 
