@@ -28,16 +28,19 @@ export default function CashSuggestionBatch() {
   const [busy, setBusy] = useState(false);
 
   const loadData = useCallback(async () => {
-    const pending = await listPendingCashSuggestions();
-    const cashAccounts = accounts.filter(a => a.type === 'cash' && !a.archived);
-    setRows(
-      pending.map(tx => {
-        const matchByCurrency = cashAccounts.filter(a => a.currency === tx.currency);
-        const onlyOne = matchByCurrency.length === 1 ? matchByCurrency[0].id : null;
-        return { tx, selected: true, targetAccountId: onlyOne };
-      })
-    );
-    setLoading(false);
+    try {
+      const pending = await listPendingCashSuggestions();
+      const cashAccounts = accounts.filter(a => a.type === 'cash' && !a.archived);
+      setRows(
+        pending.map(tx => {
+          const matchByCurrency = cashAccounts.filter(a => a.currency === tx.currency);
+          const onlyOne = matchByCurrency.length === 1 ? matchByCurrency[0].id : null;
+          return { tx, selected: true, targetAccountId: onlyOne };
+        })
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [accounts]);
 
   useEffect(() => {
@@ -62,6 +65,9 @@ export default function CashSuggestionBatch() {
         await dismissCashSuggestion(r.tx.id);
       }
       router.back();
+    } catch (e) {
+      await loadData();
+      Alert.alert('Eroare', e instanceof Error ? e.message : 'Skip a eșuat');
     } finally {
       setBusy(false);
     }
@@ -86,6 +92,7 @@ export default function CashSuggestionBatch() {
       }
       router.back();
     } catch (e) {
+      await loadData();
       Alert.alert('Eroare', e instanceof Error ? e.message : 'Conversia a eșuat');
     } finally {
       setBusy(false);
