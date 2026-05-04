@@ -19,6 +19,7 @@ type Row = {
   linked_transaction_id: string | null;
   is_refund: number;
   duplicate_of_id: string | null;
+  cash_suggestion_dismissed: number;
   notes: string | null;
   created_at: string;
 };
@@ -40,6 +41,7 @@ function mapRow(r: Row): Transaction {
     linked_transaction_id: r.linked_transaction_id ?? undefined,
     is_refund: r.is_refund === 1,
     duplicate_of_id: r.duplicate_of_id ?? undefined,
+    cash_suggestion_dismissed: r.cash_suggestion_dismissed === 1,
     notes: r.notes ?? undefined,
     createdAt: r.created_at,
   };
@@ -194,6 +196,7 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
     is_internal_transfer: !!input.is_internal_transfer,
     linked_transaction_id: input.linked_transaction_id,
     is_refund: !!input.is_refund,
+    cash_suggestion_dismissed: false,
     notes: input.notes,
     createdAt: created_at,
   };

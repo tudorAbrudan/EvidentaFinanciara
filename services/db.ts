@@ -59,6 +59,7 @@ db.execSync(`
     is_refund INTEGER NOT NULL DEFAULT 0,
     duplicate_of_id TEXT,
     notes TEXT,
+    cash_suggestion_dismissed INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
   );
 
@@ -106,6 +107,11 @@ db.execSync(`
   CREATE INDEX IF NOT EXISTS idx_tx_category ON transactions(category_id);
   CREATE INDEX IF NOT EXISTS idx_tx_statement ON transactions(statement_id);
   CREATE INDEX IF NOT EXISTS idx_tx_transfer ON transactions(linked_transaction_id);
+  CREATE INDEX IF NOT EXISTS idx_tx_cash_pending
+    ON transactions(date DESC)
+    WHERE is_internal_transfer = 0
+      AND cash_suggestion_dismissed = 0
+      AND amount < 0;
   CREATE INDEX IF NOT EXISTS idx_bs_account_period ON bank_statements(account_id, period_to DESC);
   CREATE INDEX IF NOT EXISTS idx_fx_rates_currency_date ON fx_rates(currency, date DESC);
   CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at DESC);
@@ -133,4 +139,12 @@ try {
   `);
 } catch {
   // seed deja aplicat
+}
+
+try {
+  db.execSync(
+    `ALTER TABLE transactions ADD COLUMN cash_suggestion_dismissed INTEGER NOT NULL DEFAULT 0`
+  );
+} catch {
+  // coloana există deja
 }

@@ -102,6 +102,7 @@ export interface Transaction {
   linked_transaction_id?: string;
   is_refund: boolean;
   duplicate_of_id?: string;
+  cash_suggestion_dismissed: boolean;
   notes?: string;
   createdAt: string;
 }

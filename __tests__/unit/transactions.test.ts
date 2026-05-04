@@ -3,6 +3,7 @@ import {
   findDuplicateCandidates,
   findInternalTransferCandidates,
   getMonthlyTotals,
+  getTransaction,
   getTransactions,
 } from '@/services/transactions';
 
@@ -33,6 +34,7 @@ type Row = {
   linked_transaction_id: string | null;
   is_refund: number;
   duplicate_of_id: string | null;
+  cash_suggestion_dismissed: number;
   notes: string | null;
   created_at: string;
 };
@@ -51,6 +53,7 @@ function row(overrides: Partial<Row> & Pick<Row, 'id' | 'date' | 'amount'>): Row
     linked_transaction_id: null,
     is_refund: 0,
     duplicate_of_id: null,
+    cash_suggestion_dismissed: 0,
     notes: null,
     created_at: '2026-04-01T00:00:00.000Z',
     ...overrides,
@@ -178,6 +181,24 @@ describe('getMonthlyTotals', () => {
     expect(totals.income_ron).toBe(0);
     expect(totals.expense_ron).toBe(0);
     expect(totals.net_ron).toBe(0);
+  });
+});
+
+describe('cash_suggestion_dismissed mapRow', () => {
+  it('mapRow: cash_suggestion_dismissed=0 → false', async () => {
+    (db.db.getFirstAsync as jest.Mock).mockResolvedValue(
+      row({ id: 't1', date: '2026-04-01', amount: -100, cash_suggestion_dismissed: 0 })
+    );
+    const tx = await getTransaction('t1');
+    expect(tx?.cash_suggestion_dismissed).toBe(false);
+  });
+
+  it('mapRow: cash_suggestion_dismissed=1 → true', async () => {
+    (db.db.getFirstAsync as jest.Mock).mockResolvedValue(
+      row({ id: 't1', date: '2026-04-01', amount: -100, cash_suggestion_dismissed: 1 })
+    );
+    const tx = await getTransaction('t1');
+    expect(tx?.cash_suggestion_dismissed).toBe(true);
   });
 });
 
