@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -33,13 +33,19 @@ export function CashWithdrawalToggle(props: Props) {
     a => a.type === 'cash' && !a.archived && a.currency === props.currency
   );
 
+  const prevMatchRef = useRef(false);
   useEffect(() => {
     if (!props.autoDetect || props.readOnly) return;
-    if (props.amount >= 0) return;
+    if (props.amount >= 0) {
+      prevMatchRef.current = false;
+      return;
+    }
     const haystack = normalize(`${props.description} ${props.merchant}`);
     const matches = CASH_WITHDRAWAL_REGEX.test(haystack);
-    if (matches !== props.enabled) {
-      props.onEnabledChange(matches);
+    const prev = prevMatchRef.current;
+    prevMatchRef.current = matches;
+    if (!prev && matches) {
+      props.onEnabledChange(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.amount, props.description, props.merchant, props.autoDetect]);
