@@ -7,7 +7,7 @@
 > 3. Nu adăugăm complexitate inutilă — fiecare idee răspunde la: _câți utilizatori beneficiază real, merită complexitatea?_
 
 **Status:** roadmap inițial, înainte de primul spec implementat.
-**Ultima actualizare:** 2026-04-30.
+**Ultima actualizare:** 2026-05-04.
 
 ---
 
@@ -50,6 +50,8 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 ---
 
 ## Implementat (post-MVP fundație)
+
+- **Sugestie alimentare cont cash la retragere** (2026-05-04) — detectează retragerile de numerar (regex `retragere|extragere|atm|bancomat|cash withdrawal|numerar` cu normalizare diacritice) și sugerează conversia în transfer intern către contul Cash, folosind mecanismul existent `is_internal_transfer` + `linked_transaction_id`. Trei surface-uri UX: banner pe Sumar (`CashSuggestionBanner`) cu count pending în ultimul an și dismiss pe sesiune; ecran batch (`app/sugestie-cash/batch.tsx`) post-import sau din banner, cu listă top 10, checkbox bifat default, dropdown cont destinație filtrat pe valută; checkbox inline în formular tranzacție (`CashWithdrawalToggle` în `app/tranzactii/[id].tsx`) cu auto-detect edge-trigger (uncheck manual respectat). Schema: nou câmp `cash_suggestion_dismissed` + index parțial `idx_tx_cash_pending`. Conversia atomică prin `convertToTransfer` (UPDATE sursă + INSERT pereche cash, FX via `getRateRon` dacă non-RON). Spec: `docs/specs/2026-05-04-sugestie-alimentare-cash-design.md`. Plan: `docs/plans/2026-05-04-sugestie-alimentare-cash.md`.
 
 - **Politică confidențialitate + AI consent explicit Mistral** (2026-04-30) — răspuns la respingerea Apple (5.1.1(i) / 5.1.2(i) și 2.1(b)). Sursa unică `services/privacyPolicy.ts` exportă `AI_DISCLOSURE` (consent surface) și `PRIVACY_POLICY_FULL` (ecran + landing). Componente: `AiDisclosureExpandable` (onboarding + Setări), `AiPreflightDialog` (per-fișier la import PDF/CSV), `PrivacyPolicyView` (ecran `app/confidentialitate.tsx`). Numire explicită „Mistral AI (Mistral SAS, Franța)" + link la termeni; clarificare „tranzacțiile NU se trimit la chatbot — AI primește doar schema, query rulează local". Pagină publică `landing/privacy.html` generată din TS via `npm run build:privacy`. Spec: `docs/specs/2026-04-30-app-store-rejection-privacy-design.md`.
 
