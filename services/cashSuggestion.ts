@@ -1,4 +1,5 @@
-import { db } from './db';
+import { db, generateId } from './db';
+import { getRateRon } from './fxRates';
 
 import type { Transaction } from '@/types';
 
@@ -93,4 +94,85 @@ export async function countPendingCashSuggestions(opts: ListOptions = {}): Promi
 
 export async function dismissCashSuggestion(txId: string): Promise<void> {
   await db.runAsync('UPDATE transactions SET cash_suggestion_dismissed = 1 WHERE id = ?', [txId]);
+}
+
+const TRANSFER_CATEGORY_ID = 'cat-sys-transfer';
+
+export async function convertToTransfer(
+  sourceTxId: string,
+  targetCashAccountId: string
+): Promise<void> {
+  const sourceRow = await db.getFirstAsync<Row>('SELECT * FROM transactions WHERE id = ?', [
+    sourceTxId,
+  ]);
+  if (!sourceRow) throw new Error('Tranzacția sursă nu există.');
+  const source = rowToTx(sourceRow);
+  if (source.amount >= 0) {
+    throw new Error('Doar tranzacțiile negative (debituri) pot fi convertite în retragere cash.');
+  }
+  if (source.is_internal_transfer) {
+    throw new Error('Tranzacția este deja transfer intern.');
+  }
+
+  const target = await db.getFirstAsync<{
+    id: string;
+    type: string;
+    currency: string;
+  }>('SELECT id, type, currency FROM financial_accounts WHERE id = ?', [targetCashAccountId]);
+  if (!target) throw new Error('Contul cash destinație nu există.');
+  if (target.type !== 'cash') throw new Error('Contul destinație nu e de tip cont cash.');
+  if (target.currency !== source.currency) {
+    throw new Error(
+      `Valuta nu se potrivește: sursa e ${source.currency}, contul cash e ${target.currency}.`
+    );
+  }
+
+  const pairId = generateId();
+  const pairAmount = -source.amount;
+  let pairAmountRon: number | null = source.currency === 'RON' ? pairAmount : null;
+  if (source.currency !== 'RON') {
+    try {
+      const rate = await getRateRon(source.date, source.currency);
+      pairAmountRon = pairAmount * rate;
+    } catch {
+      pairAmountRon = null;
+    }
+  }
+  const now = new Date().toISOString();
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `UPDATE transactions
+         SET is_internal_transfer = 1,
+             linked_transaction_id = ?,
+             category_id = ?,
+             cash_suggestion_dismissed = 1
+         WHERE id = ?`,
+      [pairId, TRANSFER_CATEGORY_ID, sourceTxId]
+    );
+
+    await db.runAsync(
+      `INSERT INTO transactions
+         (id, account_id, date, amount, currency, amount_ron, description, merchant,
+          category_id, source, statement_id,
+          is_internal_transfer, linked_transaction_id, is_refund, duplicate_of_id,
+          cash_suggestion_dismissed, notes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 1, ?, 0, NULL, 0, ?, ?)`,
+      [
+        pairId,
+        targetCashAccountId,
+        source.date,
+        pairAmount,
+        source.currency,
+        pairAmountRon,
+        source.description ?? null,
+        source.merchant ?? null,
+        TRANSFER_CATEGORY_ID,
+        source.source,
+        sourceTxId,
+        source.notes ?? null,
+        now,
+      ]
+    );
+  });
 }

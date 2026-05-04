@@ -3,6 +3,7 @@ import {
   countPendingCashSuggestions,
   dismissCashSuggestion,
   listPendingCashSuggestions,
+  convertToTransfer,
 } from '@/services/cashSuggestion';
 import { db } from '@/services/db';
 import type { Transaction } from '@/types';
@@ -213,5 +214,108 @@ describe('dismissCashSuggestion', () => {
     await dismissCashSuggestion('tx-123');
     await dismissCashSuggestion('tx-123');
     expect(db.runAsync).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('convertToTransfer', () => {
+  beforeEach(() => {
+    (db.runAsync as jest.Mock).mockReset();
+    (db.runAsync as jest.Mock).mockResolvedValue({ changes: 1, lastInsertRowId: 0 });
+    (db.getFirstAsync as jest.Mock).mockReset();
+    (db.withTransactionAsync as jest.Mock).mockClear();
+    (db.withTransactionAsync as jest.Mock).mockImplementation(async (cb: () => Promise<void>) => {
+      await cb();
+    });
+  });
+
+  it('happy path: actualizează sursa și inserează jumătate-cash legate reciproc', async () => {
+    (db.getFirstAsync as jest.Mock)
+      .mockResolvedValueOnce(
+        rowFor({
+          id: 'tx-src',
+          account_id: 'acc-bank',
+          amount: -500,
+          currency: 'RON',
+          description: 'RETRAGERE ATM BCR',
+          source: 'statement',
+        })
+      )
+      .mockResolvedValueOnce({ id: 'acc-cash', type: 'cash', currency: 'RON' });
+
+    await convertToTransfer('tx-src', 'acc-cash');
+
+    expect(db.withTransactionAsync).toHaveBeenCalledTimes(1);
+
+    const calls = (db.runAsync as jest.Mock).mock.calls;
+    expect(calls).toHaveLength(2);
+
+    const [updateSql, updateParams] = calls[0];
+    expect(updateSql).toMatch(/UPDATE transactions/);
+    expect(updateSql).toMatch(/is_internal_transfer\s*=\s*1/);
+    expect(updateSql).toMatch(/linked_transaction_id\s*=\s*\?/);
+    expect(updateSql).toMatch(/category_id\s*=\s*\?/);
+    expect(updateSql).toMatch(/cash_suggestion_dismissed\s*=\s*1/);
+    expect(updateParams[1]).toBe('cat-sys-transfer');
+    expect(updateParams[2]).toBe('tx-src');
+    const pairId = updateParams[0];
+    expect(typeof pairId).toBe('string');
+    expect(pairId.length).toBeGreaterThan(0);
+
+    const [insertSql, insertParams] = calls[1];
+    expect(insertSql).toMatch(/INSERT INTO transactions/);
+    expect(insertParams[0]).toBe(pairId); // pereche linked
+    expect(insertParams[1]).toBe('acc-cash'); // account_id
+    expect(insertParams[2]).toBe('2026-05-01'); // date
+    expect(insertParams[3]).toBe(500); // amount inversat (+500)
+    expect(insertParams[4]).toBe('RON'); // currency
+    expect(insertParams[5]).toBe(500); // amount_ron pentru RON e amount
+    expect(insertParams[8]).toBe('cat-sys-transfer'); // category_id
+    expect(insertParams[10]).toBe('tx-src'); // linked_transaction_id
+  });
+
+  it('throw dacă sursa nu există', async () => {
+    (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(null);
+    await expect(convertToTransfer('tx-missing', 'acc-cash')).rejects.toThrow(/sursă/i);
+    expect(db.withTransactionAsync).not.toHaveBeenCalled();
+  });
+
+  it('throw dacă sursa e venit (amount > 0)', async () => {
+    (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(
+      rowFor({ id: 'tx-src', amount: 500, description: 'incasare' })
+    );
+    await expect(convertToTransfer('tx-src', 'acc-cash')).rejects.toThrow(/negative|debituri/i);
+    expect(db.withTransactionAsync).not.toHaveBeenCalled();
+  });
+
+  it('throw dacă sursa e deja transfer intern', async () => {
+    (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(
+      rowFor({ id: 'tx-src', is_internal_transfer: 1 })
+    );
+    await expect(convertToTransfer('tx-src', 'acc-cash')).rejects.toThrow(/deja transfer/i);
+    expect(db.withTransactionAsync).not.toHaveBeenCalled();
+  });
+
+  it('throw dacă target nu există', async () => {
+    (db.getFirstAsync as jest.Mock)
+      .mockResolvedValueOnce(rowFor({ id: 'tx-src' }))
+      .mockResolvedValueOnce(null);
+    await expect(convertToTransfer('tx-src', 'acc-missing')).rejects.toThrow(/destinație/i);
+    expect(db.withTransactionAsync).not.toHaveBeenCalled();
+  });
+
+  it('throw dacă target nu e cont cash', async () => {
+    (db.getFirstAsync as jest.Mock)
+      .mockResolvedValueOnce(rowFor({ id: 'tx-src' }))
+      .mockResolvedValueOnce({ id: 'acc-other-bank', type: 'bank', currency: 'RON' });
+    await expect(convertToTransfer('tx-src', 'acc-other-bank')).rejects.toThrow(/cont cash/i);
+    expect(db.withTransactionAsync).not.toHaveBeenCalled();
+  });
+
+  it('throw dacă valutele nu se potrivesc', async () => {
+    (db.getFirstAsync as jest.Mock)
+      .mockResolvedValueOnce(rowFor({ id: 'tx-src', currency: 'EUR', amount: -100 }))
+      .mockResolvedValueOnce({ id: 'acc-cash-ron', type: 'cash', currency: 'RON' });
+    await expect(convertToTransfer('tx-src', 'acc-cash-ron')).rejects.toThrow(/valut[ăa]/i);
+    expect(db.withTransactionAsync).not.toHaveBeenCalled();
   });
 });
