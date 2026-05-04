@@ -34,6 +34,8 @@ export function CashSuggestionBanner() {
   return (
     <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${count} ${count === 1 ? 'retragere' : 'retrageri'} de cash ${count === 1 ? 'neclasificată' : 'neclasificate'}. Apasă pentru a le clasifica.`}
         style={styles.tappable}
         onPress={() =>
           router.push({
