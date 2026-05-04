@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 
+import { CashWithdrawalToggle } from '@/components/CashWithdrawalToggle';
 import CategoryIcon from '@/components/CategoryIcon';
 import { Text, View, ThemedTextInput } from '@/components/Themed';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
@@ -20,6 +21,7 @@ import Colors from '@/constants/Colors';
 import { useCategories } from '@/hooks/useCategories';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
+import { convertToTransfer } from '@/services/cashSuggestion';
 import {
   getTransaction,
   findPossibleDuplicate,
@@ -83,6 +85,9 @@ export default function TransactionEditorScreen() {
   const [description, setDescription] = useState(params.prefill_description ?? '');
   const [notes, setNotes] = useState('');
   const [isRefund, setIsRefund] = useState(false);
+  const [isCashWithdrawal, setIsCashWithdrawal] = useState(false);
+  const [cashTargetId, setCashTargetId] = useState<string | null>(null);
+  const [isExistingTransfer, setIsExistingTransfer] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
 
@@ -101,6 +106,10 @@ export default function TransactionEditorScreen() {
         setDescription(tx.description ?? '');
         setNotes(tx.notes ?? '');
         setIsRefund(tx.is_refund);
+        setIsExistingTransfer(tx.is_internal_transfer);
+        if (tx.is_internal_transfer) {
+          setIsCashWithdrawal(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoadingTx(false);
@@ -115,6 +124,9 @@ export default function TransactionEditorScreen() {
   const category = categories.find(c => c.id === categoryId);
 
   async function performSave(signedAmount: number) {
+    const shouldConvert =
+      isCashWithdrawal && !!cashTargetId && !isExistingTransfer && signedAmount < 0;
+    let txIdForConvert: string | undefined;
     if (editingId) {
       await updateTransaction(editingId, {
         account_id: accountId ?? null,
@@ -128,8 +140,9 @@ export default function TransactionEditorScreen() {
         notes: notes.trim() || null,
         is_refund: isRefund,
       });
+      txIdForConvert = editingId;
     } else {
-      await createTransaction({
+      const created = await createTransaction({
         account_id: accountId,
         date,
         amount: signedAmount,
@@ -141,9 +154,15 @@ export default function TransactionEditorScreen() {
         notes: notes.trim() || undefined,
         is_refund: isRefund,
       });
-      // Detectează transferuri interne în jurul datei (lăsat să ruleze fără
-      // a bloca UI). Dacă găsește o pereche perfectă, o leagă automat.
-      autoLinkNearbyTransfer(date).catch(() => {});
+      txIdForConvert = created.id;
+      if (!shouldConvert) {
+        // Detectează transferuri interne în jurul datei (lăsat să ruleze fără
+        // a bloca UI). Dacă găsește o pereche perfectă, o leagă automat.
+        autoLinkNearbyTransfer(date).catch(() => {});
+      }
+    }
+    if (shouldConvert && txIdForConvert && cashTargetId) {
+      await convertToTransfer(txIdForConvert, cashTargetId);
     }
     await refresh();
     if (router.canGoBack()) router.back();
@@ -157,6 +176,10 @@ export default function TransactionEditorScreen() {
     }
     if (!date.match(/^\d{4}-\d{2}-\d{2}$/)) {
       Alert.alert('Eroare', 'Data trebuie să fie în format YYYY-MM-DD.');
+      return;
+    }
+    if (isCashWithdrawal && !cashTargetId && !isExistingTransfer) {
+      Alert.alert('Cont destinație lipsă', 'Alege un cont cash sau debifează „este retragere".');
       return;
     }
     const signedAmount = kind === 'expense' ? -Math.abs(parsed) : Math.abs(parsed);
@@ -238,6 +261,14 @@ export default function TransactionEditorScreen() {
       },
     ]);
   }
+
+  const parsedAmount = Number(amountStr.replace(',', '.'));
+  const signedForToggle =
+    Number.isFinite(parsedAmount) && parsedAmount > 0
+      ? kind === 'expense'
+        ? -parsedAmount
+        : parsedAmount
+      : 0;
 
   if (loadingTx) {
     return (
@@ -431,6 +462,21 @@ export default function TransactionEditorScreen() {
           value={description}
           onChangeText={setDescription}
           editable={!loading}
+        />
+
+        {/* Cash withdrawal toggle */}
+        <CashWithdrawalToggle
+          amount={signedForToggle}
+          description={description}
+          merchant={merchant}
+          currency={currency}
+          accounts={accounts}
+          enabled={isCashWithdrawal}
+          onEnabledChange={setIsCashWithdrawal}
+          targetAccountId={cashTargetId}
+          onTargetChange={setCashTargetId}
+          autoDetect={!isExistingTransfer}
+          readOnly={isExistingTransfer}
         />
 
         {/* Refund toggle */}
