@@ -12,7 +12,7 @@ import {
   Modal,
 } from 'react-native';
 
-import { CashSuggestionBanner } from '@/components/CashSuggestionBanner';
+import { TransferSuggestionBanner } from '@/components/TransferSuggestionBanner';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -377,7 +377,7 @@ export default function FinanciarHubScreen() {
           </Pressable>
         </RNView>
 
-        <CashSuggestionBanner />
+        <TransferSuggestionBanner />
 
         {/* Category breakdown */}
         <RNText style={[styles.sectionTitle, { color: C.textSecondary }]}>

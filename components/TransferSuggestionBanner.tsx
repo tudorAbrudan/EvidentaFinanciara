@@ -5,9 +5,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { countPendingCashSuggestions } from '@/services/cashSuggestion';
+import { countPendingTransferSuggestions } from '@/services/internalTransferSuggestion';
 
-export function CashSuggestionBanner() {
+export function TransferSuggestionBanner() {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const C = Colors[scheme];
   const [count, setCount] = useState(0);
@@ -16,7 +16,7 @@ export function CashSuggestionBanner() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      countPendingCashSuggestions()
+      countPendingTransferSuggestions()
         .then(c => {
           if (active) setCount(c);
         })
@@ -31,23 +31,24 @@ export function CashSuggestionBanner() {
 
   if (count === 0 || hiddenForSession) return null;
 
+  const noun = count === 1 ? 'tranzacție' : 'tranzacții';
+
   return (
     <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${count} ${count === 1 ? 'retragere' : 'retrageri'} de cash ${count === 1 ? 'neclasificată' : 'neclasificate'}. Apasă pentru a le clasifica.`}
+        accessibilityLabel={`${count} ${noun} cu sugestie de transfer intern. Apasă pentru a le clasifica.`}
         style={styles.tappable}
         onPress={() =>
           router.push({
-            pathname: '/sugestie-cash/batch' as '/',
+            pathname: '/sugestie-transfer/batch' as '/',
             params: { source: 'summary' },
           })
         }
       >
-        <Ionicons name="cash-outline" size={20} color={C.primary} />
+        <Ionicons name="swap-horizontal-outline" size={20} color={C.primary} />
         <Text style={[styles.text, { color: C.text }]} numberOfLines={2}>
-          Ai {count} {count === 1 ? 'retragere' : 'retrageri'} de cash{' '}
-          {count === 1 ? 'neclasificată' : 'neclasificate'} în ultimul an. Tap să le clasifici.
+          Ai {count} {noun} cu sugestie de transfer intern în ultimul an. Tap să le clasifici.
         </Text>
       </Pressable>
       <Pressable
