@@ -1,5 +1,9 @@
-import { detectCashWithdrawal } from '@/services/cashSuggestion';
-import { countPendingCashSuggestions, listPendingCashSuggestions } from '@/services/cashSuggestion';
+import {
+  detectCashWithdrawal,
+  countPendingCashSuggestions,
+  dismissCashSuggestion,
+  listPendingCashSuggestions,
+} from '@/services/cashSuggestion';
 import { db } from '@/services/db';
 import type { Transaction } from '@/types';
 
@@ -186,5 +190,28 @@ describe('listPendingCashSuggestions / countPendingCashSuggestions', () => {
       rowFor({ id: 'b', description: 'cumpărare card MEGA' }),
     ]);
     expect(await countPendingCashSuggestions()).toBe(1);
+  });
+});
+
+describe('dismissCashSuggestion', () => {
+  beforeEach(() => {
+    (db.runAsync as jest.Mock).mockReset();
+    (db.runAsync as jest.Mock).mockResolvedValue({ changes: 1, lastInsertRowId: 0 });
+  });
+
+  it('apelează UPDATE cu cash_suggestion_dismissed = 1 și id corect', async () => {
+    await dismissCashSuggestion('tx-123');
+    expect(db.runAsync).toHaveBeenCalledTimes(1);
+    const [sql, params] = (db.runAsync as jest.Mock).mock.calls[0];
+    expect(sql).toMatch(/UPDATE transactions/);
+    expect(sql).toMatch(/SET cash_suggestion_dismissed\s*=\s*1/);
+    expect(sql).toMatch(/WHERE id\s*=\s*\?/);
+    expect(params).toEqual(['tx-123']);
+  });
+
+  it('e idempotent (a doua chemare emite același UPDATE fără eroare)', async () => {
+    await dismissCashSuggestion('tx-123');
+    await dismissCashSuggestion('tx-123');
+    expect(db.runAsync).toHaveBeenCalledTimes(2);
   });
 });

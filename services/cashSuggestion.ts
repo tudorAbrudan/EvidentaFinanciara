@@ -90,3 +90,7 @@ export async function countPendingCashSuggestions(opts: ListOptions = {}): Promi
   const candidates = await fetchCandidates(sinceDays);
   return candidates.length;
 }
+
+export async function dismissCashSuggestion(txId: string): Promise<void> {
+  await db.runAsync('UPDATE transactions SET cash_suggestion_dismissed = 1 WHERE id = ?', [txId]);
+}
