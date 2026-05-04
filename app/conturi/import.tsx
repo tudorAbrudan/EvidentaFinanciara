@@ -25,6 +25,7 @@ import { mapStatementWithAi } from '@/services/aiStatementMapper';
 import { mapStatementWithVisionAi } from '@/services/aiStatementVisionMapper';
 import { parseBankStatementCsv, type ParsedRow } from '@/services/bankStatementParser';
 import { parseStatementPdf, type PdfStatementFormat } from '@/services/bankStatementPdfParser';
+import { listPendingCashSuggestions } from '@/services/cashSuggestion';
 import { db, generateId } from '@/services/db';
 import { getRateRon } from '@/services/fxRates';
 import { extractTextFromPdf } from '@/services/pdfExtractor';
@@ -404,6 +405,20 @@ export default function ImportScreen() {
               await markAsDuplicate(dup.id, group.primary.id);
             }
           }
+        }
+      } catch {}
+
+      try {
+        const pending = await listPendingCashSuggestions({ limit: 10 });
+        const fromThisStatement = pending.filter(p => p.statement_id === stmtId);
+        if (fromThisStatement.length > 0) {
+          setImportedCount(rows.length);
+          setImporting(false);
+          router.replace({
+            pathname: '/sugestie-cash/batch' as '/',
+            params: { source: 'import', statementId: stmtId },
+          });
+          return;
         }
       } catch {}
 
