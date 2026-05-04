@@ -25,9 +25,9 @@ import { mapStatementWithAi } from '@/services/aiStatementMapper';
 import { mapStatementWithVisionAi } from '@/services/aiStatementVisionMapper';
 import { parseBankStatementCsv, type ParsedRow } from '@/services/bankStatementParser';
 import { parseStatementPdf, type PdfStatementFormat } from '@/services/bankStatementPdfParser';
-import { listPendingCashSuggestions } from '@/services/cashSuggestion';
 import { db, generateId } from '@/services/db';
 import { getRateRon } from '@/services/fxRates';
+import { listPendingTransferSuggestions } from '@/services/internalTransferSuggestion';
 import { extractTextFromPdf } from '@/services/pdfExtractor';
 import type { PreflightInfo } from '@/services/privacyPolicy';
 import {
@@ -409,13 +409,13 @@ export default function ImportScreen() {
       } catch {}
 
       try {
-        const pending = await listPendingCashSuggestions({ limit: 10 });
+        const pending = await listPendingTransferSuggestions({ limit: 10 });
         const fromThisStatement = pending.filter(p => p.statement_id === stmtId);
         if (fromThisStatement.length > 0) {
           setImportedCount(rows.length);
           setImporting(false);
           router.replace({
-            pathname: '/sugestie-cash/batch' as '/',
+            pathname: '/sugestie-transfer/batch' as '/',
             params: { source: 'import', statementId: stmtId },
           });
           return;

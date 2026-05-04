@@ -8,18 +8,42 @@ import Colors from '@/constants/Colors';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import {
   convertToTransfer,
-  dismissCashSuggestion,
-  listPendingCashSuggestions,
-} from '@/services/cashSuggestion';
-import type { Transaction } from '@/types';
+  dismissTransferSuggestion,
+  listPendingTransferSuggestions,
+  type PendingTransferSuggestion,
+  type TransferType,
+} from '@/services/internalTransferSuggestion';
+import type { FinancialAccount } from '@/types';
 
 interface RowState {
-  tx: Transaction;
+  tx: PendingTransferSuggestion;
   selected: boolean;
   targetAccountId: string | null;
 }
 
-export default function CashSuggestionBatch() {
+const TYPE_LABEL: Record<TransferType, string> = {
+  cash: 'Retragere cash',
+  savings_out: 'Către economii',
+  savings_in: 'Din economii',
+};
+
+const TYPE_ICON: Record<TransferType, keyof typeof Ionicons.glyphMap> = {
+  cash: 'cash-outline',
+  savings_out: 'arrow-up-circle-outline',
+  savings_in: 'arrow-down-circle-outline',
+};
+
+function targetTypeFor(t: TransferType): FinancialAccount['type'] {
+  return t === 'cash' ? 'cash' : 'savings';
+}
+
+function targetCreateLabel(t: TransferType, currency: string): string {
+  return t === 'cash'
+    ? `+ Creează cont Cash în ${currency}`
+    : `+ Creează cont Economii în ${currency}`;
+}
+
+export default function SugestieTransferBatch() {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const C = Colors[scheme];
   const { accounts } = useFinancialAccounts();
@@ -29,12 +53,14 @@ export default function CashSuggestionBatch() {
 
   const loadData = useCallback(async () => {
     try {
-      const pending = await listPendingCashSuggestions();
-      const cashAccounts = accounts.filter(a => a.type === 'cash' && !a.archived);
+      const pending = await listPendingTransferSuggestions();
       setRows(
         pending.map(tx => {
-          const matchByCurrency = cashAccounts.filter(a => a.currency === tx.currency);
-          const onlyOne = matchByCurrency.length === 1 ? matchByCurrency[0].id : null;
+          const targetType = targetTypeFor(tx.suggested_type);
+          const matching = accounts.filter(
+            a => a.type === targetType && !a.archived && a.currency === tx.currency
+          );
+          const onlyOne = matching.length === 1 ? matching[0].id : null;
           return { tx, selected: true, targetAccountId: onlyOne };
         })
       );
@@ -54,7 +80,7 @@ export default function CashSuggestionBatch() {
     setRows(prev => prev.map(r => (r.tx.id === txId ? { ...r, targetAccountId: accId } : r)));
 
   const skipRow = async (txId: string) => {
-    await dismissCashSuggestion(txId);
+    await dismissTransferSuggestion(txId);
     setRows(prev => prev.filter(r => r.tx.id !== txId));
   };
 
@@ -62,7 +88,7 @@ export default function CashSuggestionBatch() {
     setBusy(true);
     try {
       for (const r of rows) {
-        await dismissCashSuggestion(r.tx.id);
+        await dismissTransferSuggestion(r.tx.id);
       }
       router.back();
     } catch (e) {
@@ -79,7 +105,7 @@ export default function CashSuggestionBatch() {
     if (missingTarget) {
       Alert.alert(
         'Cont destinație lipsă',
-        'Alege un cont cash destinație pentru fiecare retragere bifată sau debifează rândurile fără destinație.'
+        'Alege un cont destinație pentru fiecare tranzacție bifată sau debifează rândurile fără destinație.'
       );
       return;
     }
@@ -100,7 +126,6 @@ export default function CashSuggestionBatch() {
   };
 
   const selectedCount = rows.filter(r => r.selected && r.targetAccountId).length;
-  const cashAccounts = accounts.filter(a => a.type === 'cash' && !a.archived);
 
   if (loading) {
     return (
@@ -114,7 +139,7 @@ export default function CashSuggestionBatch() {
     return (
       <View style={[styles.center, { backgroundColor: C.background }]}>
         <Text style={{ color: C.textSecondary, textAlign: 'center', padding: 24 }}>
-          Nu ai retrageri de cash neclasificate. Înapoi.
+          Nu ai tranzacții cu sugestie de transfer intern. Înapoi.
         </Text>
         <Pressable
           onPress={() => router.back()}
@@ -129,10 +154,10 @@ export default function CashSuggestionBatch() {
   return (
     <View style={[styles.container, { backgroundColor: C.background }]}>
       <Text style={[styles.heading, { color: C.text }]}>
-        {rows.length} {rows.length === 1 ? 'retragere detectată' : 'retrageri detectate'}
+        {rows.length} {rows.length === 1 ? 'tranzacție detectată' : 'tranzacții detectate'}
       </Text>
       <Text style={[styles.subheading, { color: C.textSecondary }]}>
-        Vrei să le aloci într-un cont Cash?
+        Vrei să le aloci într-un cont propriu?
       </Text>
 
       <FlatList
@@ -140,7 +165,10 @@ export default function CashSuggestionBatch() {
         keyExtractor={r => r.tx.id}
         contentContainerStyle={{ paddingBottom: 24 }}
         renderItem={({ item }) => {
-          const matching = cashAccounts.filter(a => a.currency === item.tx.currency);
+          const targetType = targetTypeFor(item.tx.suggested_type);
+          const matching = accounts.filter(
+            a => a.type === targetType && !a.archived && a.currency === item.tx.currency
+          );
           return (
             <View style={[styles.row, { backgroundColor: C.card, borderColor: C.border }]}>
               <Pressable onPress={() => toggleSelect(item.tx.id)} style={styles.rowHeader}>
@@ -150,8 +178,18 @@ export default function CashSuggestionBatch() {
                   color={item.selected ? C.primary : C.textSecondary}
                 />
                 <View style={{ flex: 1 }}>
+                  <View style={styles.titleRow}>
+                    <Ionicons
+                      name={TYPE_ICON[item.tx.suggested_type]}
+                      size={14}
+                      color={C.primary}
+                    />
+                    <Text style={[styles.badge, { color: C.primary }]}>
+                      {TYPE_LABEL[item.tx.suggested_type]}
+                    </Text>
+                  </View>
                   <Text style={[styles.rowTitle, { color: C.text }]} numberOfLines={1}>
-                    {item.tx.description || item.tx.merchant || 'Retragere'}
+                    {item.tx.description || item.tx.merchant || 'Tranzacție'}
                   </Text>
                   <Text style={[styles.rowMeta, { color: C.textSecondary }]}>
                     {Math.abs(item.tx.amount).toFixed(2)} {item.tx.currency} • {item.tx.date}
@@ -168,12 +206,12 @@ export default function CashSuggestionBatch() {
                       onPress={() =>
                         router.push({
                           pathname: '/conturi/add' as '/',
-                          params: { type: 'cash', currency: item.tx.currency },
+                          params: { type: targetType, currency: item.tx.currency },
                         })
                       }
                     >
                       <Text style={[styles.btnSecondaryText, { color: C.primary }]}>
-                        + Creează cont Cash în {item.tx.currency}
+                        {targetCreateLabel(item.tx.suggested_type, item.tx.currency)}
                       </Text>
                     </Pressable>
                   ) : (
@@ -209,7 +247,7 @@ export default function CashSuggestionBatch() {
 
               <Pressable onPress={() => void skipRow(item.tx.id)} style={styles.skipBtn}>
                 <Text style={{ color: C.textSecondary, fontSize: 12 }}>
-                  ✗ Skip această retragere
+                  ✗ Skip această tranzacție
                 </Text>
               </Pressable>
             </View>
@@ -249,6 +287,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   rowHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
+  badge: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' },
   rowTitle: { fontSize: 15, fontWeight: '500' },
   rowMeta: { fontSize: 13, marginTop: 2 },
   label: { fontSize: 12, marginBottom: 6 },
