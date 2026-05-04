@@ -12,8 +12,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 
-import { CashWithdrawalToggle } from '@/components/CashWithdrawalToggle';
 import CategoryIcon from '@/components/CategoryIcon';
+import { InternalTransferToggle } from '@/components/InternalTransferToggle';
 import { Text, View, ThemedTextInput } from '@/components/Themed';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -21,7 +21,7 @@ import Colors from '@/constants/Colors';
 import { useCategories } from '@/hooks/useCategories';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
-import { convertToTransfer } from '@/services/cashSuggestion';
+import { convertToTransfer } from '@/services/internalTransferSuggestion';
 import {
   getTransaction,
   findPossibleDuplicate,
@@ -85,8 +85,8 @@ export default function TransactionEditorScreen() {
   const [description, setDescription] = useState(params.prefill_description ?? '');
   const [notes, setNotes] = useState('');
   const [isRefund, setIsRefund] = useState(false);
-  const [isCashWithdrawal, setIsCashWithdrawal] = useState(false);
-  const [cashTargetId, setCashTargetId] = useState<string | null>(null);
+  const [isInternalTransfer, setIsInternalTransfer] = useState(false);
+  const [transferTargetId, setTransferTargetId] = useState<string | null>(null);
   const [isExistingTransfer, setIsExistingTransfer] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
@@ -108,7 +108,7 @@ export default function TransactionEditorScreen() {
         setIsRefund(tx.is_refund);
         setIsExistingTransfer(tx.is_internal_transfer);
         if (tx.is_internal_transfer) {
-          setIsCashWithdrawal(true);
+          setIsInternalTransfer(true);
         }
       })
       .finally(() => {
@@ -124,8 +124,7 @@ export default function TransactionEditorScreen() {
   const category = categories.find(c => c.id === categoryId);
 
   async function performSave(signedAmount: number) {
-    const shouldConvert =
-      isCashWithdrawal && !!cashTargetId && !isExistingTransfer && signedAmount < 0;
+    const shouldConvert = isInternalTransfer && !!transferTargetId && !isExistingTransfer;
     let txIdForConvert: string | undefined;
     if (editingId) {
       await updateTransaction(editingId, {
@@ -161,8 +160,8 @@ export default function TransactionEditorScreen() {
         autoLinkNearbyTransfer(date).catch(() => {});
       }
     }
-    if (shouldConvert && txIdForConvert && cashTargetId) {
-      await convertToTransfer(txIdForConvert, cashTargetId);
+    if (shouldConvert && txIdForConvert && transferTargetId) {
+      await convertToTransfer(txIdForConvert, transferTargetId);
     }
     await refresh();
     if (router.canGoBack()) router.back();
@@ -178,8 +177,11 @@ export default function TransactionEditorScreen() {
       Alert.alert('Eroare', 'Data trebuie să fie în format YYYY-MM-DD.');
       return;
     }
-    if (isCashWithdrawal && !cashTargetId && !isExistingTransfer) {
-      Alert.alert('Cont destinație lipsă', 'Alege un cont cash sau debifează „este retragere".');
+    if (isInternalTransfer && !transferTargetId && !isExistingTransfer) {
+      Alert.alert(
+        'Cont destinație lipsă',
+        'Alege un cont propriu sau debifează opțiunea „transfer intern".'
+      );
       return;
     }
     const signedAmount = kind === 'expense' ? -Math.abs(parsed) : Math.abs(parsed);
@@ -464,17 +466,17 @@ export default function TransactionEditorScreen() {
           editable={!loading}
         />
 
-        {/* Cash withdrawal toggle */}
-        <CashWithdrawalToggle
+        {/* Internal transfer toggle */}
+        <InternalTransferToggle
           amount={signedForToggle}
           description={description}
           merchant={merchant}
           currency={currency}
           accounts={accounts}
-          enabled={isCashWithdrawal}
-          onEnabledChange={setIsCashWithdrawal}
-          targetAccountId={cashTargetId}
-          onTargetChange={setCashTargetId}
+          enabled={isInternalTransfer}
+          onEnabledChange={setIsInternalTransfer}
+          targetAccountId={transferTargetId}
+          onTargetChange={setTransferTargetId}
           autoDetect={!isExistingTransfer}
           readOnly={isExistingTransfer}
         />
