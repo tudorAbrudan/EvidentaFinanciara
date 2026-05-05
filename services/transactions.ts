@@ -281,11 +281,14 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 
 /**
  * Șterge multiple tranzacții într-o singură tranzacție DB, cu cleanup:
- *   1. Dezleagă transferuri interne — contraparte (linked_transaction_id IN ids)
+ *   1. Colectează DISTINCT statement_id pentru tranzacțiile ce se șterg
+ *      (load-bearing: trebuie să ruleze ÎNAINTE de DELETE — după DELETE
+ *      referințele dispar și auto-purge-ul devine imposibil).
+ *   2. Dezleagă transferuri interne — contraparte (linked_transaction_id IN ids)
  *      revine la tranzacție obișnuită.
- *   2. Dezmarchează duplicate care referă spre IDs ce se șterg.
- *   3. DELETE FROM transactions WHERE id IN ids (chunking la 500 — limita SQLite).
- *   4. Auto-purge bank_statements rămase fără tranzacții.
+ *   3. Dezmarchează duplicate care referă spre IDs ce se șterg.
+ *   4. DELETE FROM transactions WHERE id IN ids (chunking la 500 — limita SQLite).
+ *   5. Auto-purge bank_statements rămase fără tranzacții (din candidați la pasul 1).
  *
  * Returnează numărul de rânduri șterse efectiv (db.changes) și numărul de
  * statement-uri auto-purgate.
@@ -299,8 +302,8 @@ export async function bulkDeleteTransactions(
   let statementsRemoved = 0;
 
   await db.withTransactionAsync(async () => {
-    // 1. Determină statement-urile candidate la auto-purge — colectează DISTINCT
-    //    statement_id-uri pentru tranzacțiile care urmează a fi șterse.
+    // 1. IMPORTANT: must run BEFORE phase 4 — after DELETE, statement_id
+    //    references are gone and auto-purge can no longer find candidates.
     const candidateStmtRows: { statement_id: string }[] = [];
     for (const chunk of chunkArray(ids, BULK_CHUNK)) {
       const placeholders = chunk.map(() => '?').join(',');
@@ -346,8 +349,7 @@ export async function bulkDeleteTransactions(
         `DELETE FROM transactions WHERE id IN (${placeholders})`,
         chunk
       );
-      const changes = (res as unknown as { changes?: number })?.changes ?? 0;
-      deletedCount += changes;
+      deletedCount += res.changes;
     }
 
     // 5. Auto-purge statement-uri orfane
@@ -371,8 +373,7 @@ export async function bulkDeleteTransactions(
             `DELETE FROM bank_statements WHERE id IN (${placeholders})`,
             chunk
           );
-          const changes = (res as unknown as { changes?: number })?.changes ?? 0;
-          statementsRemoved += changes;
+          statementsRemoved += res.changes;
         }
       }
     }

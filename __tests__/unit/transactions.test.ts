@@ -291,6 +291,23 @@ describe('bulkDeleteTransactions', () => {
     expect((db.db.withTransactionAsync as jest.Mock).mock.calls).toHaveLength(1);
   });
 
+  it('DELETE rulează în interiorul callback-ului withTransactionAsync', async () => {
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+    let runCallsBeforeWrapper = 0;
+    let runCallsInsideWrapper = 0;
+    (db.db.withTransactionAsync as jest.Mock).mockImplementationOnce(
+      async (fn: () => Promise<void>) => {
+        runCallsBeforeWrapper = (db.db.runAsync as jest.Mock).mock.calls.length;
+        await fn();
+        runCallsInsideWrapper =
+          (db.db.runAsync as jest.Mock).mock.calls.length - runCallsBeforeWrapper;
+      }
+    );
+    await bulkDeleteTransactions(['t1']);
+    expect(runCallsBeforeWrapper).toBe(0);
+    expect(runCallsInsideWrapper).toBeGreaterThan(0);
+  });
+
   it('emite UPDATE pentru a dezlega contraparte transfer intern', async () => {
     (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
     await bulkDeleteTransactions(['t1']);
