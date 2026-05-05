@@ -5,6 +5,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import type { TransactionFilter } from '@/services/transactions';
+import { statusColors } from '@/theme/colors';
 import type { FinancialAccount } from '@/types';
 
 type Props = {
@@ -20,11 +21,22 @@ type PeriodPreset =
   | { kind: 'thisMonth' }
   | { kind: 'lastMonth' }
   | { kind: 'last3Months' }
-  | { kind: 'thisYear' }
-  | { kind: 'custom'; from: string; to: string };
+  | { kind: 'thisYear' };
 
 function ymd(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function isValidYmd(s: string): boolean {
+  if (!YMD_RE.test(s)) return false;
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return false;
+  return ymd(d) === s;
 }
 
 function presetToRange(p: PeriodPreset): { fromDate?: string; toDate?: string } {
@@ -45,12 +57,9 @@ function presetToRange(p: PeriodPreset): { fromDate?: string; toDate?: string } 
     const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return { fromDate: ymd(from), toDate: ymd(to) };
   }
-  if (p.kind === 'thisYear') {
-    const from = new Date(now.getFullYear(), 0, 1);
-    const to = new Date(now.getFullYear(), 11, 31);
-    return { fromDate: ymd(from), toDate: ymd(to) };
-  }
-  return { fromDate: p.from, toDate: p.to };
+  const from = new Date(now.getFullYear(), 0, 1);
+  const to = new Date(now.getFullYear(), 11, 31);
+  return { fromDate: ymd(from), toDate: ymd(to) };
 }
 
 function formatPeriodLabel(filter: TransactionFilter): string {
@@ -267,6 +276,26 @@ function PeriodSheet({
   const C = Colors[scheme];
   const [customFrom, setCustomFrom] = useState(value.fromDate ?? '');
   const [customTo, setCustomTo] = useState(value.toDate ?? '');
+  const [error, setError] = useState<string | null>(null);
+
+  function applyCustom() {
+    const from = customFrom.trim();
+    const to = customTo.trim();
+    if (from && !isValidYmd(from)) {
+      setError('„De la" trebuie să fie YYYY-MM-DD valid.');
+      return;
+    }
+    if (to && !isValidYmd(to)) {
+      setError('„Până la" trebuie să fie YYYY-MM-DD valid.');
+      return;
+    }
+    if (from && to && from > to) {
+      setError('„De la" trebuie să fie ≤ „Până la".');
+      return;
+    }
+    setError(null);
+    onApply({ fromDate: from || undefined, toDate: to || undefined });
+  }
 
   const presets: { label: string; preset: PeriodPreset }[] = [
     { label: 'Toate', preset: { kind: 'all' } },
@@ -309,15 +338,8 @@ function PeriodSheet({
             style={[styles.amountInput, { color: C.text, borderColor: C.border }]}
           />
         </View>
-        <Pressable
-          onPress={() =>
-            onApply({
-              fromDate: customFrom || undefined,
-              toDate: customTo || undefined,
-            })
-          }
-          style={[styles.applyBtn, { backgroundColor: C.tint }]}
-        >
+        {error && <Text style={{ color: statusColors.critical }}>{error}</Text>}
+        <Pressable onPress={applyCustom} style={[styles.applyBtn, { backgroundColor: C.tint }]}>
           <Text style={{ color: C.background, fontWeight: '600' }}>Aplică interval</Text>
         </Pressable>
       </View>
@@ -386,7 +408,7 @@ function AmountSheet({
             style={[styles.amountInput, { color: C.text, borderColor: C.border }]}
           />
         </View>
-        {error && <Text style={{ color: C.textSecondary }}>{error}</Text>}
+        {error && <Text style={{ color: statusColors.critical }}>{error}</Text>}
         <Pressable onPress={apply} style={[styles.applyBtn, { backgroundColor: C.tint }]}>
           <Text style={{ color: C.background, fontWeight: '600' }}>Aplică</Text>
         </Pressable>
