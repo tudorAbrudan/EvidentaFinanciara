@@ -271,6 +271,116 @@ export async function deleteTransaction(id: string): Promise<void> {
   await db.runAsync('DELETE FROM transactions WHERE id = ?', [id]);
 }
 
+const BULK_CHUNK = 500;
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+/**
+ * Șterge multiple tranzacții într-o singură tranzacție DB, cu cleanup:
+ *   1. Dezleagă transferuri interne — contraparte (linked_transaction_id IN ids)
+ *      revine la tranzacție obișnuită.
+ *   2. Dezmarchează duplicate care referă spre IDs ce se șterg.
+ *   3. DELETE FROM transactions WHERE id IN ids (chunking la 500 — limita SQLite).
+ *   4. Auto-purge bank_statements rămase fără tranzacții.
+ *
+ * Returnează numărul de rânduri șterse efectiv (db.changes) și numărul de
+ * statement-uri auto-purgate.
+ */
+export async function bulkDeleteTransactions(
+  ids: string[]
+): Promise<{ deletedCount: number; statementsRemoved: number }> {
+  if (ids.length === 0) return { deletedCount: 0, statementsRemoved: 0 };
+
+  let deletedCount = 0;
+  let statementsRemoved = 0;
+
+  await db.withTransactionAsync(async () => {
+    // 1. Determină statement-urile candidate la auto-purge — colectează DISTINCT
+    //    statement_id-uri pentru tranzacțiile care urmează a fi șterse.
+    const candidateStmtRows: { statement_id: string }[] = [];
+    for (const chunk of chunkArray(ids, BULK_CHUNK)) {
+      const placeholders = chunk.map(() => '?').join(',');
+      const rows = await db.getAllAsync<{ statement_id: string }>(
+        `SELECT DISTINCT statement_id FROM transactions
+          WHERE id IN (${placeholders}) AND statement_id IS NOT NULL`,
+        chunk
+      );
+      candidateStmtRows.push(...rows);
+    }
+    const candidateStmtIds = Array.from(
+      new Set(candidateStmtRows.map(r => r.statement_id).filter(Boolean))
+    );
+
+    // 2. Dezleagă transferuri interne (cealaltă jumătate)
+    for (const chunk of chunkArray(ids, BULK_CHUNK)) {
+      const placeholders = chunk.map(() => '?').join(',');
+      await db.runAsync(
+        `UPDATE transactions
+            SET is_internal_transfer = 0, linked_transaction_id = NULL
+          WHERE id IN (
+            SELECT linked_transaction_id FROM transactions
+             WHERE id IN (${placeholders}) AND linked_transaction_id IS NOT NULL
+          )`,
+        chunk
+      );
+    }
+
+    // 3. Dezmarchează duplicate care pointează spre IDs ce se șterg
+    for (const chunk of chunkArray(ids, BULK_CHUNK)) {
+      const placeholders = chunk.map(() => '?').join(',');
+      await db.runAsync(
+        `UPDATE transactions SET duplicate_of_id = NULL
+          WHERE duplicate_of_id IN (${placeholders})`,
+        chunk
+      );
+    }
+
+    // 4. DELETE FROM transactions
+    for (const chunk of chunkArray(ids, BULK_CHUNK)) {
+      const placeholders = chunk.map(() => '?').join(',');
+      const res = await db.runAsync(
+        `DELETE FROM transactions WHERE id IN (${placeholders})`,
+        chunk
+      );
+      const changes = (res as unknown as { changes?: number })?.changes ?? 0;
+      deletedCount += changes;
+    }
+
+    // 5. Auto-purge statement-uri orfane
+    if (candidateStmtIds.length > 0) {
+      const stillReferencedRows: { statement_id: string }[] = [];
+      for (const chunk of chunkArray(candidateStmtIds, BULK_CHUNK)) {
+        const placeholders = chunk.map(() => '?').join(',');
+        const rows = await db.getAllAsync<{ statement_id: string }>(
+          `SELECT DISTINCT statement_id FROM transactions
+            WHERE statement_id IN (${placeholders})`,
+          chunk
+        );
+        stillReferencedRows.push(...rows);
+      }
+      const stillReferenced = new Set(stillReferencedRows.map(r => r.statement_id));
+      const orphanIds = candidateStmtIds.filter(id => !stillReferenced.has(id));
+      if (orphanIds.length > 0) {
+        for (const chunk of chunkArray(orphanIds, BULK_CHUNK)) {
+          const placeholders = chunk.map(() => '?').join(',');
+          const res = await db.runAsync(
+            `DELETE FROM bank_statements WHERE id IN (${placeholders})`,
+            chunk
+          );
+          const changes = (res as unknown as { changes?: number })?.changes ?? 0;
+          statementsRemoved += changes;
+        }
+      }
+    }
+  });
+
+  return { deletedCount, statementsRemoved };
+}
+
 export async function markAsDuplicate(id: string, originalId: string): Promise<void> {
   if (id === originalId) {
     throw new Error('O tranzacție nu poate fi duplicat al ei înseși.');

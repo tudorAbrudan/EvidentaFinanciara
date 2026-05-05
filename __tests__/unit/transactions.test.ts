@@ -1,5 +1,6 @@
 import * as db from '@/services/db';
 import {
+  bulkDeleteTransactions,
   findDuplicateCandidates,
   findInternalTransferCandidates,
   getMonthlyTotals,
@@ -14,6 +15,9 @@ jest.mock('@/services/db', () => ({
     runAsync: jest.fn(),
     getAllAsync: jest.fn(),
     getFirstAsync: jest.fn(),
+    withTransactionAsync: jest.fn(async (fn: () => Promise<void>) => {
+      await fn();
+    }),
   },
   generateId: () => 'test-id',
 }));
@@ -262,5 +266,108 @@ describe('getTransactions filter flags', () => {
     await getTransactions({});
     const sql = (db.db.getAllAsync as jest.Mock).mock.calls[0][0] as string;
     expect(sql).not.toMatch(/BETWEEN/);
+  });
+});
+
+describe('bulkDeleteTransactions', () => {
+  beforeEach(() => {
+    (db.db.runAsync as jest.Mock).mockReset();
+    (db.db.runAsync as jest.Mock).mockResolvedValue({ changes: 0 });
+    (db.db.getAllAsync as jest.Mock).mockReset();
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+    (db.db.withTransactionAsync as jest.Mock).mockClear();
+  });
+
+  it('lista vidă → no-op, fără queries', async () => {
+    const result = await bulkDeleteTransactions([]);
+    expect(result).toEqual({ deletedCount: 0, statementsRemoved: 0 });
+    expect((db.db.runAsync as jest.Mock).mock.calls).toHaveLength(0);
+    expect((db.db.withTransactionAsync as jest.Mock).mock.calls).toHaveLength(0);
+  });
+
+  it('rulează în db.withTransactionAsync (atomic)', async () => {
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+    await bulkDeleteTransactions(['t1']);
+    expect((db.db.withTransactionAsync as jest.Mock).mock.calls).toHaveLength(1);
+  });
+
+  it('emite UPDATE pentru a dezlega contraparte transfer intern', async () => {
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+    await bulkDeleteTransactions(['t1']);
+    const calls = (db.db.runAsync as jest.Mock).mock.calls.map(c => c[0] as string);
+    const found = calls.find(s =>
+      /UPDATE transactions[\s\S]*is_internal_transfer = 0[\s\S]*linked_transaction_id IS NOT NULL/.test(
+        s
+      )
+    );
+    expect(found).toBeTruthy();
+  });
+
+  it('emite UPDATE pentru a dezmarca duplicate care pointează spre IDs ce se șterg', async () => {
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+    await bulkDeleteTransactions(['t1']);
+    const calls = (db.db.runAsync as jest.Mock).mock.calls.map(c => c[0] as string);
+    const found = calls.find(s => /UPDATE transactions SET duplicate_of_id = NULL/.test(s));
+    expect(found).toBeTruthy();
+  });
+
+  it('emite DELETE FROM transactions cu IDs', async () => {
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+    await bulkDeleteTransactions(['t1', 't2']);
+    const calls = (db.db.runAsync as jest.Mock).mock.calls;
+    const deleteCall = calls.find(c => /DELETE FROM transactions WHERE id IN/.test(c[0] as string));
+    expect(deleteCall).toBeTruthy();
+    expect(deleteCall![1]).toEqual(['t1', 't2']);
+  });
+
+  it('auto-purge statement-uri orfane: șterge bank_statements ne-mai-referențiate', async () => {
+    (db.db.getAllAsync as jest.Mock)
+      .mockResolvedValueOnce([{ statement_id: 's1' }, { statement_id: 's2' }])
+      .mockResolvedValueOnce([{ statement_id: 's2' }]);
+    (db.db.runAsync as jest.Mock).mockImplementation(async (sql: string) => {
+      if (/DELETE FROM bank_statements/.test(sql)) return { changes: 1 };
+      if (/DELETE FROM transactions/.test(sql)) return { changes: 2 };
+      return { changes: 0 };
+    });
+    const result = await bulkDeleteTransactions(['t1', 't2']);
+    const calls = (db.db.runAsync as jest.Mock).mock.calls;
+    const purge = calls.find(c => /DELETE FROM bank_statements WHERE id IN/.test(c[0] as string));
+    expect(purge).toBeTruthy();
+    expect(purge![1]).toEqual(['s1']);
+    expect(result.statementsRemoved).toBe(1);
+  });
+
+  it('NU emite DELETE bank_statements dacă niciun statement nu rămâne orfan', async () => {
+    (db.db.getAllAsync as jest.Mock)
+      .mockResolvedValueOnce([{ statement_id: 's1' }])
+      .mockResolvedValueOnce([{ statement_id: 's1' }]);
+    await bulkDeleteTransactions(['t1']);
+    const calls = (db.db.runAsync as jest.Mock).mock.calls.map(c => c[0] as string);
+    const purge = calls.find(s => /DELETE FROM bank_statements/.test(s));
+    expect(purge).toBeFalsy();
+  });
+
+  it('chunking: 1500 IDs sparte în 3 batch-uri pentru DELETE', async () => {
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+    const ids = Array.from({ length: 1500 }, (_, i) => `id-${i}`);
+    await bulkDeleteTransactions(ids);
+    const calls = (db.db.runAsync as jest.Mock).mock.calls;
+    const deleteCalls = calls.filter(c =>
+      /DELETE FROM transactions WHERE id IN/.test(c[0] as string)
+    );
+    expect(deleteCalls).toHaveLength(3);
+    expect((deleteCalls[0][1] as string[]).length).toBe(500);
+    expect((deleteCalls[1][1] as string[]).length).toBe(500);
+    expect((deleteCalls[2][1] as string[]).length).toBe(500);
+  });
+
+  it('returnează deletedCount = suma db.changes pe DELETE-uri', async () => {
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+    (db.db.runAsync as jest.Mock).mockImplementation(async (sql: string) => {
+      if (/DELETE FROM transactions/.test(sql)) return { changes: 3 };
+      return { changes: 0 };
+    });
+    const result = await bulkDeleteTransactions(['t1', 't2', 't3']);
+    expect(result.deletedCount).toBe(3);
   });
 });
