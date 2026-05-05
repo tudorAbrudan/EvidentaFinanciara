@@ -1,6 +1,10 @@
 import { setBulkDeleteIds, consumeBulkDeleteIds } from '@/services/bulkDeleteHandoff';
 
 describe('bulkDeleteHandoff', () => {
+  beforeEach(() => {
+    consumeBulkDeleteIds();
+  });
+
   it('set + consume returnează lista', () => {
     setBulkDeleteIds(['a', 'b', 'c']);
     expect(consumeBulkDeleteIds()).toEqual(['a', 'b', 'c']);
@@ -13,8 +17,6 @@ describe('bulkDeleteHandoff', () => {
   });
 
   it('consume fără set anterior returnează null', () => {
-    // Cleanup pentru izolare între teste — re-import resetează modul.
-    consumeBulkDeleteIds(); // golește din testul anterior dacă a rămas
     expect(consumeBulkDeleteIds()).toBeNull();
   });
 });
