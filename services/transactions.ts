@@ -62,6 +62,7 @@ export interface TransactionFilter {
   offset?: number;
   uncategorized?: boolean; // filtru pe category_id IS NULL
   onlyExpenses?: boolean; // filtru pe amount < 0
+  absAmountRange?: { min?: number; max?: number }; // valori absolute, prinde ambele semne
 }
 
 export async function getTransactions(filter: TransactionFilter = {}): Promise<Transaction[]> {
@@ -112,6 +113,19 @@ export async function getTransactions(filter: TransactionFilter = {}): Promise<T
   }
   if (filter.onlyExpenses === true) {
     where.push('amount < 0');
+  }
+  if (filter.absAmountRange) {
+    const { min, max } = filter.absAmountRange;
+    if (min !== undefined && max !== undefined) {
+      where.push('((amount BETWEEN ? AND ?) OR (amount BETWEEN ? AND ?))');
+      params.push(-max, -min, min, max);
+    } else if (min !== undefined) {
+      where.push('(amount <= ? OR amount >= ?)');
+      params.push(-min, min);
+    } else if (max !== undefined) {
+      where.push('amount BETWEEN ? AND ?');
+      params.push(-max, max);
+    }
   }
 
   const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';

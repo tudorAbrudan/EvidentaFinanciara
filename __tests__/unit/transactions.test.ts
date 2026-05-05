@@ -233,4 +233,34 @@ describe('getTransactions filter flags', () => {
     expect(sql).not.toMatch(/category_id IS NULL/);
     expect(sql).not.toMatch(/amount < 0/);
   });
+
+  it('absAmountRange {min, max} adds OR clause cu interval semnat și absolut', async () => {
+    await getTransactions({ absAmountRange: { min: 100, max: 500 } });
+    const sql = (db.db.getAllAsync as jest.Mock).mock.calls[0][0] as string;
+    const params = (db.db.getAllAsync as jest.Mock).mock.calls[0][1] as number[];
+    expect(sql).toMatch(/\(amount BETWEEN \? AND \?\) OR \(amount BETWEEN \? AND \?\)/);
+    expect(params).toEqual([-500, -100, 100, 500]);
+  });
+
+  it('absAmountRange cu doar min adds "amount <= -min OR amount >= min"', async () => {
+    await getTransactions({ absAmountRange: { min: 200 } });
+    const sql = (db.db.getAllAsync as jest.Mock).mock.calls[0][0] as string;
+    const params = (db.db.getAllAsync as jest.Mock).mock.calls[0][1] as number[];
+    expect(sql).toMatch(/amount <= \? OR amount >= \?/);
+    expect(params).toEqual([-200, 200]);
+  });
+
+  it('absAmountRange cu doar max adds "amount BETWEEN -max AND max"', async () => {
+    await getTransactions({ absAmountRange: { max: 100 } });
+    const sql = (db.db.getAllAsync as jest.Mock).mock.calls[0][0] as string;
+    const params = (db.db.getAllAsync as jest.Mock).mock.calls[0][1] as number[];
+    expect(sql).toMatch(/amount BETWEEN \? AND \?/);
+    expect(params).toEqual([-100, 100]);
+  });
+
+  it('absAmountRange absent → no clause', async () => {
+    await getTransactions({});
+    const sql = (db.db.getAllAsync as jest.Mock).mock.calls[0][0] as string;
+    expect(sql).not.toMatch(/BETWEEN/);
+  });
 });
