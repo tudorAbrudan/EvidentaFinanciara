@@ -56,18 +56,28 @@ export default function StergeBulkScreen() {
   const categoryById = useMemo(() => new Map(categories.map(c => [c.id, c])), [categories]);
 
   const counters = useMemo(() => {
-    if (!txs) return { count: 0, sumAbs: 0, transfers: 0, fromStatement: 0 };
-    let sumAbs = 0;
+    if (!txs)
+      return { count: 0, sumByCurrency: [] as [string, number][], transfers: 0, fromStatement: 0 };
+    const byCurrency = new Map<string, number>();
     let transfers = 0;
     let fromStatement = 0;
     for (const t of txs) {
       if (!selected.has(t.id)) continue;
-      sumAbs += Math.abs(t.amount);
+      byCurrency.set(t.currency, (byCurrency.get(t.currency) ?? 0) + Math.abs(t.amount));
       if (t.is_internal_transfer) transfers += 1;
       if (t.statement_id) fromStatement += 1;
     }
-    return { count: selected.size, sumAbs, transfers, fromStatement };
+    return {
+      count: selected.size,
+      sumByCurrency: Array.from(byCurrency.entries()),
+      transfers,
+      fromStatement,
+    };
   }, [txs, selected]);
+
+  const sumLabel = counters.sumByCurrency
+    .map(([cur, amt]) => `${amt.toFixed(2)} ${cur}`)
+    .join(' + ');
 
   function toggle(id: string) {
     setSelected(prev => {
@@ -82,7 +92,7 @@ export default function StergeBulkScreen() {
     if (selected.size === 0) return;
     const ids = Array.from(selected);
     Alert.alert(
-      `Ștergi ${ids.length} tranzacții?`,
+      `Ștergi ${ids.length} tranzac${ids.length === 1 ? 'ție' : 'ții'}?`,
       'Această acțiune e ireversibilă. Pentru tranzacțiile care fac parte din transferuri interne, contrapartida va deveni tranzacție obișnuită. Marcajul de duplicat se va anula. Statement-urile rămase fără tranzacții se vor șterge automat.',
       [
         { text: 'Anulează', style: 'cancel' },
@@ -98,7 +108,8 @@ export default function StergeBulkScreen() {
                   res.statementsRemoved > 0
                     ? ` · ${res.statementsRemoved} extras${res.statementsRemoved === 1 ? '' : 'e'} eliminat${res.statementsRemoved === 1 ? '' : 'e'}`
                     : '';
-                Alert.alert('Gata', `${res.deletedCount} tranzacții șterse${stmtSuffix}.`, [
+                const txWord = res.deletedCount === 1 ? 'tranzacție ștearsă' : 'tranzacții șterse';
+                Alert.alert('Gata', `${res.deletedCount} ${txWord}${stmtSuffix}.`, [
                   { text: 'OK', onPress: () => router.back() },
                 ]);
               } catch {
@@ -144,13 +155,17 @@ export default function StergeBulkScreen() {
 
       <View style={[styles.summary, { borderBottomColor: C.border }]}>
         <Text style={[styles.summaryTitle, { color: C.text }]}>
-          {counters.count} selectate · sumă {counters.sumAbs.toFixed(2)}
+          {counters.count} selectate{sumLabel ? ` · sumă ${sumLabel}` : ''}
         </Text>
         {(counters.transfers > 0 || counters.fromStatement > 0) && (
           <Text style={[styles.summarySub, { color: C.textSecondary }]}>
-            {counters.transfers > 0 && `${counters.transfers} transferuri interne`}
+            {counters.transfers > 0 &&
+              `${counters.transfers} transfer${counters.transfers === 1 ? '' : 'uri'} intern${counters.transfers === 1 ? '' : 'e'}`}
             {counters.transfers > 0 && counters.fromStatement > 0 && ' · '}
-            {counters.fromStatement > 0 && `${counters.fromStatement} din extrase`}
+            {counters.fromStatement > 0 &&
+              (counters.fromStatement === 1
+                ? '1 dintr-un extras'
+                : `${counters.fromStatement} din extrase`)}
           </Text>
         )}
       </View>
