@@ -1,28 +1,62 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { router, Stack } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 
+import { TransactionFilterBar } from '@/components/TransactionFilterBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useCategories } from '@/hooks/useCategories';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
+import { setBulkDeleteIds } from '@/services/bulkDeleteHandoff';
+import type { TransactionFilter } from '@/services/transactions';
 import { statusColors } from '@/theme/colors';
+
+function isAnyActive(f: TransactionFilter): boolean {
+  return Boolean(
+    f.account_id || f.fromDate || f.toDate || (f.search && f.search.trim()) || f.absAmountRange
+  );
+}
 
 export default function TransactionsList() {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const C = Colors[scheme];
+  const [filter, setFilter] = useState<TransactionFilter>({});
 
-  const { transactions, loading } = useTransactions({});
+  const { transactions, loading } = useTransactions(filter);
   const { accounts } = useFinancialAccounts();
   const { categories } = useCategories();
 
   const accountById = useMemo(() => new Map(accounts.map(a => [a.id, a])), [accounts]);
   const categoryById = useMemo(() => new Map(categories.map(c => [c.id, c])), [categories]);
 
+  const showBulkDelete = isAnyActive(filter) && transactions.length > 0;
+
+  function startBulkDelete() {
+    setBulkDeleteIds(transactions.map(t => t.id));
+    router.push('/tranzactii/sterge-bulk');
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: C.background }]}>
+      <Stack.Screen
+        options={{
+          title: 'Tranzacții',
+          headerRight: () =>
+            showBulkDelete ? (
+              <Pressable onPress={startBulkDelete} hitSlop={8} style={styles.headerBtn}>
+                <Ionicons name="trash-outline" size={20} color={statusColors.critical} />
+                <Text style={[styles.headerBtnText, { color: statusColors.critical }]}>
+                  Șterge filtrate
+                </Text>
+              </Pressable>
+            ) : null,
+        }}
+      />
+
+      <TransactionFilterBar value={filter} onChange={setFilter} accounts={accounts} />
+
       {loading && transactions.length === 0 ? (
         <View style={styles.center}>
           <ActivityIndicator color={C.primary} />
@@ -67,7 +101,11 @@ export default function TransactionsList() {
           }}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={{ color: C.textSecondary }}>Nicio tranzacție.</Text>
+              <Text style={{ color: C.textSecondary }}>
+                {isAnyActive(filter)
+                  ? 'Niciun rezultat pentru filtrele selectate.'
+                  : 'Nicio tranzacție.'}
+              </Text>
             </View>
           }
         />
@@ -115,4 +153,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
   },
+  headerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 8 },
+  headerBtnText: { fontSize: 13, fontWeight: '500' },
 });

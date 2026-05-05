@@ -16,6 +16,7 @@ export default function TranzactiiLayout() {
     >
       <Stack.Screen name="index" options={{ title: 'Tranzacții' }} />
       <Stack.Screen name="[id]" options={{ title: 'Tranzacție', presentation: 'modal' }} />
+      <Stack.Screen name="sterge-bulk" options={{ title: 'Confirmă ștergerea' }} />
     </Stack>
   );
 }
