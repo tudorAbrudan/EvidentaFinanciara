@@ -6,18 +6,20 @@ Limba UI și docs: română.
 
 ## Comenzi uzuale
 
-| Comandă              | Ce face                                                                                  |
-| -------------------- | ---------------------------------------------------------------------------------------- |
-| `npm start`          | Pornește Expo dev server                                                                 |
-| `npm run ios`        | Build și rulare iOS simulator                                                            |
-| `npm run android`    | Build și rulare Android emulator                                                         |
-| `npm run lint`       | ESLint pe `.ts`/`.tsx`                                                                   |
-| `npm run lint:fix`   | ESLint cu auto-fix                                                                       |
-| `npm run type-check` | `tsc --noEmit`                                                                           |
-| `npm test`           | Jest                                                                                     |
-| `npm run test:watch` | Jest în watch mode                                                                       |
-| `npm run format`     | Prettier write                                                                           |
-| `npm run check`      | Tot lanțul: lint + type-check + type-coverage + test + knip + madge + dep-cruise + audit |
+| Comandă                | Ce face                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------- |
+| `npm start`            | Pornește Expo dev server                                                                 |
+| `npm run ios`          | Build și rulare iOS simulator (Debug)                                                    |
+| `npm run ios:release`  | Build Release + instalare + launch pe simulator (JS bundled)                             |
+| `npm run ios:dist:sim` | `.app` Release standalone pentru simulator (gata de Distribute / partajat)               |
+| `npm run android`      | Build și rulare Android emulator                                                         |
+| `npm run lint`         | ESLint pe `.ts`/`.tsx`                                                                   |
+| `npm run lint:fix`     | ESLint cu auto-fix                                                                       |
+| `npm run type-check`   | `tsc --noEmit`                                                                           |
+| `npm test`             | Jest                                                                                     |
+| `npm run test:watch`   | Jest în watch mode                                                                       |
+| `npm run format`       | Prettier write                                                                           |
+| `npm run check`        | Tot lanțul: lint + type-check + type-coverage + test + knip + madge + dep-cruise + audit |
 
 ## Convenții cod
 
