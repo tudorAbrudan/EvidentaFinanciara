@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 
@@ -15,14 +15,38 @@ import { statusColors } from '@/theme/colors';
 
 function isAnyActive(f: TransactionFilter): boolean {
   return Boolean(
-    f.account_id || f.fromDate || f.toDate || (f.search && f.search.trim()) || f.absAmountRange
+    f.account_id ||
+    f.category_id ||
+    f.uncategorized ||
+    f.fromDate ||
+    f.toDate ||
+    (f.search && f.search.trim()) ||
+    f.absAmountRange
   );
+}
+
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+function safeYmd(v: string | undefined): string | undefined {
+  return v && YMD_RE.test(v) ? v : undefined;
 }
 
 export default function TransactionsList() {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const C = Colors[scheme];
-  const [filter, setFilter] = useState<TransactionFilter>({});
+  const params = useLocalSearchParams<{
+    category_id?: string;
+    uncategorized?: string;
+    fromDate?: string;
+    toDate?: string;
+    account_id?: string;
+  }>();
+  const [filter, setFilter] = useState<TransactionFilter>(() => ({
+    account_id: params.account_id || undefined,
+    category_id: params.category_id || undefined,
+    uncategorized: params.uncategorized === '1' ? true : undefined,
+    fromDate: safeYmd(params.fromDate),
+    toDate: safeYmd(params.toDate),
+  }));
 
   const { transactions, loading } = useTransactions(filter);
   const { accounts } = useFinancialAccounts();
@@ -55,7 +79,12 @@ export default function TransactionsList() {
         }}
       />
 
-      <TransactionFilterBar value={filter} onChange={setFilter} accounts={accounts} />
+      <TransactionFilterBar
+        value={filter}
+        onChange={setFilter}
+        accounts={accounts}
+        categories={categories}
+      />
 
       {loading && transactions.length === 0 ? (
         <View style={styles.center}>

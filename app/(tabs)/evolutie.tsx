@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
@@ -42,6 +42,24 @@ function ymToShortLabel(ym: string): string {
   const [, m] = ym.split('-').map(n => parseInt(n, 10));
   if (!m) return ym;
   return RO_MONTHS_SHORT[m - 1];
+}
+
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+
+function ymToRange(ym: string): { fromDate: string; toDate: string } | null {
+  const [y, m] = ym.split('-').map(n => parseInt(n, 10));
+  if (!y || !m) return null;
+  const lastDay = new Date(y, m, 0).getDate();
+  return { fromDate: `${y}-${pad2(m)}-01`, toDate: `${y}-${pad2(m)}-${pad2(lastDay)}` };
+}
+
+function seriesToRange(series: { yearMonth: string }[]): { fromDate?: string; toDate?: string } {
+  if (series.length === 0) return {};
+  const first = ymToRange(series[0].yearMonth);
+  const last = ymToRange(series[series.length - 1].yearMonth);
+  return { fromDate: first?.fromDate, toDate: last?.toDate };
 }
 
 export default function EvolutieScreen() {
@@ -179,8 +197,20 @@ export default function EvolutieScreen() {
             <RNView style={styles.chartArea}>
               {totalsByMonth.map(t => {
                 const heightPct = maxTotal > 0 ? (t.total / maxTotal) * 100 : 0;
+                const range = ymToRange(t.ym);
                 return (
-                  <RNView key={t.ym} style={styles.chartBarCol}>
+                  <Pressable
+                    key={t.ym}
+                    style={styles.chartBarCol}
+                    disabled={!range || t.total === 0}
+                    onPress={() => {
+                      if (!range) return;
+                      router.push({
+                        pathname: '/tranzactii',
+                        params: { fromDate: range.fromDate, toDate: range.toDate },
+                      });
+                    }}
+                  >
                     <RNView style={styles.chartBarWrap}>
                       <RNView
                         style={[
@@ -198,7 +228,7 @@ export default function EvolutieScreen() {
                     <RNText style={[styles.chartBarValue, { color: C.text }]}>
                       {t.total > 0 ? Math.round(t.total / 1000) + 'k' : '—'}
                     </RNText>
-                  </RNView>
+                  </Pressable>
                 );
               })}
             </RNView>
@@ -240,9 +270,22 @@ export default function EvolutieScreen() {
               const lastValue = cat.series[cat.series.length - 1]?.total_ron ?? 0;
               const prevValue = cat.series[cat.series.length - 2]?.total_ron ?? 0;
               const trend = prevValue > 0 ? ((lastValue - prevValue) / prevValue) * 100 : 0;
+              const range = seriesToRange(cat.series);
               return (
-                <RNView
+                <Pressable
                   key={`${cat.category_id ?? 'none'}-${idx}`}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/tranzactii',
+                      params: {
+                        ...(cat.category_id
+                          ? { category_id: cat.category_id }
+                          : { uncategorized: '1' }),
+                        ...(range.fromDate ? { fromDate: range.fromDate } : {}),
+                        ...(range.toDate ? { toDate: range.toDate } : {}),
+                      },
+                    });
+                  }}
                   style={[
                     styles.catRow,
                     idx > 0 && {
@@ -305,7 +348,7 @@ export default function EvolutieScreen() {
                       );
                     })}
                   </RNView>
-                </RNView>
+                </Pressable>
               );
             })}
           </RNView>

@@ -6,15 +6,16 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import type { TransactionFilter } from '@/services/transactions';
 import { statusColors } from '@/theme/colors';
-import type { FinancialAccount } from '@/types';
+import type { ExpenseCategory, FinancialAccount } from '@/types';
 
 type Props = {
   value: TransactionFilter;
   onChange: (next: TransactionFilter) => void;
   accounts: FinancialAccount[];
+  categories: ExpenseCategory[];
 };
 
-type SheetKind = 'account' | 'period' | 'amount' | null;
+type SheetKind = 'account' | 'category' | 'period' | 'amount' | null;
 
 type PeriodPreset =
   | { kind: 'all' }
@@ -37,6 +38,13 @@ function isValidYmd(s: string): boolean {
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return false;
   return ymd(d) === s;
+}
+
+function formatDateInput(text: string): string {
+  const digits = text.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
 }
 
 function presetToRange(p: PeriodPreset): { fromDate?: string; toDate?: string } {
@@ -79,11 +87,17 @@ function formatAmountLabel(r: TransactionFilter['absAmountRange']): string {
 
 function isAnyFilterActive(f: TransactionFilter): boolean {
   return Boolean(
-    f.account_id || f.fromDate || f.toDate || (f.search && f.search.trim()) || f.absAmountRange
+    f.account_id ||
+    f.category_id ||
+    f.uncategorized ||
+    f.fromDate ||
+    f.toDate ||
+    (f.search && f.search.trim()) ||
+    f.absAmountRange
   );
 }
 
-export function TransactionFilterBar({ value, onChange, accounts }: Props) {
+export function TransactionFilterBar({ value, onChange, accounts, categories }: Props) {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const C = Colors[scheme];
   const [sheet, setSheet] = useState<SheetKind>(null);
@@ -92,6 +106,13 @@ export function TransactionFilterBar({ value, onChange, accounts }: Props) {
     if (!value.account_id) return 'Toate';
     return accounts.find(a => a.id === value.account_id)?.name ?? 'Toate';
   }, [accounts, value.account_id]);
+
+  const categoryLabel = useMemo(() => {
+    if (value.uncategorized) return 'Necategorizat';
+    if (!value.category_id) return 'Toate';
+    return categories.find(c => c.id === value.category_id)?.name ?? 'Toate';
+  }, [categories, value.category_id, value.uncategorized]);
+  const categoryActive = Boolean(value.category_id || value.uncategorized);
 
   const chipStyle = (active: boolean) => ({
     backgroundColor: active ? C.tint : C.card,
@@ -120,6 +141,19 @@ export function TransactionFilterBar({ value, onChange, accounts }: Props) {
           }
           style={chipStyle(Boolean(value.account_id))}
           textStyle={chipText(Boolean(value.account_id))}
+        />
+        <Chip
+          icon="pricetag-outline"
+          label={`Categorie: ${categoryLabel}`}
+          active={categoryActive}
+          onPress={() => setSheet('category')}
+          onClear={
+            categoryActive
+              ? () => onChange({ ...value, category_id: undefined, uncategorized: undefined })
+              : undefined
+          }
+          style={chipStyle(categoryActive)}
+          textStyle={chipText(categoryActive)}
         />
         <Chip
           icon="calendar-outline"
@@ -170,6 +204,24 @@ export function TransactionFilterBar({ value, onChange, accounts }: Props) {
           selectedId={value.account_id}
           onSelect={id => {
             onChange({ ...value, account_id: id });
+            setSheet(null);
+          }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet === 'category' && (
+        <CategorySheet
+          categories={categories}
+          selectedId={value.category_id}
+          uncategorized={Boolean(value.uncategorized)}
+          onSelect={selection => {
+            if (selection.kind === 'all') {
+              onChange({ ...value, category_id: undefined, uncategorized: undefined });
+            } else if (selection.kind === 'uncategorized') {
+              onChange({ ...value, category_id: undefined, uncategorized: true });
+            } else {
+              onChange({ ...value, category_id: selection.id, uncategorized: undefined });
+            }
             setSheet(null);
           }}
           onClose={() => setSheet(null)}
@@ -263,6 +315,64 @@ function AccountSheet({
   );
 }
 
+type CategorySelection = { kind: 'all' } | { kind: 'uncategorized' } | { kind: 'id'; id: string };
+
+function CategorySheet({
+  categories,
+  selectedId,
+  uncategorized,
+  onSelect,
+  onClose,
+}: {
+  categories: ExpenseCategory[];
+  selectedId?: string;
+  uncategorized: boolean;
+  onSelect: (selection: CategorySelection) => void;
+  onClose: () => void;
+}) {
+  const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
+  const C = Colors[scheme];
+  return (
+    <Modal transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose} />
+      <View style={[styles.sheet, { backgroundColor: C.card }]}>
+        <Text style={[styles.sheetTitle, { color: C.text }]}>Categorie</Text>
+        <ScrollView style={styles.categoryList}>
+          <Pressable
+            onPress={() => onSelect({ kind: 'all' })}
+            style={[styles.sheetRow, { borderBottomColor: C.border }]}
+          >
+            <Text style={{ color: C.text }}>Toate categoriile</Text>
+            {!selectedId && !uncategorized && (
+              <Ionicons name="checkmark" size={18} color={C.tint} />
+            )}
+          </Pressable>
+          <Pressable
+            onPress={() => onSelect({ kind: 'uncategorized' })}
+            style={[styles.sheetRow, { borderBottomColor: C.border }]}
+          >
+            <Text style={{ color: C.text }}>Necategorizat</Text>
+            {uncategorized && <Ionicons name="checkmark" size={18} color={C.tint} />}
+          </Pressable>
+          {categories.map(c => (
+            <Pressable
+              key={c.id}
+              onPress={() => onSelect({ kind: 'id', id: c.id })}
+              style={[styles.sheetRow, { borderBottomColor: C.border }]}
+            >
+              <View style={styles.categoryRowLabel}>
+                {c.color && <View style={[styles.categoryDot, { backgroundColor: c.color }]} />}
+                <Text style={{ color: C.text }}>{c.name}</Text>
+              </View>
+              {selectedId === c.id && <Ionicons name="checkmark" size={18} color={C.tint} />}
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 function PeriodSheet({
   value,
   onApply,
@@ -324,17 +434,21 @@ function PeriodSheet({
         </Text>
         <View style={styles.amountInputs}>
           <TextInput
-            placeholder="De la"
+            placeholder="De la (YYYY-MM-DD)"
             placeholderTextColor={C.textSecondary}
             value={customFrom}
-            onChangeText={setCustomFrom}
+            onChangeText={t => setCustomFrom(formatDateInput(t))}
+            keyboardType="number-pad"
+            maxLength={10}
             style={[styles.amountInput, { color: C.text, borderColor: C.border }]}
           />
           <TextInput
-            placeholder="Până la"
+            placeholder="Până la (YYYY-MM-DD)"
             placeholderTextColor={C.textSecondary}
             value={customTo}
-            onChangeText={setCustomTo}
+            onChangeText={t => setCustomTo(formatDateInput(t))}
+            keyboardType="number-pad"
+            maxLength={10}
             style={[styles.amountInput, { color: C.text, borderColor: C.border }]}
           />
         </View>
@@ -468,6 +582,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  categoryList: { maxHeight: 360 },
+  categoryRowLabel: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  categoryDot: { width: 10, height: 10, borderRadius: 5 },
   amountInputs: { flexDirection: 'row', gap: 8 },
   amountInput: {
     flex: 1,
