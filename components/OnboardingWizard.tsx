@@ -825,7 +825,14 @@ function AiStep({
 
       {provider !== 'none' ? (
         <>
-          <Pressable style={styles.consentRow} onPress={() => setConsent(!consent)}>
+          <Pressable
+            style={[
+              styles.consentRow,
+              !consent && styles.consentRowCallout,
+              !consent && { backgroundColor: primaryTint, borderColor: primary },
+            ]}
+            onPress={() => setConsent(!consent)}
+          >
             <View
               style={[
                 styles.checkbox,
@@ -837,10 +844,17 @@ function AiStep({
             >
               {consent ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
             </View>
-            <Text style={[styles.consentText, { color: C.text }]}>
-              Sunt de acord ca datele descrise mai jos să fie trimise la {AI_PROVIDER_NAME} (
-              {AI_PROVIDER_LEGAL}) pentru procesare. Pot revoca oricând din Setări.
-            </Text>
+            <View style={styles.consentTextCol}>
+              <Text style={[styles.consentText, { color: C.text }]}>
+                Sunt de acord ca datele descrise mai jos să fie trimise la {AI_PROVIDER_NAME} (
+                {AI_PROVIDER_LEGAL}) pentru procesare. Pot revoca oricând din Setări.
+              </Text>
+              {!consent ? (
+                <Text style={[styles.consentRequiredHint, { color: primary }]}>
+                  Necesar pentru a continua
+                </Text>
+              ) : null}
+            </View>
           </Pressable>
           <AiDisclosureExpandable />
         </>
@@ -1140,6 +1154,12 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 16,
   },
+  consentRowCallout: {
+    padding: 12,
+    borderWidth: 1.5,
+    borderRadius: radius.md,
+  },
+  consentTextCol: { flex: 1, gap: 4 },
   checkbox: {
     width: 22,
     height: 22,
@@ -1150,6 +1170,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   consentText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  consentRequiredHint: { fontSize: 12, fontWeight: '600' },
   summaryCard: {
     borderRadius: radius.lg,
     borderWidth: 1,
