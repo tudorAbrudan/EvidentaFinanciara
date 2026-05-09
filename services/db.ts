@@ -9,6 +9,14 @@ export function generateId(): string {
 
 export const db = SQLite.openDatabaseSync('finante.db');
 
+try {
+  db.execSync(
+    `ALTER TABLE transactions ADD COLUMN cash_suggestion_dismissed INTEGER NOT NULL DEFAULT 0`
+  );
+} catch {
+  // tabela nu există încă (fresh install) sau coloana există deja
+}
+
 db.execSync(`
   PRAGMA journal_mode = WAL;
 
@@ -139,12 +147,4 @@ try {
   `);
 } catch {
   // seed deja aplicat
-}
-
-try {
-  db.execSync(
-    `ALTER TABLE transactions ADD COLUMN cash_suggestion_dismissed INTEGER NOT NULL DEFAULT 0`
-  );
-} catch {
-  // coloana există deja
 }

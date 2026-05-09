@@ -20,4 +20,12 @@ describe('schema DB', () => {
       /CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages\(created_at DESC\)/
     );
   });
+
+  it('ALTER ADD COLUMN cash_suggestion_dismissed rulează înainte de CREATE INDEX idx_tx_cash_pending', () => {
+    const alterIdx = dbSource.indexOf('ADD COLUMN cash_suggestion_dismissed');
+    const indexIdx = dbSource.indexOf('idx_tx_cash_pending');
+    expect(alterIdx).toBeGreaterThan(-1);
+    expect(indexIdx).toBeGreaterThan(-1);
+    expect(alterIdx).toBeLessThan(indexIdx);
+  });
 });
