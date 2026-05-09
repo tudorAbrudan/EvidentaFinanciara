@@ -102,7 +102,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   const [accountCurrency, setAccountCurrency] = useState('RON');
 
   // DEMO DATA
-  const [demoEnabled, setDemoEnabled] = useState(false);
+  const [demoEnabled, setDemoEnabled] = useState(true);
   const [demoAlreadyExists, setDemoAlreadyExists] = useState(false);
 
   // AI

@@ -7,7 +7,7 @@
 > 3. Nu adăugăm complexitate inutilă — fiecare idee răspunde la: _câți utilizatori beneficiază real, merită complexitatea?_
 
 **Status:** roadmap inițial, înainte de primul spec implementat.
-**Ultima actualizare:** 2026-05-05.
+**Ultima actualizare:** 2026-05-09.
 
 ---
 
@@ -21,7 +21,7 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 2. **Quick-add tranzacție** — FAB („+") pe Sumar și Tranzacții. Modal rapid: sumă, categorie, opțional cont/notă/data. One-tap. Cea mai folosită acțiune trebuie să fie cea mai accesibilă.
 3. **Empty states** — pe fiecare ecran (Sumar, Conturi, Tranzacții, Categorii) când nu există date. Mesaj prietenos + acțiune sugerată.
 4. **Backup/restore vizibil** — în onboarding (pas dedicat) și în Setări. Alertă „nu ai făcut backup de X zile" cu CTA. Folosește implementarea existentă din `services/backup.ts`.
-5. **Date demo opționale** — la onboarding, toggle „adaugă tranzacții demo ca să vezi cum arată". Deletable cu un tap din Setări (un singur buton: „Șterge datele demo").
+5. ~~**Date demo opționale**~~ — implementat 2026-05-09 cu default **on** (opt-out). Vezi mai jos.
 6. ~~**Pagini legale**~~ — implementat 2026-04-30 (vezi mai jos). Privacy ✓; Terms rămâne TBD dacă apare nevoie reală.
 7. **Localizare structurală** — separi string-urile în `i18n/ro.ts` (sau echivalent) chiar dacă lansezi RO-only. Pregătire EN fără refactor.
 
@@ -50,6 +50,8 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 ---
 
 ## Implementat (post-MVP fundație)
+
+- **Date demo on-by-default în onboarding** (2026-05-09) — toggle „Adaugă cont demo cu tranzacții fictive" pre-bifat în pasul Demo (`DemoDataStep` în `components/OnboardingWizard.tsx`) pentru time-to-first-value sub 30 secunde. Userul îl poate dezactiva înainte de Continuă. Switch dezactivat și mesaj informativ dacă există deja date demo (`hasDemoData`). În Setări, secțiunea „Cont demo" apare doar când demo există și conține un singur buton destructiv „Șterge datele demo" → `deleteDemoData()` în `services/demoData.ts` (curăță contul demo + tranzacțiile asociate, idempotent).
 
 - **Filtru categorie + drilldown din Evoluție** (2026-05-07) — chip nou „Categorie" în `TransactionFilterBar` cu sheet (Toate / Necategorizat / listă categorii cu dot colorat). Backend deja avea `category_id` și `uncategorized` în `TransactionFilter` — am wire-uit doar UI-ul. `app/tranzactii/index.tsx` citește acum `category_id`, `uncategorized`, `fromDate`, `toDate`, `account_id` din `useLocalSearchParams` (validare YMD) ca să poată fi seed-uit din alte ecrane. Drilldown din `app/(tabs)/evolutie.tsx`: tap pe coloana lunară din chart-ul agregat → `/tranzactii?fromDate=…&toDate=…` (dezactivat pentru luni cu total 0); tap pe rândul din „Top categorii" → `/tranzactii?category_id=…&fromDate=…&toDate=…` (sau `uncategorized=1` pentru rândul fără categorie), cu intervalul derivat din `monthsBack` (3/6/12 luni).
 
