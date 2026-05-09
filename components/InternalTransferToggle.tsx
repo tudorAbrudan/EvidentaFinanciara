@@ -5,9 +5,16 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { extractBrokerName } from '@/services/internalTransferSuggestion';
 import type { FinancialAccount } from '@/types';
 
-export type DetectedTransferType = 'cash' | 'savings_out' | 'savings_in' | null;
+export type DetectedTransferType =
+  | 'cash'
+  | 'savings_out'
+  | 'savings_in'
+  | 'investment_out'
+  | 'investment_in'
+  | null;
 
 interface Props {
   amount: number;
@@ -25,9 +32,15 @@ interface Props {
 
 const CASH_RE = /\b(retragere|extragere|atm|bancomat|cash\s*withdrawal|numerar)\b/i;
 const SAVINGS_OUT_RE =
-  /\b(transfer\s+(la|spre|catre)\s+(economii|depozit)|alimentare\s+(cont\s+)?economii|constituire\s+depozit|economisire)\b/i;
+  /\b(transfer\s+(la|spre|catre)\s+(economii|depozit)|alimentare\s+(cont\s+)?economii|constituire\s+depozit|economisire|depunere(\s+(in|la))?(\s+cont(ul)?(\s+de)?)?\s+(economii|depozit))\b/i;
 const SAVINGS_IN_RE =
-  /\b(transfer\s+(din|de\s+la)\s+(economii|depozit)|retragere\s+(din\s+)?economii|lichidare\s+depozit)\b/i;
+  /\b(transfer\s+(din|de\s+la)\s+(economii|depozit)|retragere(\s+(din|de\s+la))?(\s+cont(ul)?(\s+de)?)?\s+(economii|depozit)|lichidare\s+depozit)\b/i;
+const BROKER_RE =
+  /\b(ibkr|interactive\s+brokers|trading\s*212|t\s*212|tradeville|bt\s*trade|bttrade|bt\s+capital\s+partners|btcp|raiffeisen\s+broker|etoro|xtb|degiro|revolut\s+invest|fondul\s+proprietatea)\b/i;
+const INVESTMENT_VERB_OUT_RE =
+  /\b(depunere|alimentare|transfer)\s+(la|spre|catre|in)?\s*(cont\s+(de\s+)?)?(broker|brokeraj|investitii|investitie)\b/i;
+const INVESTMENT_VERB_IN_RE =
+  /\b(retragere|lichidare|transfer)\s+(din|de\s+la)?\s*(cont\s+(de\s+)?)?(broker|brokeraj|investitii|investitie)\b/i;
 
 function normalize(s: string): string {
   return s.normalize('NFD').replace(/\p{Diacritic}/gu, '');
@@ -38,10 +51,12 @@ function detect(amount: number, description: string, merchant: string): Detected
   if (amount < 0) {
     if (CASH_RE.test(haystack)) return 'cash';
     if (SAVINGS_OUT_RE.test(haystack)) return 'savings_out';
+    if (BROKER_RE.test(haystack) || INVESTMENT_VERB_OUT_RE.test(haystack)) return 'investment_out';
     return null;
   }
   if (amount > 0) {
     if (SAVINGS_IN_RE.test(haystack)) return 'savings_in';
+    if (BROKER_RE.test(haystack) || INVESTMENT_VERB_IN_RE.test(haystack)) return 'investment_in';
     return null;
   }
   return null;
@@ -57,16 +72,26 @@ const TYPE_LABEL: Record<NonNullable<DetectedTransferType>, string> = {
   cash: 'Este retragere de cash din contul bancar',
   savings_out: 'Este transfer către cont de economii',
   savings_in: 'Este retragere din cont de economii',
+  investment_out: 'Este transfer către cont de broker',
+  investment_in: 'Este retragere din cont de broker',
 };
 
 function targetAccountTypeFor(t: NonNullable<DetectedTransferType>): FinancialAccount['type'] {
-  return t === 'cash' ? 'cash' : 'savings';
+  if (t === 'cash') return 'cash';
+  if (t === 'savings_out' || t === 'savings_in') return 'savings';
+  return 'investment';
 }
 
-function createBtnLabel(t: NonNullable<DetectedTransferType>, currency: string): string {
-  return t === 'cash'
-    ? `+ Creează cont Cash în ${currency}`
-    : `+ Creează cont Economii în ${currency}`;
+function createBtnLabel(
+  t: NonNullable<DetectedTransferType>,
+  currency: string,
+  brokerName?: string
+): string {
+  if (t === 'cash') return `+ Creează cont Cash în ${currency}`;
+  if (t === 'savings_out' || t === 'savings_in') return `+ Creează cont Economii în ${currency}`;
+  return brokerName
+    ? `+ Adaugă cont broker „${brokerName}" în ${currency}`
+    : `+ Adaugă cont broker în ${currency}`;
 }
 
 export function InternalTransferToggle(props: Props) {
@@ -93,6 +118,8 @@ export function InternalTransferToggle(props: Props) {
   const matchingAccounts = props.accounts.filter(
     a => a.type === targetType && !a.archived && a.currency === props.currency
   );
+  const brokerName =
+    targetType === 'investment' ? extractBrokerName(props.description, props.merchant) : undefined;
 
   return (
     <View style={styles.box}>
@@ -118,11 +145,17 @@ export function InternalTransferToggle(props: Props) {
               onPress={() =>
                 router.push({
                   pathname: '/conturi/add' as '/',
-                  params: { type: targetType, currency: props.currency },
+                  params: {
+                    type: targetType,
+                    currency: props.currency,
+                    ...(brokerName ? { name: brokerName } : {}),
+                  },
                 })
               }
             >
-              <Text style={{ color: C.primary }}>{createBtnLabel(effective, props.currency)}</Text>
+              <Text style={{ color: C.primary }}>
+                {createBtnLabel(effective, props.currency, brokerName)}
+              </Text>
             </Pressable>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>

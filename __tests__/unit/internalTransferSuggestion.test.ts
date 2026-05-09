@@ -3,6 +3,7 @@ import {
   detectTransferType,
   countPendingTransferSuggestions,
   dismissTransferSuggestion,
+  extractBrokerName,
   listPendingTransferSuggestions,
   convertToTransfer,
 } from '@/services/internalTransferSuggestion';
@@ -58,9 +59,97 @@ describe('detectTransferType — savings_out', () => {
     'economisire automata',
     'Alimentare Economii',
     'Constituire Depozit',
+    'depunere economii',
+    'depunere in economii',
+    'depunere in cont economii',
+    'depunere in contul de economii',
+    'depunere in contul de depozit',
+    'Depunere în contul de economii',
   ])('detectează savings_out pe %p', description => {
     const tx = makeTx({ description, amount: -1000 });
     expect(detectTransferType(tx)).toBe('savings_out');
+  });
+});
+
+describe('detectTransferType — investment_out (brokeri + cuvinte cheie)', () => {
+  it.each([
+    'IBKR LLC',
+    'Interactive Brokers UK',
+    'Trading 212',
+    'T 212 Markets',
+    'Tradeville SA',
+    'BT Trade',
+    'BTTrade',
+    'BT Capital Partners',
+    'Raiffeisen Broker',
+    'eToro',
+    'XTB Online Trading',
+    'DeGiro',
+    'Revolut Invest',
+    'Fondul Proprietatea',
+    'depunere broker',
+    'alimentare cont broker',
+    'transfer la broker',
+    'transfer in cont brokeraj',
+    'depunere investitii',
+    'transfer la investitie',
+  ])('detectează investment_out pe %p (amount < 0)', description => {
+    const tx = makeTx({ description, amount: -1000 });
+    expect(detectTransferType(tx)).toBe('investment_out');
+  });
+
+  it('cash priority peste investment când ambele match', () => {
+    const tx = makeTx({ description: 'retragere ibkr atm', amount: -100 });
+    expect(detectTransferType(tx)).toBe('cash');
+  });
+
+  it('savings priority peste investment când ambele match', () => {
+    const tx = makeTx({ description: 'transfer la economii ibkr', amount: -100 });
+    expect(detectTransferType(tx)).toBe('savings_out');
+  });
+});
+
+describe('detectTransferType — investment_in', () => {
+  it.each([
+    'IBKR retragere',
+    'Tradeville lichidare',
+    'retragere broker',
+    'lichidare broker',
+    'transfer din broker',
+    'transfer de la brokeraj',
+    'retragere investitii',
+  ])('detectează investment_in pe %p (amount > 0)', description => {
+    const tx = makeTx({ description, amount: 1000 });
+    expect(detectTransferType(tx)).toBe('investment_in');
+  });
+});
+
+describe('extractBrokerName', () => {
+  it.each([
+    ['IBKR LLC pmt', 'IBKR'],
+    ['Interactive Brokers UK', 'IBKR'],
+    ['Trading 212', 'Trading 212'],
+    ['T 212 Markets', 'Trading 212'],
+    ['Tradeville SA', 'Tradeville'],
+    ['BT Trade', 'BT Capital Partners'],
+    ['BTTrade', 'BT Capital Partners'],
+    ['BT Capital Partners SA', 'BT Capital Partners'],
+    ['Raiffeisen Broker', 'Raiffeisen Broker'],
+    ['eToro Europe Ltd', 'eToro'],
+    ['XTB Online Trading', 'XTB'],
+    ['DeGiro B.V.', 'DeGiro'],
+    ['Revolut Invest', 'Revolut Invest'],
+    ['Fondul Proprietatea', 'Fondul Proprietatea'],
+  ])('extrage brokerul din %p ca %p', (text, expected) => {
+    expect(extractBrokerName(text)).toBe(expected);
+  });
+
+  it('întoarce undefined pentru text fără broker', () => {
+    expect(extractBrokerName('cumparare card MEGA IMAGE')).toBeUndefined();
+  });
+
+  it('verifică și merchant, nu doar description', () => {
+    expect(extractBrokerName(undefined, 'IBKR')).toBe('IBKR');
   });
 });
 
@@ -331,12 +420,12 @@ describe('convertToTransfer — direcție outbound (amount < 0)', () => {
     expect(db.withTransactionAsync).not.toHaveBeenCalled();
   });
 
-  it('throw dacă target e cont curent (bank), nu cash/savings', async () => {
+  it('throw dacă target e cont curent (bank), nu cash/savings/investment', async () => {
     (db.getFirstAsync as jest.Mock)
       .mockResolvedValueOnce(rowFor({ id: 'tx-src' }))
       .mockResolvedValueOnce({ id: 'acc-bank2', type: 'bank', currency: 'RON' });
     await expect(convertToTransfer('tx-src', 'acc-bank2')).rejects.toThrow(
-      /cash|economii|savings/i
+      /cash|economii|savings|invest/i
     );
     expect(db.withTransactionAsync).not.toHaveBeenCalled();
   });
@@ -345,7 +434,30 @@ describe('convertToTransfer — direcție outbound (amount < 0)', () => {
     (db.getFirstAsync as jest.Mock)
       .mockResolvedValueOnce(rowFor({ id: 'tx-src' }))
       .mockResolvedValueOnce({ id: 'acc-card', type: 'card', currency: 'RON' });
-    await expect(convertToTransfer('tx-src', 'acc-card')).rejects.toThrow(/cash|economii|savings/i);
+    await expect(convertToTransfer('tx-src', 'acc-card')).rejects.toThrow(
+      /cash|economii|savings|invest/i
+    );
+  });
+
+  it('happy path investment_out: target investment primește mirror pozitiv', async () => {
+    (db.getFirstAsync as jest.Mock)
+      .mockResolvedValueOnce(
+        rowFor({
+          id: 'tx-src',
+          amount: -2000,
+          description: 'depunere IBKR',
+          currency: 'RON',
+        })
+      )
+      .mockResolvedValueOnce({ id: 'acc-broker', type: 'investment', currency: 'RON' });
+
+    await convertToTransfer('tx-src', 'acc-broker');
+
+    const calls = (db.runAsync as jest.Mock).mock.calls;
+    expect(calls).toHaveLength(2);
+    const insertParams = calls[1][1];
+    expect(insertParams[1]).toBe('acc-broker');
+    expect(insertParams[3]).toBe(2000);
   });
 
   it('throw dacă valutele nu se potrivesc', async () => {
@@ -390,13 +502,15 @@ describe('convertToTransfer — direcție inbound (amount > 0, savings_in)', () 
     expect(insertParams[5]).toBe(-800);
   });
 
-  it('throw dacă target e cash (savings_in necesită savings)', async () => {
+  it('throw dacă target e cash (inbound necesită savings sau investment)', async () => {
     (db.getFirstAsync as jest.Mock)
       .mockResolvedValueOnce(
         rowFor({ id: 'tx-src', amount: 500, description: 'lichidare depozit' })
       )
       .mockResolvedValueOnce({ id: 'acc-cash', type: 'cash', currency: 'RON' });
-    await expect(convertToTransfer('tx-src', 'acc-cash')).rejects.toThrow(/economii|savings/i);
+    await expect(convertToTransfer('tx-src', 'acc-cash')).rejects.toThrow(
+      /economii|savings|invest/i
+    );
     expect(db.withTransactionAsync).not.toHaveBeenCalled();
   });
 
@@ -404,6 +518,29 @@ describe('convertToTransfer — direcție inbound (amount > 0, savings_in)', () 
     (db.getFirstAsync as jest.Mock)
       .mockResolvedValueOnce(rowFor({ id: 'tx-src', amount: 500 }))
       .mockResolvedValueOnce({ id: 'acc-bank2', type: 'bank', currency: 'RON' });
-    await expect(convertToTransfer('tx-src', 'acc-bank2')).rejects.toThrow(/economii|savings/i);
+    await expect(convertToTransfer('tx-src', 'acc-bank2')).rejects.toThrow(
+      /economii|savings|invest/i
+    );
+  });
+
+  it('happy path investment_in: target investment primește mirror NEGATIV', async () => {
+    (db.getFirstAsync as jest.Mock)
+      .mockResolvedValueOnce(
+        rowFor({
+          id: 'tx-src',
+          amount: 1500,
+          description: 'retragere IBKR',
+          currency: 'RON',
+        })
+      )
+      .mockResolvedValueOnce({ id: 'acc-broker', type: 'investment', currency: 'RON' });
+
+    await convertToTransfer('tx-src', 'acc-broker');
+
+    const calls = (db.runAsync as jest.Mock).mock.calls;
+    expect(calls).toHaveLength(2);
+    const insertParams = calls[1][1];
+    expect(insertParams[1]).toBe('acc-broker');
+    expect(insertParams[3]).toBe(-1500);
   });
 });

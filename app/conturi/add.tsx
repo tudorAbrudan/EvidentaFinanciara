@@ -1,5 +1,5 @@
 import { useHeaderHeight } from '@react-navigation/elements';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { useState } from 'react';
 import {
   StyleSheet,
@@ -33,17 +33,27 @@ const CURRENCY_OPTIONS = ['RON', 'EUR', 'USD'] as const;
 export default function AddFinancialAccountScreen() {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const C = Colors[scheme];
-  const params = useLocalSearchParams<{ type?: string }>();
+  const params = useLocalSearchParams<{
+    type?: string;
+    currency?: string;
+    name?: string;
+    bank_name?: string;
+  }>();
   const { createAccount, refresh } = useFinancialAccounts();
   const headerHeight = useHeaderHeight();
 
   const initialType = (params.type as FinancialAccountType) || 'bank';
+  const initialCurrency =
+    params.currency &&
+    CURRENCY_OPTIONS.includes(params.currency as (typeof CURRENCY_OPTIONS)[number])
+      ? params.currency
+      : 'RON';
   const [type, setType] = useState<FinancialAccountType>(initialType);
-  const [name, setName] = useState('');
-  const [currency, setCurrency] = useState<string>('RON');
+  const [name, setName] = useState(params.name ?? '');
+  const [currency, setCurrency] = useState<string>(initialCurrency);
   const [initialBalance, setInitialBalance] = useState('');
   const [iban, setIban] = useState('');
-  const [bankName, setBankName] = useState('');
+  const [bankName, setBankName] = useState(params.bank_name ?? '');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -86,6 +96,7 @@ export default function AddFinancialAccountScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
     >
+      <Stack.Screen options={{ title: 'Adaugă cont' }} />
       <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss} accessible={false}>
         <ScrollView
           style={{ flex: 1 }}

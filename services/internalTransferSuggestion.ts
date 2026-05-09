@@ -3,16 +3,53 @@ import { getRateRon } from './fxRates';
 
 import type { Transaction } from '@/types';
 
-export type TransferType = 'cash' | 'savings_out' | 'savings_in';
+export type TransferType =
+  | 'cash'
+  | 'savings_out'
+  | 'savings_in'
+  | 'investment_out'
+  | 'investment_in';
 
 const CASH_RE = /\b(retragere|extragere|atm|bancomat|cash\s*withdrawal|numerar)\b/i;
 const SAVINGS_OUT_RE =
-  /\b(transfer\s+(la|spre|catre)\s+(economii|depozit)|alimentare\s+(cont\s+)?economii|constituire\s+depozit|economisire)\b/i;
+  /\b(transfer\s+(la|spre|catre)\s+(economii|depozit)|alimentare\s+(cont\s+)?economii|constituire\s+depozit|economisire|depunere(\s+(in|la))?(\s+cont(ul)?(\s+de)?)?\s+(economii|depozit))\b/i;
 const SAVINGS_IN_RE =
-  /\b(transfer\s+(din|de\s+la)\s+(economii|depozit)|retragere\s+(din\s+)?economii|lichidare\s+depozit)\b/i;
+  /\b(transfer\s+(din|de\s+la)\s+(economii|depozit)|retragere(\s+(din|de\s+la))?(\s+cont(ul)?(\s+de)?)?\s+(economii|depozit)|lichidare\s+depozit)\b/i;
+
+const BROKER_RE =
+  /\b(ibkr|interactive\s+brokers|trading\s*212|t\s*212|tradeville|bt\s*trade|bttrade|bt\s+capital\s+partners|btcp|raiffeisen\s+broker|etoro|xtb|degiro|revolut\s+invest|fondul\s+proprietatea)\b/i;
+const INVESTMENT_VERB_OUT_RE =
+  /\b(depunere|alimentare|transfer)\s+(la|spre|catre|in)?\s*(cont\s+(de\s+)?)?(broker|brokeraj|investitii|investitie)\b/i;
+const INVESTMENT_VERB_IN_RE =
+  /\b(retragere|lichidare|transfer)\s+(din|de\s+la)?\s*(cont\s+(de\s+)?)?(broker|brokeraj|investitii|investitie)\b/i;
+
+interface BrokerEntry {
+  re: RegExp;
+  name: string;
+}
+const BROKER_NAMES: readonly BrokerEntry[] = [
+  { re: /\b(interactive\s+brokers|ibkr)\b/i, name: 'IBKR' },
+  { re: /\b(trading\s*212|t\s*212)\b/i, name: 'Trading 212' },
+  { re: /\btradeville\b/i, name: 'Tradeville' },
+  { re: /\b(bt\s*trade|bttrade|bt\s+capital\s+partners|btcp)\b/i, name: 'BT Capital Partners' },
+  { re: /\braiffeisen\s+broker\b/i, name: 'Raiffeisen Broker' },
+  { re: /\betoro\b/i, name: 'eToro' },
+  { re: /\bxtb\b/i, name: 'XTB' },
+  { re: /\bdegiro\b/i, name: 'DeGiro' },
+  { re: /\brevolut\s+invest\b/i, name: 'Revolut Invest' },
+  { re: /\bfondul\s+proprietatea\b/i, name: 'Fondul Proprietatea' },
+];
 
 function normalize(s: string): string {
   return s.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}
+
+export function extractBrokerName(description?: string, merchant?: string): string | undefined {
+  const haystack = normalize(`${description ?? ''} ${merchant ?? ''}`);
+  for (const { re, name } of BROKER_NAMES) {
+    if (re.test(haystack)) return name;
+  }
+  return undefined;
 }
 
 export function detectTransferType(tx: Transaction): TransferType | null {
@@ -21,10 +58,12 @@ export function detectTransferType(tx: Transaction): TransferType | null {
   if (tx.amount < 0) {
     if (CASH_RE.test(haystack)) return 'cash';
     if (SAVINGS_OUT_RE.test(haystack)) return 'savings_out';
+    if (BROKER_RE.test(haystack) || INVESTMENT_VERB_OUT_RE.test(haystack)) return 'investment_out';
     return null;
   }
   if (tx.amount > 0) {
     if (SAVINGS_IN_RE.test(haystack)) return 'savings_in';
+    if (BROKER_RE.test(haystack) || INVESTMENT_VERB_IN_RE.test(haystack)) return 'investment_in';
     return null;
   }
   return null;
@@ -147,12 +186,14 @@ export async function convertToTransfer(
   if (!target) throw new Error('Contul destinație nu există.');
 
   if (source.amount < 0) {
-    if (target.type !== 'cash' && target.type !== 'savings') {
-      throw new Error('Contul destinație trebuie să fie de tip cash sau economii.');
+    if (target.type !== 'cash' && target.type !== 'savings' && target.type !== 'investment') {
+      throw new Error('Contul destinație trebuie să fie de tip cash, economii sau investiții.');
     }
   } else {
-    if (target.type !== 'savings') {
-      throw new Error('Pentru transferurile inbound, contul destinație trebuie să fie economii.');
+    if (target.type !== 'savings' && target.type !== 'investment') {
+      throw new Error(
+        'Pentru transferurile inbound, contul destinație trebuie să fie economii sau investiții.'
+      );
     }
   }
 

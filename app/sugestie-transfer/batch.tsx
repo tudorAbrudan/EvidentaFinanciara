@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -9,6 +9,7 @@ import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import {
   convertToTransfer,
   dismissTransferSuggestion,
+  extractBrokerName,
   listPendingTransferSuggestions,
   type PendingTransferSuggestion,
   type TransferType,
@@ -25,22 +26,30 @@ const TYPE_LABEL: Record<TransferType, string> = {
   cash: 'Retragere cash',
   savings_out: 'Către economii',
   savings_in: 'Din economii',
+  investment_out: 'Către broker',
+  investment_in: 'De la broker',
 };
 
 const TYPE_ICON: Record<TransferType, keyof typeof Ionicons.glyphMap> = {
   cash: 'cash-outline',
   savings_out: 'arrow-up-circle-outline',
   savings_in: 'arrow-down-circle-outline',
+  investment_out: 'trending-up-outline',
+  investment_in: 'trending-down-outline',
 };
 
 function targetTypeFor(t: TransferType): FinancialAccount['type'] {
-  return t === 'cash' ? 'cash' : 'savings';
+  if (t === 'cash') return 'cash';
+  if (t === 'savings_out' || t === 'savings_in') return 'savings';
+  return 'investment';
 }
 
-function targetCreateLabel(t: TransferType, currency: string): string {
-  return t === 'cash'
-    ? `+ Creează cont Cash în ${currency}`
-    : `+ Creează cont Economii în ${currency}`;
+function targetCreateLabel(t: TransferType, currency: string, brokerName?: string): string {
+  if (t === 'cash') return `+ Creează cont Cash în ${currency}`;
+  if (t === 'savings_out' || t === 'savings_in') return `+ Creează cont Economii în ${currency}`;
+  return brokerName
+    ? `+ Adaugă cont broker „${brokerName}" în ${currency}`
+    : `+ Adaugă cont broker în ${currency}`;
 }
 
 export default function SugestieTransferBatch() {
@@ -130,6 +139,7 @@ export default function SugestieTransferBatch() {
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: C.background }]}>
+        <Stack.Screen options={{ title: 'Sugestie transfer intern' }} />
         <Text style={{ color: C.textSecondary }}>Se încarcă...</Text>
       </View>
     );
@@ -138,6 +148,7 @@ export default function SugestieTransferBatch() {
   if (rows.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: C.background }]}>
+        <Stack.Screen options={{ title: 'Sugestie transfer intern' }} />
         <Text style={{ color: C.textSecondary, textAlign: 'center', padding: 24 }}>
           Nu ai tranzacții cu sugestie de transfer intern. Înapoi.
         </Text>
@@ -153,6 +164,7 @@ export default function SugestieTransferBatch() {
 
   return (
     <View style={[styles.container, { backgroundColor: C.background }]}>
+      <Stack.Screen options={{ title: 'Sugestie transfer intern' }} />
       <Text style={[styles.heading, { color: C.text }]}>
         {rows.length} {rows.length === 1 ? 'tranzacție detectată' : 'tranzacții detectate'}
       </Text>
@@ -201,19 +213,35 @@ export default function SugestieTransferBatch() {
                 <View style={{ marginTop: 8 }}>
                   <Text style={[styles.label, { color: C.textSecondary }]}>Cont destinație:</Text>
                   {matching.length === 0 ? (
-                    <Pressable
-                      style={[styles.btnSecondary, { borderColor: C.primary }]}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/conturi/add' as '/',
-                          params: { type: targetType, currency: item.tx.currency },
-                        })
-                      }
-                    >
-                      <Text style={[styles.btnSecondaryText, { color: C.primary }]}>
-                        {targetCreateLabel(item.tx.suggested_type, item.tx.currency)}
-                      </Text>
-                    </Pressable>
+                    (() => {
+                      const brokerName =
+                        targetType === 'investment'
+                          ? extractBrokerName(item.tx.description, item.tx.merchant)
+                          : undefined;
+                      return (
+                        <Pressable
+                          style={[styles.btnSecondary, { borderColor: C.primary }]}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/conturi/add' as '/',
+                              params: {
+                                type: targetType,
+                                currency: item.tx.currency,
+                                ...(brokerName ? { name: brokerName } : {}),
+                              },
+                            })
+                          }
+                        >
+                          <Text style={[styles.btnSecondaryText, { color: C.primary }]}>
+                            {targetCreateLabel(
+                              item.tx.suggested_type,
+                              item.tx.currency,
+                              brokerName
+                            )}
+                          </Text>
+                        </Pressable>
+                      );
+                    })()
                   ) : (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
