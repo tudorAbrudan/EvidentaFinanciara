@@ -5,6 +5,7 @@ import { useColorScheme as useColorSchemeNative } from 'react-native';
 
 import AppLockScreen from '@/components/AppLockScreen';
 import OnboardingWizard from '@/components/OnboardingWizard';
+import Colors from '@/constants/Colors';
 import { AppLightTheme, AppDarkTheme } from '@/constants/Theme';
 import { useAppLock } from '@/hooks/useAppLock';
 import { useCloudSync } from '@/hooks/useCloudSync';
@@ -42,11 +43,26 @@ export default function RootLayout() {
 
   const effectiveScheme: 'light' | 'dark' =
     themePreference === 'auto' ? (systemScheme === 'dark' ? 'dark' : 'light') : themePreference;
+  const palette = Colors[effectiveScheme];
 
   return (
     <ThemePreferenceContext.Provider value={{ preference: themePreference, setPreference }}>
       <ThemeProvider value={effectiveScheme === 'dark' ? AppDarkTheme : AppLightTheme}>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack
+          screenOptions={{
+            headerShown: true,
+            headerStyle: { backgroundColor: palette.background },
+            headerTitleStyle: { color: palette.text },
+            headerTintColor: palette.tint,
+            headerBackTitle: 'Înapoi',
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="conturi/add" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="conturi/edit" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="tranzactii/[id]" options={{ presentation: 'modal' }} />
+        </Stack>
         {appLock.locked && (
           <AppLockScreen
             biometricAvailable={appLock.biometricAvailable}

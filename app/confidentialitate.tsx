@@ -15,16 +15,7 @@ export default function ConfidentialitateScreen() {
       style={[styles.container, { backgroundColor: C.background }]}
       contentContainerStyle={styles.content}
     >
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: 'Confidențialitate',
-          headerStyle: { backgroundColor: C.background },
-          headerTitleStyle: { color: C.text },
-          headerTintColor: C.text,
-          headerBackTitle: 'Înapoi',
-        }}
-      />
+      <Stack.Screen options={{ title: 'Confidențialitate' }} />
 
       <View style={styles.intro}>
         <Text style={[styles.lede, { color: C.text }]}>
