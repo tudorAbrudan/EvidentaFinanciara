@@ -42,6 +42,7 @@ Root `_layout.tsx` setează tema, autentificarea (PIN/biometric) și onboarding 
 | `bankStatements.ts`             | orchestrare import + deduplicate                                                |
 | `internalTransferSuggestion.ts` | detectare cash/savings/investment + conversie bidirecțională în transfer intern |
 | `merchantCategoryRules.ts`      | reguli învățate `merchant → categorie` (upsert, match exact + prefix-pe-cuvânt) |
+| `insights.ts`                   | narativi lunari (compară luna curentă vs media ultimelor 3 luni)                |
 | `aiProvider.ts`                 | abstracție provider AI (built-in cu cotă, sau cheie proprie)                    |
 | `aiStatementMapper.ts`          | mapare tranzacții necategorizate prin AI                                        |
 | `aiStatementVisionMapper.ts`    | OCR + mapare AI pentru extrase imagine                                          |
