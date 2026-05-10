@@ -120,6 +120,7 @@ export default function TransactionsList() {
                     {item.date}
                     {account ? ` • ${account.name}` : ''}
                     {category ? ` • ${category.name}` : ''}
+                    {category && item.category_learned ? ' · învățat' : ''}
                   </Text>
                 </View>
                 <Text style={[styles.amount, { color: amountColor }]}>

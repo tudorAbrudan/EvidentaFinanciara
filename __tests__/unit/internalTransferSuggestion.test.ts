@@ -19,6 +19,7 @@ function makeTx(overrides: Partial<Transaction>): Transaction {
     is_internal_transfer: false,
     is_refund: false,
     cash_suggestion_dismissed: false,
+    category_learned: false,
     createdAt: '2026-05-01T10:00:00.000Z',
     ...overrides,
   };

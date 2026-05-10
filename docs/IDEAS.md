@@ -7,7 +7,7 @@
 > 3. Nu adăugăm complexitate inutilă — fiecare idee răspunde la: _câți utilizatori beneficiază real, merită complexitatea?_
 
 **Status:** roadmap inițial, înainte de primul spec implementat.
-**Ultima actualizare:** 2026-05-09.
+**Ultima actualizare:** 2026-05-10.
 
 ---
 
@@ -30,7 +30,7 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 8. **Sugerare AI categorii pe import (mapare)** — după parser determinist + `suggestCategory` (regex), AI propune categorie pentru tranzacțiile încă necategorizate. **User confirmă, AI nu auto-aplică.** UI: badge „AI sugerează: Mâncare ✓ ✗" pe tranzacție. Free: cota built-in actuală (20/zi). Premium: nelimitat.
 9. **Detectare automată tranzacții recurente** — Netflix, Spotify, chirie, abonamente. Listă „Abonamente active" în Sumar. Alertă „factura X de luna trecută nu a apărut, e ok?".
 10. **Insights lunari** — narativ scurt pe Sumar: „luna asta ai cheltuit cu 30% mai mult la Mâncare decât media ultimelor 3 luni". Local, fără AI. Calculat din `getMonthlySpending` istoric.
-11. **Învățare locală auto-categorizare** — dacă marchezi „Lidl" ca Mâncare o dată, viitoarele tranzacții cu același merchant primesc auto-categorie cu badge „învățat din istoric". Override-abil. Persistent în SQLite (tabel nou `merchant_category_rules` sau extensie pe transactions).
+11. ~~**Învățare locală auto-categorizare**~~ — implementat 2026-05-10. Vezi mai jos.
 12. **Bugete pe categorii cu progress bar** — schema are deja `monthly_limit`. Lipsește UI: ecran „Bugete" cu listă categorii + bar progres + edit limit. Status colors la 80% / 100%.
 13. **Notificări locale pe bugete** — la 80% și 100% din `monthly_limit` pe categorie, notificare locală. Folosește `expo-notifications` (deja în deps). Configurabil din Setări (on/off, threshold).
 
@@ -50,6 +50,8 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 ---
 
 ## Implementat (post-MVP fundație)
+
+- **Învățare locală merchant → categorie** (2026-05-10) — la fiecare modificare manuală a categoriei pe o tranzacție cu merchant non-vid, regula `merchant_normalized → category_id` e persistată în tabel nou `merchant_category_rules` (PK pe normalized: lowercase + diacritice strip + trim, with `merchant_display` pentru afișare). La importul/quick-add unei tranzacții fără category_id explicit, regula match (exact sau prefix-pe-cuvânt) e aplicată automat și `transactions.category_learned=1` marchează atribuirea. Match-ul prefix permite ca regula „lidl" să prindă „LIDL Bucuresti" și „LIDL Cluj"; la conflict, regula mai specifică (mai lungă) câștigă. Coloana nouă `category_learned` pe `transactions` (default 0; resetată la modificare manuală). UI: badge `sparkles` în pill-ul de categorie din Sumar (`ExpandedTransactionRow` în `app/(tabs)/index.tsx`), sufix „· învățat" în lista din `app/tranzactii/index.tsx`, hint în detaliu (`app/tranzactii/[id].tsx`) cu mesaj „Atribuit automat din istoricul corecțiilor tale". Backup bumped la v2: `merchantCategoryRules` în payload; importul restorează regulile (cu remap `category_id` prin categoryMap) și apelează `applyRulesToUncategorized` best-effort. Spec: `docs/specs/2026-05-10-merchant-category-rules-design.md`. Plan: `docs/plans/2026-05-10-merchant-category-rules.md`.
 
 - **Date demo on-by-default în onboarding** (2026-05-09) — toggle „Adaugă cont demo cu tranzacții fictive" pre-bifat în pasul Demo (`DemoDataStep` în `components/OnboardingWizard.tsx`) pentru time-to-first-value sub 30 secunde. Userul îl poate dezactiva înainte de Continuă. Switch dezactivat și mesaj informativ dacă există deja date demo (`hasDemoData`). În Setări, secțiunea „Cont demo" apare doar când demo există și conține un singur buton destructiv „Șterge datele demo" → `deleteDemoData()` în `services/demoData.ts` (curăță contul demo + tranzacțiile asociate, idempotent).
 

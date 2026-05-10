@@ -1,5 +1,6 @@
 import { db, generateId } from './db';
 import { getRateRon } from './fxRates';
+import { getRuleForMerchant, upsertRule } from './merchantCategoryRules';
 
 import type { Transaction, TransactionSource } from '@/types';
 
@@ -20,6 +21,7 @@ type Row = {
   is_refund: number;
   duplicate_of_id: string | null;
   cash_suggestion_dismissed: number;
+  category_learned: number;
   notes: string | null;
   created_at: string;
 };
@@ -42,6 +44,7 @@ function mapRow(r: Row): Transaction {
     is_refund: r.is_refund === 1,
     duplicate_of_id: r.duplicate_of_id ?? undefined,
     cash_suggestion_dismissed: r.cash_suggestion_dismissed === 1,
+    category_learned: r.category_learned === 1,
     notes: r.notes ?? undefined,
     createdAt: r.created_at,
   };
@@ -169,12 +172,26 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
   const amount_ron =
     input.amount_ron !== undefined ? input.amount_ron : currency === 'RON' ? input.amount : null;
 
+  // Aplică reguli învățate doar dacă apelantul nu a setat deja category_id.
+  // Regulile se aplică prin merchant; descrierea fără merchant nu match.
+  let categoryId = input.category_id ?? null;
+  let categoryLearned = false;
+  const merchantTrimmed = input.merchant?.trim() || null;
+  if (categoryId === null && merchantTrimmed) {
+    const rule = await getRuleForMerchant(merchantTrimmed);
+    if (rule) {
+      categoryId = rule.category_id;
+      categoryLearned = true;
+    }
+  }
+
   await db.runAsync(
     `INSERT INTO transactions
        (id, account_id, date, amount, currency, amount_ron, description, merchant,
         category_id, source, statement_id,
-        is_internal_transfer, linked_transaction_id, is_refund, duplicate_of_id, notes, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+        is_internal_transfer, linked_transaction_id, is_refund, duplicate_of_id, notes,
+        category_learned, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
     [
       id,
       input.account_id ?? null,
@@ -183,14 +200,15 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
       currency,
       amount_ron,
       input.description?.trim() || null,
-      input.merchant?.trim() || null,
-      input.category_id ?? null,
+      merchantTrimmed,
+      categoryId,
       input.source ?? 'manual',
       input.statement_id ?? null,
       input.is_internal_transfer ? 1 : 0,
       input.linked_transaction_id ?? null,
       input.is_refund ? 1 : 0,
       input.notes?.trim() || null,
+      categoryLearned ? 1 : 0,
       created_at,
     ]
   );
@@ -204,13 +222,14 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
     amount_ron: amount_ron ?? undefined,
     description: input.description,
     merchant: input.merchant,
-    category_id: input.category_id,
+    category_id: categoryId ?? undefined,
     source: input.source ?? 'manual',
     statement_id: input.statement_id,
     is_internal_transfer: !!input.is_internal_transfer,
     linked_transaction_id: input.linked_transaction_id,
     is_refund: !!input.is_refund,
     cash_suggestion_dismissed: false,
+    category_learned: categoryLearned,
     notes: input.notes,
     createdAt: created_at,
   };
@@ -244,7 +263,14 @@ export async function updateTransaction(id: string, input: UpdateTransactionInpu
   push('amount_ron', input.amount_ron ?? null);
   push('description', input.description ?? null);
   push('merchant', input.merchant ?? null);
-  push('category_id', input.category_id ?? null);
+  // Modificare manuală a categoriei → resetează flag-ul „învățat" (devine sursă
+  // de adevăr pentru viitoarele reguli, nu mai e categorie atribuită automat).
+  if (input.category_id !== undefined) {
+    sets.push('category_id = ?');
+    params.push(input.category_id ?? null);
+    sets.push('category_learned = ?');
+    params.push(0);
+  }
   push('notes', input.notes ?? null);
   if (input.is_refund !== undefined) {
     sets.push('is_refund = ?');
@@ -254,6 +280,19 @@ export async function updateTransaction(id: string, input: UpdateTransactionInpu
   if (sets.length === 0) return;
   params.push(id);
   await db.runAsync(`UPDATE transactions SET ${sets.join(', ')} WHERE id = ?`, params);
+
+  // Învață regulă din corecție manuală: dacă userul a atribuit o categorie
+  // (non-null) unei tranzacții cu merchant non-vid, persistă maparea.
+  if (input.category_id) {
+    const merchantRow = await db.getFirstAsync<{ merchant: string | null }>(
+      'SELECT merchant FROM transactions WHERE id = ?',
+      [id]
+    );
+    const merchant = merchantRow?.merchant?.trim();
+    if (merchant) {
+      await upsertRule(merchant, input.category_id);
+    }
+  }
 }
 
 export async function deleteTransaction(id: string): Promise<void> {

@@ -17,6 +17,12 @@ try {
   // tabela nu există încă (fresh install) sau coloana există deja
 }
 
+try {
+  db.execSync(`ALTER TABLE transactions ADD COLUMN category_learned INTEGER NOT NULL DEFAULT 0`);
+} catch {
+  // tabela nu există încă (fresh install) sau coloana există deja
+}
+
 db.execSync(`
   PRAGMA journal_mode = WAL;
 
@@ -68,7 +74,18 @@ db.execSync(`
     duplicate_of_id TEXT,
     notes TEXT,
     cash_suggestion_dismissed INTEGER NOT NULL DEFAULT 0,
+    category_learned INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS merchant_category_rules (
+    merchant_normalized TEXT PRIMARY KEY,
+    merchant_display TEXT NOT NULL,
+    category_id TEXT NOT NULL,
+    occurrences INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES expense_categories(id) ON DELETE CASCADE
   );
 
   CREATE TABLE IF NOT EXISTS bank_statements (
@@ -123,6 +140,7 @@ db.execSync(`
   CREATE INDEX IF NOT EXISTS idx_bs_account_period ON bank_statements(account_id, period_to DESC);
   CREATE INDEX IF NOT EXISTS idx_fx_rates_currency_date ON fx_rates(currency, date DESC);
   CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_mcr_category ON merchant_category_rules(category_id);
 `);
 
 try {

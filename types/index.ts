@@ -103,6 +103,12 @@ export interface Transaction {
   is_refund: boolean;
   duplicate_of_id?: string;
   cash_suggestion_dismissed: boolean;
+  /**
+   * `true` ⇒ category_id a fost atribuit automat dintr-o regulă merchant→categorie
+   * învățată din corecții manuale anterioare. UI poate afișa badge „învățat".
+   * Resetat la 0 când userul setează manual category_id (vezi `updateTransaction`).
+   */
+  category_learned: boolean;
   notes?: string;
   createdAt: string;
 }

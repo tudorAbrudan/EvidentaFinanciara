@@ -90,6 +90,7 @@ type Row = {
   is_refund: number;
   duplicate_of_id: string | null;
   cash_suggestion_dismissed: number;
+  category_learned: number;
   notes: string | null;
   created_at: string;
 };
@@ -112,6 +113,7 @@ function rowToTx(r: Row): Transaction {
     is_refund: r.is_refund === 1,
     duplicate_of_id: r.duplicate_of_id ?? undefined,
     cash_suggestion_dismissed: r.cash_suggestion_dismissed === 1,
+    category_learned: r.category_learned === 1,
     notes: r.notes ?? undefined,
     createdAt: r.created_at,
   };

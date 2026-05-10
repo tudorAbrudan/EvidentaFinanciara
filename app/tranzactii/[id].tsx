@@ -90,6 +90,7 @@ export default function TransactionEditorScreen() {
   const [isExistingTransfer, setIsExistingTransfer] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [categoryLearned, setCategoryLearned] = useState(false);
 
   useEffect(() => {
     if (!editingId) return;
@@ -100,6 +101,7 @@ export default function TransactionEditorScreen() {
         setKind(tx.amount >= 0 ? 'income' : 'expense');
         setAccountId(tx.account_id);
         setCategoryId(tx.category_id);
+        setCategoryLearned(tx.category_learned);
         setDate(tx.date);
         setAmountStr(Math.abs(tx.amount).toFixed(2));
         setMerchant(tx.merchant ?? '');
@@ -402,6 +404,15 @@ export default function TransactionEditorScreen() {
             <Text style={[styles.selectorText, { color: category ? C.text : C.textSecondary }]}>
               {category ? category.name : 'Fără categorie'}
             </Text>
+            {categoryLearned ? (
+              <Ionicons
+                name="sparkles"
+                size={13}
+                color={C.textSecondary}
+                style={{ marginLeft: 6 }}
+                accessibilityLabel="Categorie atribuită automat din istoric"
+              />
+            ) : null}
           </View>
           <Ionicons
             name={showCategoryPicker ? 'chevron-up' : 'chevron-down'}
@@ -409,11 +420,17 @@ export default function TransactionEditorScreen() {
             color={C.textSecondary}
           />
         </Pressable>
+        {categoryLearned ? (
+          <Text style={[styles.hint, { color: C.textSecondary }]}>
+            Atribuit automat din istoricul corecțiilor tale. Schimbă pentru a învăța regula nouă.
+          </Text>
+        ) : null}
         {showCategoryPicker && (
           <View style={[styles.pickerCard, { borderColor: C.border, backgroundColor: C.card }]}>
             <Pressable
               onPress={() => {
                 setCategoryId(undefined);
+                setCategoryLearned(false);
                 setShowCategoryPicker(false);
               }}
               style={({ pressed }) => [styles.pickerItem, pressed && { opacity: 0.7 }]}
@@ -427,6 +444,7 @@ export default function TransactionEditorScreen() {
                 active={c.id === categoryId}
                 onPress={() => {
                   setCategoryId(c.id);
+                  setCategoryLearned(false);
                   setShowCategoryPicker(false);
                 }}
                 C={C}
@@ -621,6 +639,7 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   inner: { padding: 24, paddingBottom: 120 },
   label: { fontSize: 14, marginBottom: 6, opacity: 0.9 },
+  hint: { fontSize: 12, marginTop: -8, marginBottom: 12, lineHeight: 16 },
   input: {
     borderWidth: 1,
     borderRadius: 12,

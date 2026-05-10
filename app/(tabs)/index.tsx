@@ -828,6 +828,15 @@ function ExpandedTransactionRow({
               pressed && { opacity: 0.7 },
             ]}
           >
+            {tx.category_learned ? (
+              <Ionicons
+                name="sparkles"
+                size={11}
+                color={primary}
+                style={{ marginRight: 4 }}
+                accessibilityLabel="Categorie atribuită automat din istoric"
+              />
+            ) : null}
             <RNText style={[styles.txCategoryPillText, { color: primary }]} numberOfLines={1}>
               {categoryName}
             </RNText>
@@ -983,6 +992,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   txCategoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,

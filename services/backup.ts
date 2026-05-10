@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import * as categories from './categories';
 import { db, generateId } from './db';
 import * as financialAccounts from './financialAccounts';
+import { applyRulesToUncategorized, listRules, type MerchantRule } from './merchantCategoryRules';
 import * as transactions from './transactions';
 
 import type {
@@ -15,7 +16,7 @@ import type {
   BankStatement,
 } from '@/types';
 
-const BACKUP_VERSION = 1;
+const BACKUP_VERSION = 2;
 const APP_TAG = 'finante';
 
 export interface BackupPayload {
@@ -27,6 +28,8 @@ export interface BackupPayload {
   transactions: Transaction[];
   bankStatements: BankStatement[];
   fxRates: { date: string; currency: string; rate: number; fetched_at: string }[];
+  /** v2+ — reguli învățate merchant→categorie. Lipsește în backup-uri v1. */
+  merchantCategoryRules?: MerchantRule[];
 }
 
 export interface BackupSummary {
@@ -87,6 +90,7 @@ export async function exportBackup(): Promise<string> {
     transactions: await transactions.getTransactions({ excludeDuplicates: false }),
     bankStatements: await getAllBankStatements(),
     fxRates: fxRows,
+    merchantCategoryRules: await listRules(),
   };
 
   const stamp = new Date().toISOString().slice(0, 10);
@@ -401,6 +405,51 @@ export async function importBackup(path: string): Promise<BackupSummary> {
     }
   }
 
+  // 7. Reguli merchant→categorie (v2+) — best-effort. Remap category_id prin
+  // categoryMap; reguli care punctează categorii pierdute sunt sărite.
+  const ruleRows = (payload.merchantCategoryRules as AnyRecord[] | undefined) ?? [];
+  for (const r of ruleRows) {
+    try {
+      const oldCategoryId = r.category_id as string | undefined;
+      const newCategoryId = oldCategoryId
+        ? (categoryMap.get(oldCategoryId) ?? oldCategoryId)
+        : null;
+      if (!newCategoryId) continue;
+      const merchantNormalized = (r.merchant_normalized as string | undefined)?.trim();
+      const merchantDisplay = (r.merchant_display as string | undefined)?.trim();
+      if (!merchantNormalized || !merchantDisplay) continue;
+      const now = new Date().toISOString();
+      await db.runAsync(
+        `INSERT INTO merchant_category_rules
+           (merchant_normalized, merchant_display, category_id, occurrences, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(merchant_normalized) DO UPDATE SET
+           category_id = excluded.category_id,
+           merchant_display = excluded.merchant_display,
+           occurrences = MAX(occurrences, excluded.occurrences),
+           updated_at = excluded.updated_at`,
+        [
+          merchantNormalized,
+          merchantDisplay,
+          newCategoryId,
+          (r.occurrences as number) ?? 1,
+          (r.created_at as string) || now,
+          (r.updated_at as string) || now,
+        ]
+      );
+    } catch {
+      // ignorăm regulile cu probleme; nu blocam restul importului
+    }
+  }
+
+  // 8. Re-categorizează tranzacțiile fără categorie folosind regulile (inclusiv
+  // cele importate). Best-effort.
+  try {
+    await applyRulesToUncategorized();
+  } catch {
+    // ignorăm
+  }
+
   return { imported, skipped, errors };
 }
 
@@ -431,6 +480,7 @@ export async function applyManifest(
   const txs = (payload.transactions as AnyRecord[] | undefined) ?? [];
   const stmts = (payload.bankStatements as AnyRecord[] | undefined) ?? [];
   const fxs = (payload.fxRates as AnyRecord[] | undefined) ?? [];
+  const rules = (payload.merchantCategoryRules as AnyRecord[] | undefined) ?? [];
 
   await db.withTransactionAsync(async () => {
     if (wipe) {
@@ -439,6 +489,7 @@ export async function applyManifest(
       await db.runAsync('DELETE FROM expense_categories');
       await db.runAsync('DELETE FROM financial_accounts');
       await db.runAsync('DELETE FROM fx_rates');
+      await db.runAsync('DELETE FROM merchant_category_rules');
     }
 
     for (const a of accounts) {
@@ -547,6 +598,27 @@ export async function applyManifest(
           r.currency as string,
           r.rate as number,
           (r.fetched_at as string) || new Date().toISOString(),
+        ]
+      );
+    }
+
+    for (const r of rules) {
+      const merchantNormalized = (r.merchant_normalized as string | undefined)?.trim();
+      const merchantDisplay = (r.merchant_display as string | undefined)?.trim();
+      const categoryId = r.category_id as string | undefined;
+      if (!merchantNormalized || !merchantDisplay || !categoryId) continue;
+      const now = new Date().toISOString();
+      await db.runAsync(
+        `INSERT OR REPLACE INTO merchant_category_rules
+           (merchant_normalized, merchant_display, category_id, occurrences, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          merchantNormalized,
+          merchantDisplay,
+          categoryId,
+          (r.occurrences as number) ?? 1,
+          (r.created_at as string) || now,
+          (r.updated_at as string) || now,
         ]
       );
     }
