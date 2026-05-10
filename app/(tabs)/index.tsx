@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import InsightsCard from '@/components/InsightsCard';
+import RecurringSummary from '@/components/RecurringSummary';
 import { TransferSuggestionBanner } from '@/components/TransferSuggestionBanner';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -22,6 +23,7 @@ import { useCategoryTransactions, UNCATEGORIZED_KEY } from '@/hooks/useCategoryT
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useMonthlyAnalysis } from '@/hooks/useMonthlyAnalysis';
 import { computeMonthlyInsights, type MonthlyInsight } from '@/services/insights';
+import { detectRecurringSeries, type RecurringSeries } from '@/services/recurring';
 import { formatYearMonth, updateTransaction } from '@/services/transactions';
 import { primary, statusColors } from '@/theme/colors';
 import type { Transaction, ExpenseCategory } from '@/types';
@@ -63,6 +65,7 @@ export default function FinanciarHubScreen() {
   const [pickerTxId, setPickerTxId] = useState<string | null>(null);
   const [pickerSaving, setPickerSaving] = useState(false);
   const [insights, setInsights] = useState<MonthlyInsight[]>([]);
+  const [recurring, setRecurring] = useState<RecurringSeries[]>([]);
 
   // Schimbarea filtrelor (lună sau cont) invalidează lista expandată.
   useEffect(() => {
@@ -78,6 +81,22 @@ export default function FinanciarHubScreen() {
       })
       .catch(() => {
         if (!cancelled) setInsights([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [yearMonth, accountFilter]);
+
+  // Detectează abonamente recurente pe ultimele 6 luni. Independent de filtrul
+  // lunii; se recalculează la modificări de tranzacții (refresh).
+  useEffect(() => {
+    let cancelled = false;
+    void detectRecurringSeries()
+      .then(items => {
+        if (!cancelled) setRecurring(items);
+      })
+      .catch(() => {
+        if (!cancelled) setRecurring([]);
       });
     return () => {
       cancelled = true;
@@ -281,6 +300,8 @@ export default function FinanciarHubScreen() {
         </RNView>
 
         <InsightsCard insights={insights} />
+
+        <RecurringSummary series={recurring} />
 
         {/* Account filter chips */}
         {accounts.length > 0 && (

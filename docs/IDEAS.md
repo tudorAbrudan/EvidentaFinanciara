@@ -28,7 +28,7 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 ### Diferențiator (de ce ar alege cineva app-ul tău)
 
 8. **Sugerare AI categorii pe import (mapare)** — după parser determinist + `suggestCategory` (regex), AI propune categorie pentru tranzacțiile încă necategorizate. **User confirmă, AI nu auto-aplică.** UI: badge „AI sugerează: Mâncare ✓ ✗" pe tranzacție. Free: cota built-in actuală (20/zi). Premium: nelimitat.
-9. **Detectare automată tranzacții recurente** — Netflix, Spotify, chirie, abonamente. Listă „Abonamente active" în Sumar. Alertă „factura X de luna trecută nu a apărut, e ok?".
+9. ~~**Detectare automată tranzacții recurente**~~ — implementat 2026-05-10. Vezi mai jos.
 10. ~~**Insights lunari**~~ — implementat 2026-05-10. Vezi mai jos.
 11. ~~**Învățare locală auto-categorizare**~~ — implementat 2026-05-10. Vezi mai jos.
 12. **Bugete pe categorii cu progress bar** — schema are deja `monthly_limit`. Lipsește UI: ecran „Bugete" cu listă categorii + bar progres + edit limit. Status colors la 80% / 100%.
@@ -50,6 +50,8 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 ---
 
 ## Implementat (post-MVP fundație)
+
+- **Detectare abonamente recurente** (2026-05-10) — `services/recurring.ts` analizează ultimele 6 luni de cheltuieli (`amount < 0`, non-transfer, non-duplicate). Algoritm: grupare pe `normalizeMerchant`, filtru sumă (median ±10%), filtru cadență (median 25–35 zile lunar + majoritatea intervalelor în range pentru a respinge outlier-i extremi), min 3 apariții. Status: `active` (ultima apariție ≤ 35 zile), `missing` (35–70 zile, _ai sărit o lună_), `expired` (> 70 zile). `expected_next` calculat ca `last_seen + median_cadence`. Funcție pură `buildRecurringSeries` separată pentru testare. UI: `components/RecurringSummary.tsx` cu max 5 series afișate, badge status colorat (`statusColors.ok` / `critical`), evidențiere „lipsește de X zile" pentru `missing`. Inserat pe Sumar (`app/(tabs)/index.tsx`) între insights și chip-uri. Spec: `docs/specs/2026-05-10-recurring-detection-design.md`. Plan: `docs/plans/2026-05-10-recurring-detection.md`.
 
 - **Insights lunari pe Sumar** (2026-05-10) — `services/insights.ts` calculează 0–3 narativi în RO comparând luna curentă cu media ultimelor 3 luni: total general (prag ±20% relativ ȘI ±50 RON absolut) + categorii (prag ±20% relativ ȘI ≥ 100 RON absolut luna curentă). Funcție pură `buildInsightsFromBreakdowns` separată pentru testare fără DB. Sortare descrescător după magnitudine, total e mereu primul, max 3 afișate. Severity (`positive` ↓ / `warning` ↑ / `neutral`) → culoare `statusColors.ok` / `critical` / `textSecondary`. Necategorizat exclus (numai categorii cu `category_id` non-null). UI `components/InsightsCard.tsx` cu header „Ce e diferit luna asta?" și icon trending-up/down inserat în Sumar (`app/(tabs)/index.tsx`) între monthBar și chip-uri; cardul nu se afișează deloc când 0 insights. Spec: `docs/specs/2026-05-10-monthly-insights-design.md`. Plan: `docs/plans/2026-05-10-monthly-insights.md`.
 
