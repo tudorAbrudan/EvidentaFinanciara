@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import InsightsCard from '@/components/InsightsCard';
+import MonthlyRecapModal from '@/components/MonthlyRecapModal';
 import RecurringSummary from '@/components/RecurringSummary';
 import { TransferSuggestionBanner } from '@/components/TransferSuggestionBanner';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
@@ -23,6 +24,12 @@ import { useCategoryTransactions, UNCATEGORIZED_KEY } from '@/hooks/useCategoryT
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useMonthlyAnalysis } from '@/hooks/useMonthlyAnalysis';
 import { computeMonthlyInsights, type MonthlyInsight } from '@/services/insights';
+import {
+  buildRecap,
+  markRecapShown,
+  shouldShowRecap,
+  type MonthlyRecap,
+} from '@/services/monthlyRecap';
 import { detectRecurringSeries, type RecurringSeries } from '@/services/recurring';
 import { formatYearMonth, updateTransaction } from '@/services/transactions';
 import { primary, statusColors } from '@/theme/colors';
@@ -66,6 +73,7 @@ export default function FinanciarHubScreen() {
   const [pickerSaving, setPickerSaving] = useState(false);
   const [insights, setInsights] = useState<MonthlyInsight[]>([]);
   const [recurring, setRecurring] = useState<RecurringSeries[]>([]);
+  const [recap, setRecap] = useState<MonthlyRecap | null>(null);
 
   // Schimbarea filtrelor (lună sau cont) invalidează lista expandată.
   useEffect(() => {
@@ -102,6 +110,30 @@ export default function FinanciarHubScreen() {
       cancelled = true;
     };
   }, [yearMonth, accountFilter]);
+
+  // Mini-recap one-shot la prima deschidere a lunii noi.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const target = await shouldShowRecap();
+        if (!target || cancelled) return;
+        const built = await buildRecap(target);
+        if (!built || cancelled) return;
+        setRecap(built);
+      } catch {
+        // best-effort
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleDismissRecap = useCallback(() => {
+    if (recap) void markRecapShown(recap.month);
+    setRecap(null);
+  }, [recap]);
 
   const { accounts, refresh: refreshAccounts } = useFinancialAccounts(false);
   const { categories } = useCategories();
@@ -302,6 +334,8 @@ export default function FinanciarHubScreen() {
         <InsightsCard insights={insights} />
 
         <RecurringSummary series={recurring} />
+
+        <MonthlyRecapModal recap={recap} onDismiss={handleDismissRecap} />
 
         {/* Account filter chips */}
         {accounts.length > 0 && (

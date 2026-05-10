@@ -44,12 +44,14 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 19. **Export CSV/Excel/PDF** — export perioadă sau tot. CSV + PDF e suficient pentru MVP, Excel poate fi „PDF cu tabel" inițial.
 20. **Split transaction** — 1 tranzacție pe mai multe categorii (ex. Lidl 200 RON: 150 mâncare + 50 igienă). Schema: tabel nou `transaction_splits`. Edit modal cu „adaugă split".
 21. **Scan bon de casă** — poză bon → OCR (`@react-native-ml-kit/text-recognition` deja prezent) → tranzacție cash cu sumă + dată + best-effort merchant. Util pentru cash, frecvent în RO.
-22. **Mini-recap lunar** — la prima deschidere de lună nouă, ecran modal „Aprilie pe scurt": total, top 3 categorii, schimbare vs luna trecută. Pop-up o singură dată/lună, dismiss-abil.
+22. ~~**Mini-recap lunar**~~ — implementat 2026-05-10. Vezi mai jos.
 23. **Obiective de economisire** — „vreau 5000 RON până decembrie". Calcul automat ce trebuie pus deoparte/lună. Tracking progres pe baza tranzacțiilor pe un cont marcat „economii".
 
 ---
 
 ## Implementat (post-MVP fundație)
+
+- **Mini-recap lunar one-shot** (2026-05-10) — `services/monthlyRecap.ts` afișează modal la prima deschidere a aplicației într-o lună nouă cu sumarul lunii trecute: total cheltuieli, delta față de luna anterioară, top 3 categorii, primul highlight insight (din `computeMonthlyInsights`). Skip dacă luna trecută are < 5 tranzacții (împotriva noise-ului în luna primă post-instalare). Persist `settings_last_recap_month` în AsyncStorage; recap-ul apare o singură dată per lună. Funcția pură `buildRecapSummary` separată pentru testare. UI: `components/MonthlyRecapModal.tsx` cu titlu „<Lună> <An> pe scurt", icon calendar, listă top categorii + buton primary „OK, înțeles". Wire în `app/(tabs)/index.tsx`: useEffect on mount apelează `shouldShowRecap`, dacă target existent → `buildRecap` → afișează modal; dismiss apelează `markRecapShown`. Spec: `docs/specs/2026-05-10-monthly-recap-design.md`. Plan: `docs/plans/2026-05-10-monthly-recap.md`.
 
 - **Detectare abonamente recurente** (2026-05-10) — `services/recurring.ts` analizează ultimele 6 luni de cheltuieli (`amount < 0`, non-transfer, non-duplicate). Algoritm: grupare pe `normalizeMerchant`, filtru sumă (median ±10%), filtru cadență (median 25–35 zile lunar + majoritatea intervalelor în range pentru a respinge outlier-i extremi), min 3 apariții. Status: `active` (ultima apariție ≤ 35 zile), `missing` (35–70 zile, _ai sărit o lună_), `expired` (> 70 zile). `expected_next` calculat ca `last_seen + median_cadence`. Funcție pură `buildRecurringSeries` separată pentru testare. UI: `components/RecurringSummary.tsx` cu max 5 series afișate, badge status colorat (`statusColors.ok` / `critical`), evidențiere „lipsește de X zile" pentru `missing`. Inserat pe Sumar (`app/(tabs)/index.tsx`) între insights și chip-uri. Spec: `docs/specs/2026-05-10-recurring-detection-design.md`. Plan: `docs/plans/2026-05-10-recurring-detection.md`.
 
