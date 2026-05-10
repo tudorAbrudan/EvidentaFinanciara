@@ -12,6 +12,7 @@ import {
   Modal,
 } from 'react-native';
 
+import InsightsCard from '@/components/InsightsCard';
 import { TransferSuggestionBanner } from '@/components/TransferSuggestionBanner';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -20,6 +21,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useCategoryTransactions, UNCATEGORIZED_KEY } from '@/hooks/useCategoryTransactions';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useMonthlyAnalysis } from '@/hooks/useMonthlyAnalysis';
+import { computeMonthlyInsights, type MonthlyInsight } from '@/services/insights';
 import { formatYearMonth, updateTransaction } from '@/services/transactions';
 import { primary, statusColors } from '@/theme/colors';
 import type { Transaction, ExpenseCategory } from '@/types';
@@ -60,10 +62,26 @@ export default function FinanciarHubScreen() {
   const [expandedCatKey, setExpandedCatKey] = useState<string | null>(null);
   const [pickerTxId, setPickerTxId] = useState<string | null>(null);
   const [pickerSaving, setPickerSaving] = useState(false);
+  const [insights, setInsights] = useState<MonthlyInsight[]>([]);
 
   // Schimbarea filtrelor (lună sau cont) invalidează lista expandată.
   useEffect(() => {
     setExpandedCatKey(null);
+  }, [yearMonth, accountFilter]);
+
+  // Insights lunari (compară luna curentă vs media ultimelor 3 luni). Best-effort.
+  useEffect(() => {
+    let cancelled = false;
+    void computeMonthlyInsights(yearMonth, accountFilter)
+      .then(items => {
+        if (!cancelled) setInsights(items);
+      })
+      .catch(() => {
+        if (!cancelled) setInsights([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [yearMonth, accountFilter]);
 
   const { accounts, refresh: refreshAccounts } = useFinancialAccounts(false);
@@ -261,6 +279,8 @@ export default function FinanciarHubScreen() {
             <Ionicons name="chevron-forward" size={22} color={C.text} />
           </Pressable>
         </RNView>
+
+        <InsightsCard insights={insights} />
 
         {/* Account filter chips */}
         {accounts.length > 0 && (
