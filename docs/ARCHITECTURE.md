@@ -31,35 +31,36 @@ Root `_layout.tsx` setează tema, autentificarea (PIN/biometric) și onboarding 
 
 ### `services/` — logică pură
 
-| Fișier                          | Rol                                                                                 |
-| ------------------------------- | ----------------------------------------------------------------------------------- |
-| `db.ts`                         | conexiune SQLite + schema + migrații                                                |
-| `transactions.ts`               | CRUD tranzacții, filtre, agregări                                                   |
-| `categories.ts`                 | CRUD categorii, sugestii prin regex                                                 |
-| `financialAccounts.ts`          | CRUD conturi                                                                        |
-| `bankStatementParser.ts`        | parser CSV pentru extrase BT/ING/Revolut/OTP                                        |
-| `bankStatementPdfParser.ts`     | parser PDF (text extraction)                                                        |
-| `bankStatements.ts`             | orchestrare import + deduplicate                                                    |
-| `internalTransferSuggestion.ts` | detectare cash/savings_out/savings_in + conversie bidirecțională în transfer intern |
-| `aiProvider.ts`                 | abstracție provider AI (built-in cu cotă, sau cheie proprie)                        |
-| `aiStatementMapper.ts`          | mapare tranzacții necategorizate prin AI                                            |
-| `aiStatementVisionMapper.ts`    | OCR + mapare AI pentru extrase imagine                                              |
-| `aiChat.ts`                     | orchestrator chat AI (SQL gen → guard → execute → format)                           |
-| `aiChatPrompt.ts`               | construire system prompt + history compaction                                       |
-| `aiChatSqlGuard.ts`             | validare SQL allowlist + clamp `LIMIT`                                              |
-| `aiChatTemplates.ts`            | template-uri formatare răspuns determinist                                          |
-| `aiChatRepo.ts`                 | CRUD pe tabel `chat_messages`                                                       |
-| `pdfExtractor.ts`               | extragere text PDF                                                                  |
-| `pdfOcr.ts`                     | OCR pe PDF când text-extraction eșuează                                             |
-| `ocr.ts`                        | wrapper ML Kit pentru OCR imagini                                                   |
-| `backup.ts`                     | export/import ZIP cu manifest                                                       |
-| `cloudStorage.ts`               | iCloud Drive / Google Drive abstracție                                              |
-| `cloudSync.ts`                  | sync periodic cu cloud storage                                                      |
-| `fxRates.ts`                    | rate de schimb (cache local)                                                        |
-| `settings.ts`                   | preferințe utilizator (theme, lock, AI consent)                                     |
-| `demoData.ts`                   | tranzacții demo pentru onboarding                                                   |
-| `manifestHash.ts`               | hash structură DB pentru invalidare cache                                           |
-| `privacyPolicy.ts`              | sursa unică text confidențialitate (consent + politică)                             |
+| Fișier                          | Rol                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| `db.ts`                         | conexiune SQLite + schema + migrații                                            |
+| `transactions.ts`               | CRUD tranzacții, filtre, agregări                                               |
+| `categories.ts`                 | CRUD categorii, sugestii prin regex                                             |
+| `financialAccounts.ts`          | CRUD conturi                                                                    |
+| `bankStatementParser.ts`        | parser CSV pentru extrase BT/ING/Revolut/OTP                                    |
+| `bankStatementPdfParser.ts`     | parser PDF (text extraction)                                                    |
+| `bankStatements.ts`             | orchestrare import + deduplicate                                                |
+| `internalTransferSuggestion.ts` | detectare cash/savings/investment + conversie bidirecțională în transfer intern |
+| `merchantCategoryRules.ts`      | reguli învățate `merchant → categorie` (upsert, match exact + prefix-pe-cuvânt) |
+| `aiProvider.ts`                 | abstracție provider AI (built-in cu cotă, sau cheie proprie)                    |
+| `aiStatementMapper.ts`          | mapare tranzacții necategorizate prin AI                                        |
+| `aiStatementVisionMapper.ts`    | OCR + mapare AI pentru extrase imagine                                          |
+| `aiChat.ts`                     | orchestrator chat AI (SQL gen → guard → execute → format)                       |
+| `aiChatPrompt.ts`               | construire system prompt + history compaction                                   |
+| `aiChatSqlGuard.ts`             | validare SQL allowlist + clamp `LIMIT`                                          |
+| `aiChatTemplates.ts`            | template-uri formatare răspuns determinist                                      |
+| `aiChatRepo.ts`                 | CRUD pe tabel `chat_messages`                                                   |
+| `pdfExtractor.ts`               | extragere text PDF                                                              |
+| `pdfOcr.ts`                     | OCR pe PDF când text-extraction eșuează                                         |
+| `ocr.ts`                        | wrapper ML Kit pentru OCR imagini                                               |
+| `backup.ts`                     | export/import ZIP cu manifest                                                   |
+| `cloudStorage.ts`               | iCloud Drive / Google Drive abstracție                                          |
+| `cloudSync.ts`                  | sync periodic cu cloud storage                                                  |
+| `fxRates.ts`                    | rate de schimb (cache local)                                                    |
+| `settings.ts`                   | preferințe utilizator (theme, lock, AI consent)                                 |
+| `demoData.ts`                   | tranzacții demo pentru onboarding                                               |
+| `manifestHash.ts`               | hash structură DB pentru invalidare cache                                       |
+| `privacyPolicy.ts`              | sursa unică text confidențialitate (consent + politică)                         |
 
 **Regulă arhitecturală:** `services/` nu importă din `components/`, `app/`, `hooks/`. Logica e portabilă, testabilă, fără dependențe UI.
 
@@ -87,14 +88,15 @@ Site static (HTML + CSS) deploy-uit pe GitHub Pages la fiecare push pe `main` ca
 
 ### Schema SQLite (versiunea curentă)
 
-| Tabel                | Rol                                                   |
-| -------------------- | ----------------------------------------------------- |
-| `financial_accounts` | conturi (bancă, cash, card) cu sold inițial           |
-| `expense_categories` | categorii ierarhice cu icon, culoare, `monthly_limit` |
-| `transactions`       | tranzacții cu sumă, dată, categorie, cont, notă       |
-| `bank_statements`    | evidență import-uri pentru deduplicate                |
-| `settings`           | preferințe utilizator (key-value)                     |
-| `chat_messages`      | istoric conversație Asistent AI                       |
+| Tabel                     | Rol                                                                      |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `financial_accounts`      | conturi (bancă, cash, card, economii, investiții) cu sold inițial        |
+| `expense_categories`      | categorii ierarhice cu icon, culoare, `monthly_limit`                    |
+| `transactions`            | tranzacții cu sumă, dată, categorie, cont, notă, `category_learned`      |
+| `merchant_category_rules` | reguli învățate `merchant_normalized → category_id` din corecții manuale |
+| `bank_statements`         | evidență import-uri pentru deduplicate                                   |
+| `fx_rates`                | cursuri valutare cache (BNR, per zi/valută)                              |
+| `chat_messages`           | istoric conversație Asistent AI                                          |
 
 Detalii complete în `services/db.ts`.
 
