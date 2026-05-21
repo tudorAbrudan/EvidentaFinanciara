@@ -23,3 +23,41 @@ jobs:
 
       - name: Run check
         run: npm run check
+
+  ai-evals:
+    # Job dedicat pentru eval-urile AI (parser + schema + sanitizare). Rulează
+    # separat de `check` ca să dea feedback clar în PR când regresează modul
+    # cum interpretăm răspunsurile AI sau cum sanitizăm prompt-urile.
+    # Triggered doar când PR-ul atinge cod AI sau fixtures.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # avem nevoie de istoric pentru paths-filter
+
+      - name: Check if AI files changed
+        id: changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            services/ai*.ts
+            services/aiSchemas.ts
+            __tests__/unit/aiPromptSnapshots.test.ts
+            __tests__/unit/aiSchemas.test.ts
+            __tests__/unit/aiProvider.test.ts
+            __tests__/evals/**
+
+      - uses: actions/setup-node@v4
+        if: steps.changed.outputs.any_changed == 'true'
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.changed.outputs.any_changed == 'true'
+        run: npm ci
+
+      - name: Run AI eval harness (mock mode)
+        if: steps.changed.outputs.any_changed == 'true'
+        run: npm run evals:ai
