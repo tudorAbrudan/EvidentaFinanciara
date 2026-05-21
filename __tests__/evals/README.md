@@ -13,16 +13,35 @@ npm test                  # rulează tot suite-ul, inclusiv eval-urile
 Eval-urile rulează prin Jest (vezi `aiEvals.test.ts`), folosind `canonical_response`
 din fiecare fixture pentru parser tests + sanitization checks.
 
-## LIVE mode (TODO — manual)
+## LIVE mode (apel real AI)
 
-Pentru a apela AI-ul real cu fixture-urile și a actualiza `canonical_response`:
-nu există încă un runner separat. Plan: script Node care setează env
-`EXPO_PUBLIC_MISTRAL_API_KEY`, importă `sendAiRequest`, rulează prin fixtures
-și salvează response în `captures/` pentru replay.
+Pentru regresie test pe modelul real — folosit manual înainte de release,
+după update Mistral sau după modificări de prompt:
 
-Soluție temporară: scrie un test manual care apelează `mapStatementWithAi` cu
-fixture-ul și inspectează response-ul. Sau folosește app-ul real cu fixture-ul
-ca PDF mock.
+```bash
+RUN_LIVE_AI_EVALS=1 \
+EXPO_PUBLIC_MISTRAL_API_KEY=sk-... \
+npm run evals:ai
+```
+
+Override-uri opționale:
+
+- `AI_EVAL_URL` — endpoint custom (default `https://api.mistral.ai/v1/chat/completions`)
+- `AI_EVAL_MODEL` — model alternativ (default `mistral-small-latest`)
+
+Pentru fiecare fixture, runner-ul:
+
+1. Construiește prompt-ul cu `buildPrompt` (același ca în app).
+2. Face fetch real cu `temperature: 0`, `max_tokens: 4000`, timeout 30s.
+3. Salvează `{timestamp, model, usage, response}` în `captures/<fixture-name>.json`.
+4. Aplică aceleași assertions ca MOCK mode (schema, rowsMustContain, etc.).
+5. Failure dacă apelul eșuează SAU dacă răspunsul real ratează assertions.
+
+Captures sunt gitignored — sunt date variabile per run. Pentru a actualiza
+`canonical_response`-urile din fixture pe baza capture-urilor, copiezi manual
+`captures/X.json` → field `canonical_response` din `fixtures/X.json`.
+
+LIVE rulează **NU** în CI (consumă cota + costă) — doar manual.
 
 ## Structură fixture
 
