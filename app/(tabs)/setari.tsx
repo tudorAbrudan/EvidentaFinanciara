@@ -26,6 +26,8 @@ import {
   PROVIDER_DEFAULTS,
   type AiProviderType,
   getAiConfig,
+  getAiUsageStats,
+  type AiUsageStats,
   saveAiConfig,
   saveAiApiKey,
   getAiUsageToday,
@@ -66,6 +68,7 @@ export default function Settings() {
   const [aiModel, setAiModel] = useState('');
   const [aiConsent, setAiConsent] = useState(false);
   const [aiUsageToday, setAiUsageToday] = useState(0);
+  const [aiTokenStats, setAiTokenStats] = useState<AiUsageStats | null>(null);
 
   // App lock state
   const [lockLoading, setLockLoading] = useState(true);
@@ -97,9 +100,10 @@ export default function Settings() {
 
   async function loadAi() {
     try {
-      const [config, usage, consentRaw] = await Promise.all([
+      const [config, usage, stats, consentRaw] = await Promise.all([
         getAiConfig(),
         getAiUsageToday(),
+        getAiUsageStats(),
         AsyncStorage.getItem(AI_CONSENT_KEY),
       ]);
       setAiProvider(config.type);
@@ -107,6 +111,7 @@ export default function Settings() {
       setAiApiKey(config.apiKey);
       setAiModel(config.model);
       setAiUsageToday(usage);
+      setAiTokenStats(stats);
       setAiConsent(consentRaw === 'true');
     } finally {
       setAiLoading(false);
@@ -660,6 +665,15 @@ export default function Settings() {
             {aiProvider === 'builtin' ? (
               <Text style={[styles.hintSmall, { color: C.textSecondary }]}>
                 {aiUsageToday} / {DAILY_AI_LIMIT} cereri folosite azi.
+              </Text>
+            ) : null}
+
+            {aiTokenStats && aiTokenStats.totalTokensCumulative > 0 ? (
+              <Text style={[styles.hintSmall, { color: C.textSecondary, marginTop: 4 }]}>
+                Tokens azi: {aiTokenStats.totalTokensToday.toLocaleString('ro-RO')} (
+                {aiTokenStats.promptTokensToday.toLocaleString('ro-RO')} prompt ·{' '}
+                {aiTokenStats.completionTokensToday.toLocaleString('ro-RO')} completion). Total:{' '}
+                {aiTokenStats.totalTokensCumulative.toLocaleString('ro-RO')}.
               </Text>
             ) : null}
 

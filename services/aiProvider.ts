@@ -6,9 +6,17 @@ import * as SecureStore from 'expo-secure-store';
 export const DAILY_AI_LIMIT = 20;
 export const AI_CONSENT_KEY = 'ai_assistant_consent_accepted';
 const KEY_DAILY_USAGE_PREFIX = 'ai_daily_usage_';
+const KEY_DAILY_TOKENS_PROMPT = 'ai_daily_tokens_prompt_';
+const KEY_DAILY_TOKENS_COMPLETION = 'ai_daily_tokens_completion_';
+const KEY_CUMULATIVE_TOKENS_PROMPT = 'ai_cumulative_tokens_prompt';
+const KEY_CUMULATIVE_TOKENS_COMPLETION = 'ai_cumulative_tokens_completion';
 
 function todayDateKey(): string {
   return KEY_DAILY_USAGE_PREFIX + new Date().toISOString().slice(0, 10);
+}
+
+function todayTokenKey(prefix: string): string {
+  return prefix + new Date().toISOString().slice(0, 10);
 }
 
 export async function getAiUsageToday(): Promise<number> {
@@ -20,6 +28,67 @@ export async function incrementAiUsage(): Promise<void> {
   const key = todayDateKey();
   const current = await getAiUsageToday();
   await AsyncStorage.setItem(key, String(current + 1));
+}
+
+// ─── Token tracking (informativ, nu blochează cereri) ────────────────────────
+
+export interface AiUsageStats {
+  requestsToday: number;
+  promptTokensToday: number;
+  completionTokensToday: number;
+  totalTokensToday: number;
+  promptTokensCumulative: number;
+  completionTokensCumulative: number;
+  totalTokensCumulative: number;
+}
+
+async function readNumber(key: string): Promise<number> {
+  const v = await AsyncStorage.getItem(key);
+  const n = v ? parseInt(v, 10) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function addToCounter(key: string, delta: number): Promise<void> {
+  if (delta <= 0) return;
+  const current = await readNumber(key);
+  await AsyncStorage.setItem(key, String(current + delta));
+}
+
+/**
+ * Persistă tokeni consumați. Apelat după fiecare response AI care raportează
+ * `usage` (Mistral / OpenAI-compatible). Defensiv: dacă valorile lipsesc sau
+ * sunt invalide, ignorăm (nu vrem să spargem fluxul real).
+ */
+export async function recordAiTokens(
+  promptTokens: number | undefined,
+  completionTokens: number | undefined
+): Promise<void> {
+  const pt = Number.isFinite(promptTokens) ? Math.max(0, promptTokens ?? 0) : 0;
+  const ct = Number.isFinite(completionTokens) ? Math.max(0, completionTokens ?? 0) : 0;
+  if (pt === 0 && ct === 0) return;
+  await addToCounter(todayTokenKey(KEY_DAILY_TOKENS_PROMPT), pt);
+  await addToCounter(todayTokenKey(KEY_DAILY_TOKENS_COMPLETION), ct);
+  await addToCounter(KEY_CUMULATIVE_TOKENS_PROMPT, pt);
+  await addToCounter(KEY_CUMULATIVE_TOKENS_COMPLETION, ct);
+}
+
+export async function getAiUsageStats(): Promise<AiUsageStats> {
+  const [requestsToday, ptToday, ctToday, ptCum, ctCum] = await Promise.all([
+    getAiUsageToday(),
+    readNumber(todayTokenKey(KEY_DAILY_TOKENS_PROMPT)),
+    readNumber(todayTokenKey(KEY_DAILY_TOKENS_COMPLETION)),
+    readNumber(KEY_CUMULATIVE_TOKENS_PROMPT),
+    readNumber(KEY_CUMULATIVE_TOKENS_COMPLETION),
+  ]);
+  return {
+    requestsToday,
+    promptTokensToday: ptToday,
+    completionTokensToday: ctToday,
+    totalTokensToday: ptToday + ctToday,
+    promptTokensCumulative: ptCum,
+    completionTokensCumulative: ctCum,
+    totalTokensCumulative: ptCum + ctCum,
+  };
 }
 
 export async function isAiLimitReached(): Promise<boolean> {
@@ -208,6 +277,11 @@ export interface AiMessage {
 
 interface OpenAiResponse {
   choices: { message: { content: string } }[];
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
 }
 
 // ─── Eroare specială: depășire context (folosită de mappers pentru fallback chunked) ─
@@ -311,6 +385,7 @@ export async function sendAiRequestWithImage(
   if (!content) throw new Error('Răspuns gol de la asistentul AI.');
 
   if (config.type === 'builtin') await incrementAiUsage();
+  await recordAiTokens(data.usage?.prompt_tokens, data.usage?.completion_tokens);
 
   return content;
 }
@@ -379,6 +454,9 @@ export async function sendAiRequest(
   if (config.type === 'builtin') {
     await incrementAiUsage();
   }
+  // Token tracking — pentru toți providerii (informativ pentru external; gate
+  // rămâne strict pe count requests pentru builtin).
+  await recordAiTokens(data.usage?.prompt_tokens, data.usage?.completion_tokens);
 
   return content;
 }
