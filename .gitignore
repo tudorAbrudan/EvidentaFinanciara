@@ -51,6 +51,9 @@ yarn-error.*
 # Coverage
 coverage/
 
+# AI eval LIVE captures (variabile per run, nu commit-ăm)
+__tests__/evals/captures/
+
 # ESLint cache
 .eslintcache
 
