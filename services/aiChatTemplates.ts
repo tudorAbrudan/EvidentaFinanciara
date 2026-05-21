@@ -165,8 +165,15 @@ function formatCategoryEvolution(
   params: Record<string, unknown>,
   ctx: CtxLookups
 ): FormattedResponse {
+  // Preferăm numele din rows (SQL face JOIN cu expense_categories) — mai
+  // robust decât params.category_id, care în few-shot e adesea null când
+  // SQL-ul folosește subquery `(SELECT id FROM ... WHERE key=...)`.
+  const nameFromRows = rows.find(r => typeof r.category_name === 'string' && r.category_name)
+    ?.category_name as string | undefined;
   const cat =
-    nameCategory(ctx, params.category_id as string | undefined) ?? 'categorie necunoscută';
+    nameFromRows ??
+    nameCategory(ctx, params.category_id as string | undefined) ??
+    'categorie necunoscută';
   if (rows.length === 0) return { text: `Nu există date pe categoria **${cat}**.`, evidence: [] };
   const series = rows.map(r => ({ ym: String(r.ym), total: Math.abs(Number(r.total) || 0) }));
   const total = series.reduce((s, p) => s + p.total, 0);

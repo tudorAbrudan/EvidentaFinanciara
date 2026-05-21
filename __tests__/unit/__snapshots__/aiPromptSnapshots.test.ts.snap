@@ -19,6 +19,7 @@ Reguli SQL:
 - Pentru sume folosește COALESCE(amount_ron, amount).
 - LIMIT obligatoriu, max 500.
 - Folosește exclusiv tabelele: financial_accounts, expense_categories, transactions. Niciun alt tabel.
+- Pentru template-urile care țin de o categorie specifică (category_evolution, top_merchants), fă JOIN cu expense_categories și include "c.name AS category_name" în SELECT — template-ul afișează numele direct din rezultat.
 
 Răspunzi STRICT cu un JSON valid, fără text suplimentar:
 {
@@ -38,7 +39,7 @@ Răspuns: { "sql": "SELECT id, name, type, currency, initial_balance FROM financ
 Răspuns: { "sql": "SELECT t.id, t.date, t.amount, t.amount_ron, t.merchant, t.account_id, t.category_id, t.description FROM transactions t JOIN financial_accounts a ON a.id = t.account_id WHERE a.name = 'BT_curent_ron' AND UPPER(t.merchant) LIKE '%MCDONALDS%' AND t.duplicate_of_id IS NULL AND t.is_internal_transfer = 0 ORDER BY t.date DESC LIMIT 100", "template": "search_merchant", "params": { "merchant": "MCDONALDS", "account_id": null }, "explanation_short": "tranzacții McDonalds în BT_curent_ron" }
 
 Întrebare: "Cum au evoluat cheltuielile cu întreținerea față de anul trecut?"
-Răspuns: { "sql": "SELECT substr(date, 1, 7) AS ym, SUM(COALESCE(amount_ron, amount)) AS total FROM transactions WHERE category_id = (SELECT id FROM expense_categories WHERE key = 'home') AND amount < 0 AND duplicate_of_id IS NULL AND is_internal_transfer = 0 AND date >= date('now', '-24 months') GROUP BY ym ORDER BY ym ASC LIMIT 24", "template": "category_evolution", "params": { "category_id": null }, "explanation_short": "evoluție categorie casă 24 luni" }
+Răspuns: { "sql": "SELECT substr(t.date, 1, 7) AS ym, SUM(COALESCE(t.amount_ron, t.amount)) AS total, c.name AS category_name FROM transactions t JOIN expense_categories c ON c.id = t.category_id WHERE c.key = 'home' AND t.amount < 0 AND t.duplicate_of_id IS NULL AND t.is_internal_transfer = 0 AND t.date >= date('now', '-24 months') GROUP BY ym, c.name ORDER BY ym ASC LIMIT 24", "template": "category_evolution", "params": { "category_key": "home" }, "explanation_short": "evoluție categorie casă 24 luni" }
 
 Întrebare: "De unde cumpăr cea mai multă mâncare luna asta?"
 Răspuns: { "sql": "SELECT merchant, SUM(COALESCE(amount_ron, amount)) AS total, COUNT(*) AS count FROM transactions WHERE category_id = (SELECT id FROM expense_categories WHERE key = 'food') AND amount < 0 AND duplicate_of_id IS NULL AND is_internal_transfer = 0 AND substr(date, 1, 7) = strftime('%Y-%m', 'now') GROUP BY merchant ORDER BY total ASC LIMIT 5", "template": "top_merchants", "params": { "category_id": null, "period": "current_month" }, "explanation_short": "top merchants mâncare luna curentă" }
@@ -81,6 +82,7 @@ Reguli SQL:
 - Pentru sume folosește COALESCE(amount_ron, amount).
 - LIMIT obligatoriu, max 500.
 - Folosește exclusiv tabelele: financial_accounts, expense_categories, transactions. Niciun alt tabel.
+- Pentru template-urile care țin de o categorie specifică (category_evolution, top_merchants), fă JOIN cu expense_categories și include "c.name AS category_name" în SELECT — template-ul afișează numele direct din rezultat.
 
 Răspunzi STRICT cu un JSON valid, fără text suplimentar:
 {
@@ -100,7 +102,7 @@ Răspuns: { "sql": "SELECT id, name, type, currency, initial_balance FROM financ
 Răspuns: { "sql": "SELECT t.id, t.date, t.amount, t.amount_ron, t.merchant, t.account_id, t.category_id, t.description FROM transactions t JOIN financial_accounts a ON a.id = t.account_id WHERE a.name = 'BT_curent_ron' AND UPPER(t.merchant) LIKE '%MCDONALDS%' AND t.duplicate_of_id IS NULL AND t.is_internal_transfer = 0 ORDER BY t.date DESC LIMIT 100", "template": "search_merchant", "params": { "merchant": "MCDONALDS", "account_id": null }, "explanation_short": "tranzacții McDonalds în BT_curent_ron" }
 
 Întrebare: "Cum au evoluat cheltuielile cu întreținerea față de anul trecut?"
-Răspuns: { "sql": "SELECT substr(date, 1, 7) AS ym, SUM(COALESCE(amount_ron, amount)) AS total FROM transactions WHERE category_id = (SELECT id FROM expense_categories WHERE key = 'home') AND amount < 0 AND duplicate_of_id IS NULL AND is_internal_transfer = 0 AND date >= date('now', '-24 months') GROUP BY ym ORDER BY ym ASC LIMIT 24", "template": "category_evolution", "params": { "category_id": null }, "explanation_short": "evoluție categorie casă 24 luni" }
+Răspuns: { "sql": "SELECT substr(t.date, 1, 7) AS ym, SUM(COALESCE(t.amount_ron, t.amount)) AS total, c.name AS category_name FROM transactions t JOIN expense_categories c ON c.id = t.category_id WHERE c.key = 'home' AND t.amount < 0 AND t.duplicate_of_id IS NULL AND t.is_internal_transfer = 0 AND t.date >= date('now', '-24 months') GROUP BY ym, c.name ORDER BY ym ASC LIMIT 24", "template": "category_evolution", "params": { "category_key": "home" }, "explanation_short": "evoluție categorie casă 24 luni" }
 
 Întrebare: "De unde cumpăr cea mai multă mâncare luna asta?"
 Răspuns: { "sql": "SELECT merchant, SUM(COALESCE(amount_ron, amount)) AS total, COUNT(*) AS count FROM transactions WHERE category_id = (SELECT id FROM expense_categories WHERE key = 'food') AND amount < 0 AND duplicate_of_id IS NULL AND is_internal_transfer = 0 AND substr(date, 1, 7) = strftime('%Y-%m', 'now') GROUP BY merchant ORDER BY total ASC LIMIT 5", "template": "top_merchants", "params": { "category_id": null, "period": "current_month" }, "explanation_short": "top merchants mâncare luna curentă" }
@@ -133,6 +135,7 @@ Reguli SQL:
 - Pentru sume folosește COALESCE(amount_ron, amount).
 - LIMIT obligatoriu, max 500.
 - Folosește exclusiv tabelele: financial_accounts, expense_categories, transactions. Niciun alt tabel.
+- Pentru template-urile care țin de o categorie specifică (category_evolution, top_merchants), fă JOIN cu expense_categories și include "c.name AS category_name" în SELECT — template-ul afișează numele direct din rezultat.
 
 Răspunzi STRICT cu un JSON valid, fără text suplimentar:
 {
@@ -152,7 +155,7 @@ Răspuns: { "sql": "SELECT id, name, type, currency, initial_balance FROM financ
 Răspuns: { "sql": "SELECT t.id, t.date, t.amount, t.amount_ron, t.merchant, t.account_id, t.category_id, t.description FROM transactions t JOIN financial_accounts a ON a.id = t.account_id WHERE a.name = 'BT_curent_ron' AND UPPER(t.merchant) LIKE '%MCDONALDS%' AND t.duplicate_of_id IS NULL AND t.is_internal_transfer = 0 ORDER BY t.date DESC LIMIT 100", "template": "search_merchant", "params": { "merchant": "MCDONALDS", "account_id": null }, "explanation_short": "tranzacții McDonalds în BT_curent_ron" }
 
 Întrebare: "Cum au evoluat cheltuielile cu întreținerea față de anul trecut?"
-Răspuns: { "sql": "SELECT substr(date, 1, 7) AS ym, SUM(COALESCE(amount_ron, amount)) AS total FROM transactions WHERE category_id = (SELECT id FROM expense_categories WHERE key = 'home') AND amount < 0 AND duplicate_of_id IS NULL AND is_internal_transfer = 0 AND date >= date('now', '-24 months') GROUP BY ym ORDER BY ym ASC LIMIT 24", "template": "category_evolution", "params": { "category_id": null }, "explanation_short": "evoluție categorie casă 24 luni" }
+Răspuns: { "sql": "SELECT substr(t.date, 1, 7) AS ym, SUM(COALESCE(t.amount_ron, t.amount)) AS total, c.name AS category_name FROM transactions t JOIN expense_categories c ON c.id = t.category_id WHERE c.key = 'home' AND t.amount < 0 AND t.duplicate_of_id IS NULL AND t.is_internal_transfer = 0 AND t.date >= date('now', '-24 months') GROUP BY ym, c.name ORDER BY ym ASC LIMIT 24", "template": "category_evolution", "params": { "category_key": "home" }, "explanation_short": "evoluție categorie casă 24 luni" }
 
 Întrebare: "De unde cumpăr cea mai multă mâncare luna asta?"
 Răspuns: { "sql": "SELECT merchant, SUM(COALESCE(amount_ron, amount)) AS total, COUNT(*) AS count FROM transactions WHERE category_id = (SELECT id FROM expense_categories WHERE key = 'food') AND amount < 0 AND duplicate_of_id IS NULL AND is_internal_transfer = 0 AND substr(date, 1, 7) = strftime('%Y-%m', 'now') GROUP BY merchant ORDER BY total ASC LIMIT 5", "template": "top_merchants", "params": { "category_id": null, "period": "current_month" }, "explanation_short": "top merchants mâncare luna curentă" }

@@ -1,5 +1,34 @@
 import { formatResponse } from '@/services/aiChatTemplates';
 
+describe('category_evolution', () => {
+  const ctx = {
+    accounts: new Map(),
+    categories: new Map([['cat-food', { id: 'cat-food', name: 'Mâncare' }]]),
+  };
+
+  it('folosește category_name din rows când SQL face JOIN', () => {
+    const rows = [
+      { ym: '2026-04', total: -500, category_name: 'Mâncare' },
+      { ym: '2026-05', total: -300, category_name: 'Mâncare' },
+    ];
+    const out = formatResponse('category_evolution', rows, { category_key: 'food' }, ctx);
+    expect(out.text).toContain('Mâncare');
+    expect(out.text).not.toContain('categorie necunoscută');
+  });
+
+  it('cade pe nameCategory(params.category_id) când rows nu au category_name', () => {
+    const rows = [{ ym: '2026-04', total: -500 }];
+    const out = formatResponse('category_evolution', rows, { category_id: 'cat-food' }, ctx);
+    expect(out.text).toContain('Mâncare');
+  });
+
+  it('„categorie necunoscută" doar când nici rows nici params nu rezolvă', () => {
+    const rows = [{ ym: '2026-04', total: -500 }];
+    const out = formatResponse('category_evolution', rows, { category_id: null }, ctx);
+    expect(out.text).toContain('categorie necunoscută');
+  });
+});
+
 const accountsLookup = new Map([
   ['acc-bt', { id: 'acc-bt', name: 'BT_curent_ron', type: 'bank' }],
   ['acc-cash', { id: 'acc-cash', name: 'Cash', type: 'cash' }],
