@@ -1,34 +1,14 @@
-import { z } from 'zod';
-
 import { buildMessages } from './aiChatPrompt';
 import { appendMessage, recentPairs } from './aiChatRepo';
 import { validateAndNormalizeSql } from './aiChatSqlGuard';
 import { formatResponse, type CtxLookups } from './aiChatTemplates';
 import { AiContextOverflowError, isAiLimitReached, sendAiRequest } from './aiProvider';
+import { ChatResponseSchema, parseAiJsonResponse, type ChatResponseParsed } from './aiSchemas';
 import { getCategories } from './categories';
 import { db } from './db';
 import { getFinancialAccounts } from './financialAccounts';
 
-import type { ChatMessage, ChatTemplate } from '@/types';
-
-const TEMPLATES: ChatTemplate[] = [
-  'search_merchant',
-  'top_merchants',
-  'monthly_total',
-  'category_evolution',
-  'period_compare',
-  'list_accounts',
-  'list_categories',
-  'raw_list',
-  'cannot_answer',
-];
-
-const AiResponseSchema = z.object({
-  sql: z.string().nullable(),
-  template: z.enum(TEMPLATES as [ChatTemplate, ...ChatTemplate[]]),
-  params: z.record(z.string(), z.unknown()).default({}),
-  explanation_short: z.string(),
-});
+import type { ChatMessage } from '@/types';
 
 const SQL_TIMEOUT_MS = 3000;
 const MAX_HISTORY_PAIRS = 4;
@@ -64,18 +44,9 @@ async function executeSqlReadOnly(sql: string): Promise<Record<string, unknown>[
   }
 }
 
-function parseAiResponse(text: string): z.infer<typeof AiResponseSchema> | null {
-  try {
-    const cleaned = text
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/```\s*$/i, '')
-      .trim();
-    const parsed = JSON.parse(cleaned);
-    const validated = AiResponseSchema.safeParse(parsed);
-    return validated.success ? validated.data : null;
-  } catch {
-    return null;
-  }
+function parseAiResponse(text: string): ChatResponseParsed | null {
+  const r = parseAiJsonResponse(text, ChatResponseSchema);
+  return r.ok && r.data ? r.data : null;
 }
 
 export async function askAssistant(question: string): Promise<AskResult> {
@@ -95,7 +66,7 @@ export async function askAssistant(question: string): Promise<AskResult> {
   const messages = buildMessages(history, question);
 
   let aiText: string;
-  let parsed: z.infer<typeof AiResponseSchema> | null = null;
+  let parsed: ChatResponseParsed | null = null;
   let sqlGuardError: string | undefined;
 
   for (let attempt = 1; attempt <= 2; attempt++) {

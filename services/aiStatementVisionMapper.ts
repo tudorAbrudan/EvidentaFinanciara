@@ -19,6 +19,7 @@
  */
 
 import { sendAiRequestWithImage, AiContextOverflowError, getAiConfig } from './aiProvider';
+import { parseAiJsonResponse, StatementResponseSchema } from './aiSchemas';
 import {
   normalizeDate,
   normalizeAmount,
@@ -74,32 +75,12 @@ function buildUserText(defaultCurrency: string, isChunk: boolean): string {
 
 // ─── Parsare răspuns ─────────────────────────────────────────────────────────
 
-interface AiRow {
-  date?: string;
-  amount?: number | string;
-  currency?: string;
-  description?: string;
-  merchant?: string;
-}
-
-function parseResponse(response: string, defaultCurrency: string): ParsedRow[] {
-  const start = response.indexOf('{');
-  const end = response.lastIndexOf('}');
-  if (start < 0 || end < start) return [];
-  const jsonStr = response.slice(start, end + 1);
-
-  let parsed: { rows?: AiRow[] };
-  try {
-    parsed = JSON.parse(jsonStr);
-  } catch {
-    return [];
-  }
-
-  if (!parsed.rows || !Array.isArray(parsed.rows)) return [];
+export function parseResponse(response: string, defaultCurrency: string): ParsedRow[] {
+  const result = parseAiJsonResponse(response, StatementResponseSchema);
+  if (!result.ok || !result.data) return [];
 
   const rows: ParsedRow[] = [];
-  for (const r of parsed.rows) {
-    if (!r.date || r.amount === undefined) continue;
+  for (const r of result.data.rows) {
     const isoDate = normalizeDate(String(r.date));
     if (!isoDate) continue;
     const amount = typeof r.amount === 'number' ? r.amount : normalizeAmount(String(r.amount));
@@ -119,6 +100,9 @@ function parseResponse(response: string, defaultCurrency: string): ParsedRow[] {
   }
   return rows;
 }
+
+// Expus pentru snapshot tests + eval harness.
+export { SYSTEM_PROMPT as VISION_SYSTEM_PROMPT, buildUserText as buildVisionUserText };
 
 // ─── Deduplicare merge chunks ─────────────────────────────────────────────────
 

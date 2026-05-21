@@ -10,6 +10,7 @@
  */
 
 import { sendAiRequest, type AiMessage } from './aiProvider';
+import { parseAiJsonResponse, StatementResponseSchema } from './aiSchemas';
 import {
   normalizeDate,
   normalizeAmount,
@@ -76,37 +77,47 @@ Returnează DOAR JSON-ul cu tranzacțiile.`;
 
 // ─── Parse răspuns AI ────────────────────────────────────────────────────────
 
-interface AiRow {
-  date?: string;
-  amount?: number | string;
-  currency?: string;
-  description?: string;
-  merchant?: string;
+export interface ParseStats {
+  total: number; // câte rânduri a returnat AI-ul
+  accepted: number; // câte au trecut prin normalize
+  rejected: number; // câte au fost respinse (date invalidă, sumă NaN etc.)
+  schemaError?: string; // dacă JSON-ul în sine e invalid
 }
 
-function parseResponse(response: string, defaultCurrency: string): ParsedRow[] {
-  // Extragem JSON-ul (în caz că modelul a adăugat text înainte/după)
-  const start = response.indexOf('{');
-  const end = response.lastIndexOf('}');
-  if (start < 0 || end < start) return [];
-  const jsonStr = response.slice(start, end + 1);
+export interface MapperParseOutput {
+  rows: ParsedRow[];
+  stats: ParseStats;
+}
 
-  let parsed: { rows?: AiRow[] };
-  try {
-    parsed = JSON.parse(jsonStr);
-  } catch {
-    return [];
+export function parseResponse(response: string, defaultCurrency: string): MapperParseOutput {
+  const result = parseAiJsonResponse(response, StatementResponseSchema);
+  if (!result.ok || !result.data) {
+    return {
+      rows: [],
+      stats: {
+        total: 0,
+        accepted: 0,
+        rejected: 0,
+        schemaError: `${result.error?.kind}: ${result.error?.message}${result.error?.path ? ` (la ${result.error.path})` : ''}`,
+      },
+    };
   }
 
-  if (!parsed.rows || !Array.isArray(parsed.rows)) return [];
-
+  const rawRows = result.data.rows;
   const rows: ParsedRow[] = [];
-  for (const r of parsed.rows) {
-    if (!r.date || r.amount === undefined) continue;
+  let rejected = 0;
+
+  for (const r of rawRows) {
     const isoDate = normalizeDate(String(r.date));
-    if (!isoDate) continue;
+    if (!isoDate) {
+      rejected++;
+      continue;
+    }
     const amount = typeof r.amount === 'number' ? r.amount : normalizeAmount(String(r.amount));
-    if (amount === null || !Number.isFinite(amount)) continue;
+    if (amount === null || !Number.isFinite(amount)) {
+      rejected++;
+      continue;
+    }
     const currency = r.currency?.toUpperCase() || defaultCurrency;
     const description = r.description?.trim() || undefined;
     const merchant = r.merchant?.trim() || undefined;
@@ -121,7 +132,14 @@ function parseResponse(response: string, defaultCurrency: string): ParsedRow[] {
     });
   }
 
-  return rows;
+  return {
+    rows,
+    stats: {
+      total: rawRows.length,
+      accepted: rows.length,
+      rejected,
+    },
+  };
 }
 
 // ─── Mapper public ───────────────────────────────────────────────────────────
@@ -132,10 +150,19 @@ export async function mapStatementWithAi(
 ): Promise<PdfParseResult> {
   const messages = buildPrompt(ocrText, defaultCurrency);
   const response = await sendAiRequest(messages, MAX_TOKENS);
-  const rows = parseResponse(response, defaultCurrency);
-  const warnings: string[] =
-    rows.length === 0
-      ? ['AI-ul nu a returnat tranzacții valide. Verifică textul OCR sau reîncearcă.']
-      : [];
+  const { rows, stats } = parseResponse(response, defaultCurrency);
+  const warnings: string[] = [];
+  if (stats.schemaError) {
+    warnings.push(`AI-ul a returnat răspuns invalid: ${stats.schemaError}. Reîncearcă.`);
+  } else if (rows.length === 0) {
+    warnings.push('AI-ul nu a returnat tranzacții valide. Verifică textul OCR sau reîncearcă.');
+  } else if (stats.rejected > 0) {
+    warnings.push(
+      `${stats.rejected} ${stats.rejected === 1 ? 'tranzacție a fost respinsă' : 'tranzacții au fost respinse'} la validare (date sau sume invalide).`
+    );
+  }
   return { rows, format: rows.length > 0 ? 'generic' : 'unknown', warnings };
 }
+
+// Funcție utilitară pentru buildPrompt (testare snapshot + eval harness).
+export { buildPrompt };
