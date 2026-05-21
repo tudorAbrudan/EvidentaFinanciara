@@ -317,7 +317,16 @@ export async function sendAiRequestWithImage(
 
 // ─── Trimitere cerere AI (OpenAI-compatible) ──────────────────────────────────
 
-export async function sendAiRequest(messages: AiMessage[], maxTokens = 500): Promise<string> {
+/**
+ * `temperature` default 0 — toate apelantele actuale (chat SQL gen, statement
+ * mapper JSON) vor răspunsuri deterministe. Pentru output narativ creativ,
+ * pasează explicit `temperature: 0.3+`.
+ */
+export async function sendAiRequest(
+  messages: AiMessage[],
+  maxTokens = 500,
+  temperature = 0
+): Promise<string> {
   const config = await getAiConfig();
 
   const validationError = validateConfig(config);
@@ -351,7 +360,7 @@ export async function sendAiRequest(messages: AiMessage[], maxTokens = 500): Pro
       model,
       messages,
       max_tokens: maxTokens,
-      temperature: 0.3,
+      temperature,
     }),
   });
 
