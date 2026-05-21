@@ -7,7 +7,7 @@
 > 3. Nu adăugăm complexitate inutilă — fiecare idee răspunde la: _câți utilizatori beneficiază real, merită complexitatea?_
 
 **Status:** roadmap inițial, înainte de primul spec implementat.
-**Ultima actualizare:** 2026-05-10.
+**Ultima actualizare:** 2026-05-21.
 
 ---
 
@@ -50,6 +50,8 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 ---
 
 ## Implementat (post-MVP fundație)
+
+- **AI development harness** (2026-05-21) — `services/aiSchemas.ts` centralizează schemele Zod pentru toate răspunsurile AI structurate (StatementResponseSchema, ChatResponseSchema) + `parseAiJsonResponse` tolerant (strip code fence, gestiune `no_json_found` / `invalid_json` / `schema_violation` cu path Zod). Statement mapper refactor: returnează `MapperParseOutput` cu stats (total/accepted/rejected/schemaError) → warnings vizibile în UI în loc de drop silent. Snapshot tests pe `buildSystemPrompt`, `buildPrompt` (RON+EUR), `VISION_SYSTEM_PROMPT`, `buildVisionUserText` → orice modificare la prompt-uri → diff vizibil în PR. Token & cost tracking: `recordAiTokens` parsează `usage` din response Mistral, persistă daily + cumulative în AsyncStorage; UI în Setări afișează consum. AI eval harness în `__tests__/evals/` cu 5 fixture-uri (BT simplu, zgomot, prompt injection, sume malformate, schema violation) și runner Jest care verifică sanitizarea prompt-ului + corectitudinea parser-ului + anti-injection guards. Script `npm run evals:ai` pentru iterație rapidă. CI job dedicat `ai-evals` în `.github/workflows/check.yml` triggered pe modificări în `services/ai*` sau `__tests__/evals/**` → feedback clar pe PR când regresează modul de interpretare AI. LIVE mode (apel real AI) e TODO, documentat în README. Fix-uri concomitente: temperature 0 default pentru `sendAiRequest` (determinist pentru SQL/JSON), `category_new` ca tip nou de insight, `normalizeMerchant` strip-uiește zgomot (#cod, \*card, cifre), `pickNextRecapMonth` arată cea mai veche lună necitită, cadență bi-monthly pentru recurring.
 
 - **Mini-recap lunar one-shot** (2026-05-10) — `services/monthlyRecap.ts` afișează modal la prima deschidere a aplicației într-o lună nouă cu sumarul lunii trecute: total cheltuieli, delta față de luna anterioară, top 3 categorii, primul highlight insight (din `computeMonthlyInsights`). Skip dacă luna trecută are < 5 tranzacții (împotriva noise-ului în luna primă post-instalare). Persist `settings_last_recap_month` în AsyncStorage; recap-ul apare o singură dată per lună. Funcția pură `buildRecapSummary` separată pentru testare. UI: `components/MonthlyRecapModal.tsx` cu titlu „<Lună> <An> pe scurt", icon calendar, listă top categorii + buton primary „OK, înțeles". Wire în `app/(tabs)/index.tsx`: useEffect on mount apelează `shouldShowRecap`, dacă target existent → `buildRecap` → afișează modal; dismiss apelează `markRecapShown`. Spec: `docs/specs/2026-05-10-monthly-recap-design.md`. Plan: `docs/plans/2026-05-10-monthly-recap.md`.
 

@@ -18,6 +18,7 @@ Limba UI și docs: română.
 | `npm run type-check`   | `tsc --noEmit`                                                                           |
 | `npm test`             | Jest                                                                                     |
 | `npm run test:watch`   | Jest în watch mode                                                                       |
+| `npm run evals:ai`     | Doar AI eval harness (`__tests__/evals/`) — parser + schema + sanitizare prompt-uri      |
 | `npm run format`       | Prettier write                                                                           |
 | `npm run check`        | Tot lanțul: lint + type-check + type-coverage + test + knip + madge + dep-cruise + audit |
 

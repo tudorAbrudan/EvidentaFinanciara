@@ -53,6 +53,7 @@ Root `_layout.tsx` setează tema, autentificarea (PIN/biometric) și onboarding 
 | `aiChatSqlGuard.ts`             | validare SQL allowlist + clamp `LIMIT`                                          |
 | `aiChatTemplates.ts`            | template-uri formatare răspuns determinist                                      |
 | `aiChatRepo.ts`                 | CRUD pe tabel `chat_messages`                                                   |
+| `aiSchemas.ts`                  | scheme Zod centralizate + `parseAiJsonResponse` tolerant pentru toate AI calls  |
 | `pdfExtractor.ts`               | extragere text PDF                                                              |
 | `pdfOcr.ts`                     | OCR pe PDF când text-extraction eșuează                                         |
 | `ocr.ts`                        | wrapper ML Kit pentru OCR imagini                                               |
@@ -81,7 +82,8 @@ Hook-uri care încapsulează state + side effects (ex. `useCategoryTransactions`
 
 ### `__tests__/`
 
-`__tests__/unit/` — teste Jest pe `services/`. Fixture-uri în sub-folder per bancă (când va exista). `setup.ts` configurează mock-uri Expo.
+- `__tests__/unit/` — teste Jest pe `services/`. Snapshot-uri pentru prompt-uri AI în `__snapshots__/aiPromptSnapshots.test.ts.snap`. `setup.ts` configurează mock-uri Expo.
+- `__tests__/evals/` — AI eval harness: `aiEvals.test.ts` iterează prin `fixtures/*.json` și verifică parser + schema + sanitizare prompt. Rulat automat în `npm test` și ca job CI separat (`ai-evals` în `.github/workflows/check.yml`). Vezi `__tests__/evals/README.md` pentru cum se adaugă fixture nou și planul de LIVE mode (apel real AI).
 
 ### `landing/`
 
