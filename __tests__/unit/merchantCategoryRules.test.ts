@@ -40,8 +40,26 @@ describe('normalizeMerchant', () => {
     ['CARREFOUR  ROMANIA', 'carrefour romania'],
     ['Café Central', 'cafe central'],
     ['ăîâșț', 'aiast'],
+    // Noise tokens: cifre, # cod sucursală, asterisks de mascare
+    ['LIDL #182', 'lidl'],
+    ['LIDL #182 BUC', 'lidl buc'],
+    ['LIDL.182 BUCURESTI', 'lidl bucuresti'],
+    ['CARREFOUR*RO1234', 'carrefour ro1234'], // RO1234 are litere → păstrat
+    ['POS *1234 LIDL', 'pos lidl'],
+    ['ATM BCR 12345 BUCURESTI', 'atm bcr bucuresti'],
+    ['MOL 4567', 'mol'],
+    // Cheia rămâne diferită când conține token alfa distinctiv
+    ['LIDL BUCURESTI', 'lidl bucuresti'],
   ])('normalizează %p → %p', (input, expected) => {
     expect(normalizeMerchant(input)).toBe(expected);
+  });
+
+  it('„LIDL #182 BUC" și „LIDL Bucuresti" produc chei similare', () => {
+    // După normalize, „LIDL #182 BUC" → „lidl buc", „LIDL Bucuresti" → „lidl bucuresti".
+    // Match-ul prefix-pe-cuvânt din findMatchingRule rezolvă restul (lidl e prefix
+    // în ambele). Verificăm că ambele încep cu „lidl ".
+    expect(normalizeMerchant('LIDL #182 BUC').startsWith('lidl')).toBe(true);
+    expect(normalizeMerchant('LIDL Bucuresti').startsWith('lidl')).toBe(true);
   });
 });
 

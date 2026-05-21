@@ -114,12 +114,36 @@ export async function buildRecap(month: string): Promise<MonthlyRecap | null> {
   );
 }
 
+/**
+ * Returnează cea mai veche lună necitită între `lastSeen+1` și `now-1`.
+ * Util când userul ratează deschiderea în luna nouă — la deschiderea
+ * următoare vede recap-ul pentru luna pierdută, nu doar pentru cea trecută.
+ * Limită soft: parcurg max 12 luni înapoi pentru a nu intra într-o buclă
+ * infinită pe date corupte.
+ */
+export function pickNextRecapMonth(
+  today: Date,
+  lastSeen: string | null,
+  maxLookbackMonths = 12
+): string | null {
+  const target = previousMonthYM(today);
+  if (lastSeen === target) return null;
+  if (!lastSeen) return target;
+
+  // Iterăm luna lastSeen → ... → target și returnăm prima lună > lastSeen.
+  for (let offset = maxLookbackMonths; offset >= 1; offset--) {
+    const candidate = previousMonthYM(
+      new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - offset + 1, 1))
+    );
+    if (candidate > lastSeen && candidate <= target) return candidate;
+  }
+  return target;
+}
+
 export async function shouldShowRecap(): Promise<string | null> {
   const today = new Date();
-  const targetMonth = previousMonthYM(today);
   const seen = await AsyncStorage.getItem(KEY_LAST_RECAP_MONTH);
-  if (seen === targetMonth) return null;
-  return targetMonth;
+  return pickNextRecapMonth(today, seen);
 }
 
 export async function markRecapShown(month: string): Promise<void> {

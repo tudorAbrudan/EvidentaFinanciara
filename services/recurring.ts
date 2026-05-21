@@ -26,11 +26,15 @@ export interface TxLite {
 }
 
 const AMOUNT_TOLERANCE = 0.1;
-const MIN_CADENCE_DAYS = 25;
-const MAX_CADENCE_DAYS = 35;
 const MIN_OCCURRENCES = 3;
-const MAX_AGE_ACTIVE_DAYS = 35;
-const MAX_AGE_MISSING_DAYS = 70;
+
+// Cadențe suportate (zile). Status active/missing/expired sunt calculate
+// dinamic relativ la cadența detectată: missing = > 1 ciclu peste; expired
+// = > 2 cicluri peste.
+const CADENCE_RANGES: { key: 'monthly' | 'bimonthly'; min: number; max: number }[] = [
+  { key: 'monthly', min: 25, max: 35 },
+  { key: 'bimonthly', min: 55, max: 65 },
+];
 
 function median(values: number[]): number {
   if (values.length === 0) return 0;
@@ -83,30 +87,31 @@ export function buildRecurringSeries(txs: TxLite[], today: string): RecurringSer
     ).length;
     if (inToleranceCount < MIN_OCCURRENCES) continue;
 
-    // Cadence filter: median interval în 25-35 zile + majoritatea intervalelor în range
-    // (median singur ar trece [10, 49] cu media 29.5 — fals positiv pe outlier-i extremi).
+    // Cadence filter: median interval în vreun range cunoscut (monthly sau
+    // bimonthly) + majoritatea intervalelor în același range (respinge
+    // outlier-i extremi: [10, 49] cu median 29.5 nu mai trece).
     const intervals: number[] = [];
     for (let i = 1; i < sorted.length; i++) {
       intervals.push(daysBetween(sorted[i - 1].date, sorted[i].date));
     }
     const medianCadence = median(intervals);
-    if (medianCadence < MIN_CADENCE_DAYS || medianCadence > MAX_CADENCE_DAYS) continue;
+    const matchedRange = CADENCE_RANGES.find(r => medianCadence >= r.min && medianCadence <= r.max);
+    if (!matchedRange) continue;
     const inRangeIntervals = intervals.filter(
-      d => d >= MIN_CADENCE_DAYS && d <= MAX_CADENCE_DAYS
+      d => d >= matchedRange.min && d <= matchedRange.max
     ).length;
     if (inRangeIntervals * 2 < intervals.length) continue; // majoritate strict
 
     const firstSeen = sorted[0].date;
     const lastSeen = sorted[sorted.length - 1].date;
     const ageDays = daysBetween(lastSeen, today);
+    // Active = până la 1 ciclu peste, missing = până la 2 cicluri peste,
+    // expired = mai mult.
+    const cycleDays = Math.round(medianCadence);
     const status: RecurringStatus =
-      ageDays <= MAX_AGE_ACTIVE_DAYS
-        ? 'active'
-        : ageDays <= MAX_AGE_MISSING_DAYS
-          ? 'missing'
-          : 'expired';
+      ageDays <= cycleDays + 5 ? 'active' : ageDays <= cycleDays * 2 ? 'missing' : 'expired';
 
-    const expectedNext = addDays(lastSeen, Math.round(medianCadence));
+    const expectedNext = addDays(lastSeen, cycleDays);
 
     // Category info: ia cea mai frecventă atribuire (simplu: ultima cu category set)
     const lastWithCategory = [...sorted]

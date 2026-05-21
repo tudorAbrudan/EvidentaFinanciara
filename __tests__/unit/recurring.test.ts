@@ -86,6 +86,36 @@ describe('buildRecurringSeries — detecție lunară', () => {
   });
 });
 
+describe('buildRecurringSeries — cadență bi-monthly', () => {
+  it('detectează serie cu cadență ~60 zile (utilități/asigurări bi-monthly)', () => {
+    const series = buildRecurringSeries(
+      [
+        tx('Vodafone', -150, '2026-01-15'),
+        tx('Vodafone', -150, '2026-03-15'), // 59 zile
+        tx('Vodafone', -150, '2026-05-15'), // 61 zile
+      ],
+      '2026-05-25'
+    );
+    expect(series).toHaveLength(1);
+    expect(series[0].merchant_normalized).toBe('vodafone');
+    expect(series[0].cadence_days).toBe(60); // median([59,61]) = 60
+    expect(series[0].status).toBe('active');
+  });
+
+  it('respinge cadență intermediară (între lunar și bi-monthly, gol)', () => {
+    // 45 zile între tranzacții — nu monthly, nu bi-monthly
+    const series = buildRecurringSeries(
+      [
+        tx('Aleator', -50, '2026-02-01'),
+        tx('Aleator', -50, '2026-03-17'), // 44
+        tx('Aleator', -50, '2026-05-02'), // 46
+      ],
+      '2026-05-10'
+    );
+    expect(series).toHaveLength(0);
+  });
+});
+
 describe('buildRecurringSeries — status', () => {
   it('active: ultima apariție în ultimele 35 zile', () => {
     const series = buildRecurringSeries(

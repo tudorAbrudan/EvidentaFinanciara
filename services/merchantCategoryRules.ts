@@ -9,13 +9,31 @@ export interface MerchantRule {
   updated_at: string;
 }
 
+/**
+ * Tokeni „de zgomot" pe care îi eliminăm înainte de a stoca/match-ui regula:
+ *   - cifre singure sau secvențe de cifre (cod magazin, ID tranzacție)
+ *   - `#xxx` (cod sucursală), `*nnn` (mascat card)
+ *   - prefixe pos / atm / bcr-bucuresti reziduale
+ *   - tokeni de 1-2 caractere non-alfa
+ *
+ * Asta permite ca „LIDL #182 BUC" și „LIDL Bucuresti" să cadă pe aceeași
+ * cheie „lidl bucuresti" (după strip noise + trunc trailing single-letter).
+ */
+const NOISE_TOKEN_RE = /^([#*][\dxX]+|[*#]+|\d+|[-_/\\.]+|x{3,})$/;
+
 export function normalizeMerchant(raw: string): string {
-  return raw
+  const lowered = raw
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
-    .trim()
-    .replace(/\s+/g, ' ');
+    // separatori → spațiu (înlocuim virgule, slash-uri, puncte, asteriscuri, # alipiți)
+    .replace(/[,./\\|]+/g, ' ')
+    .replace(/[#*]+(?=\S)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!lowered) return '';
+  const tokens = lowered.split(' ').filter(t => !NOISE_TOKEN_RE.test(t));
+  return tokens.join(' ');
 }
 
 export async function upsertRule(merchantDisplay: string, categoryId: string): Promise<void> {

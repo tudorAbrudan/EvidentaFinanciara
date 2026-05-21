@@ -98,11 +98,26 @@ describe('buildInsightsFromBreakdowns — categorii', () => {
     expect(insights.find(i => i.id === 'cat:cat-rare')).toBeUndefined();
   });
 
-  it('ignoră categorie nouă fără istoric', () => {
+  it('detectează categorie nouă cu cheltuieli >= 200 RON ca insight category_new', () => {
     const insights = buildInsightsFromBreakdowns(
       0,
       [0, 0, 0],
-      [cat('cat-new', 'Nouă', 500)],
+      [cat('cat-new', 'Veterinar', 500)],
+      [[], [], []]
+    );
+    const newCat = insights.find(i => i.id === 'cat:cat-new');
+    expect(newCat).toBeDefined();
+    expect(newCat?.type).toBe('category_new');
+    expect(newCat?.severity).toBe('neutral');
+    expect(newCat?.delta_ron).toBe(500);
+    expect(newCat?.message).toMatch(/Categorie nouă: Veterinar cu 500 RON/);
+  });
+
+  it('ignoră categorie nouă sub pragul 200 RON', () => {
+    const insights = buildInsightsFromBreakdowns(
+      0,
+      [0, 0, 0],
+      [cat('cat-new', 'Nouă', 150)],
       [[], [], []]
     );
     expect(insights.find(i => i.id === 'cat:cat-new')).toBeUndefined();

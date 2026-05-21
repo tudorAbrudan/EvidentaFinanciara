@@ -2,7 +2,7 @@ import { getCategoryBreakdown, getMonthlyTotals, type CategoryBreakdownItem } fr
 
 export type InsightSeverity = 'positive' | 'warning' | 'neutral';
 
-export type InsightType = 'total_change' | 'category_change';
+export type InsightType = 'total_change' | 'category_change' | 'category_new';
 
 export interface MonthlyInsight {
   id: string;
@@ -17,7 +17,8 @@ export interface MonthlyInsight {
 
 const PCT_THRESHOLD = 20; // 20%
 const ABS_TOTAL_THRESHOLD_RON = 50; // total: ignoră oscilații sub 50 RON
-const ABS_CAT_THRESHOLD_RON = 100; // categorie: ignoră categorii sub 100 RON luna curentă
+const ABS_CAT_THRESHOLD_RON = 100; // categorie change: ignoră categorii sub 100 RON luna curentă
+const ABS_NEW_CAT_THRESHOLD_RON = 200; // categorie nouă fără istoric: prag mai mare (semnal mai puternic)
 const MAX_INSIGHTS = 3;
 
 interface MonthCatMap {
@@ -86,10 +87,27 @@ export function buildInsightsFromBreakdowns(
   const categoryInsights: MonthlyInsight[] = [];
   for (const catId of allCategoryIds) {
     const currentExpense = currentMap[catId]?.expense ?? 0;
-    if (currentExpense < ABS_CAT_THRESHOLD_RON) continue; // filtru zgomot
-
     const prevPresence = prevMaps.filter(m => m[catId] !== undefined);
-    if (prevPresence.length === 0) continue; // categorie nouă fără istoric — ignorăm
+    const name = currentMap[catId]?.name ?? prevMaps.find(m => m[catId])?.[catId]?.name ?? '?';
+
+    // Categorie nouă (fără istoric) cu cheltuieli semnificative
+    if (prevPresence.length === 0) {
+      if (currentExpense < ABS_NEW_CAT_THRESHOLD_RON) continue;
+      categoryInsights.push({
+        id: `cat:${catId}`,
+        type: 'category_new',
+        severity: 'neutral',
+        delta_ron: currentExpense,
+        delta_pct: 100,
+        category_id: catId,
+        category_name: name,
+        message: `Categorie nouă: ${name} cu ${Math.round(currentExpense)} RON (n-a existat în ultimele luni).`,
+      });
+      continue;
+    }
+
+    // Categorie cu istoric — filtru zgomot sub 100 RON luna curentă
+    if (currentExpense < ABS_CAT_THRESHOLD_RON) continue;
 
     const baseline =
       prevPresence.reduce((sum, m) => sum + (m[catId]?.expense ?? 0), 0) / prevPresence.length;
@@ -98,7 +116,6 @@ export function buildInsightsFromBreakdowns(
     if (Math.abs(deltaPct) < PCT_THRESHOLD) continue;
 
     const up = deltaRon > 0;
-    const name = currentMap[catId]?.name ?? prevMaps.find(m => m[catId])?.[catId]?.name ?? '?';
     categoryInsights.push({
       id: `cat:${catId}`,
       type: 'category_change',

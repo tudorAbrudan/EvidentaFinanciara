@@ -3,9 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   buildRecapSummary,
   currentMonthYM,
+  markRecapShown,
+  pickNextRecapMonth,
   previousMonthYM,
   shouldShowRecap,
-  markRecapShown,
 } from '@/services/monthlyRecap';
 import type { CategoryBreakdownItem, MonthlyTotals } from '@/services/transactions';
 
@@ -108,6 +109,30 @@ describe('buildRecapSummary', () => {
     expect(result?.income_ron).toBe(5000);
     expect(result?.net_ron).toBe(3500);
     expect(result?.transaction_count).toBe(30);
+  });
+});
+
+describe('pickNextRecapMonth', () => {
+  it('niciodată citit → luna trecută', () => {
+    expect(pickNextRecapMonth(new Date(Date.UTC(2026, 4, 5)), null)).toBe('2026-04');
+  });
+
+  it('luna trecută deja citită → null', () => {
+    expect(pickNextRecapMonth(new Date(Date.UTC(2026, 4, 5)), '2026-04')).toBe(null);
+  });
+
+  it('userul a sărit o lună → returnează luna pierdută, nu cea trecută', () => {
+    // Azi mai 2026, ultima vizionare ianuarie 2026 (a sărit feb, mar, apr).
+    // Returnează februarie (cea mai veche nevăzută între ian și apr).
+    const result = pickNextRecapMonth(new Date(Date.UTC(2026, 4, 5)), '2026-01');
+    expect(result).toBe('2026-02');
+  });
+
+  it('userul a sărit două luni — următoarea vizită aduce a doua lună', () => {
+    // Simulez fluxul: după citirea februarie (commit prin markRecapShown), userul
+    // redeschide → următoarea ar fi martie.
+    const result = pickNextRecapMonth(new Date(Date.UTC(2026, 4, 5)), '2026-02');
+    expect(result).toBe('2026-03');
   });
 });
 
