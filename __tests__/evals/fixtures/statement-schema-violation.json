@@ -1,0 +1,14 @@
+{
+  "name": "AI returnează schema invalidă — schemaError raportat",
+  "type": "statement-text",
+  "input": {
+    "ocrText": "01.05.2026 LIDL -100",
+    "currency": "RON"
+  },
+  "canonical_response": "{\"transactions\":[{\"date\":\"2026-05-01\",\"amount\":-100}]}",
+  "expected": {
+    "minRows": 0,
+    "maxRows": 0,
+    "schemaErrorContains": "rows"
+  }
+}

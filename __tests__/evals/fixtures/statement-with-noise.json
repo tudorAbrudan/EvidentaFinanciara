@@ -1,0 +1,15 @@
+{
+  "name": "Extras cu solduri/totale — AI nu trebuie să le includă",
+  "type": "statement-text",
+  "input": {
+    "ocrText": "Sold inițial: 1000.00 RON\n01.05.2026 CUMPARATURI KAUFLAND -200,00\n15.05.2026 ALIMENTARE CARD UNICREDIT 1000,00\nTotal debit: 200,00 RON\nTotal credit: 1000,00 RON\nSold final: 1800,00 RON\nComision lunar extras: 5,00 RON",
+    "currency": "RON"
+  },
+  "canonical_response": "{\"rows\":[{\"date\":\"2026-05-01\",\"amount\":-200.00,\"currency\":\"RON\",\"description\":\"CUMPARATURI KAUFLAND\",\"merchant\":\"KAUFLAND\"},{\"date\":\"2026-05-15\",\"amount\":1000.00,\"currency\":\"RON\",\"description\":\"ALIMENTARE CARD UNICREDIT\",\"merchant\":\"UNICREDIT\"}]}",
+  "expected": {
+    "minRows": 2,
+    "maxRows": 3,
+    "rowsMustContain": [{ "merchant": "KAUFLAND", "amountSign": "negative" }],
+    "mustNotIncludeMerchants": ["Sold inițial", "Sold final", "Total debit", "Total credit"]
+  }
+}

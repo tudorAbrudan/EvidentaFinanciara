@@ -17,6 +17,7 @@
     "prebuild": "expo prebuild --clean",
     "test": "jest",
     "test:watch": "jest --watch",
+    "evals:ai": "jest __tests__/evals --no-coverage",
     "build:privacy": "node --experimental-strip-types scripts/build-privacy-html.ts",
     "knip": "knip",
     "madge": "madge --circular --extensions ts,tsx services components hooks app",

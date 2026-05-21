@@ -1,0 +1,15 @@
+{
+  "name": "Sume cu virgulă vs punct, sume invalide → rejected stats vizibile",
+  "type": "statement-text",
+  "input": {
+    "ocrText": "01.05.2026 OK1 -100,50\n02.05.2026 OK2 -200.75\n03.05.2026 INVALID abc,xyz\n04.05.2026 OK3 -300,00",
+    "currency": "RON"
+  },
+  "canonical_response": "{\"rows\":[{\"date\":\"2026-05-01\",\"amount\":-100.50,\"currency\":\"RON\",\"description\":\"OK1\"},{\"date\":\"2026-05-02\",\"amount\":-200.75,\"currency\":\"RON\",\"description\":\"OK2\"},{\"date\":\"2026-05-03\",\"amount\":\"abc,xyz\",\"currency\":\"RON\",\"description\":\"INVALID\"},{\"date\":\"2026-05-04\",\"amount\":-300.00,\"currency\":\"RON\",\"description\":\"OK3\"}]}",
+  "expected": {
+    "minRows": 3,
+    "maxRows": 3,
+    "minRejected": 1,
+    "rowsMustContain": [{ "merchant": null, "amountSign": "negative" }]
+  }
+}

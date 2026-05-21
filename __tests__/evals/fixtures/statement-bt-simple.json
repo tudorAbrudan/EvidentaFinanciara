@@ -1,0 +1,19 @@
+{
+  "name": "BT extras simplu — 3 tranzacții clare",
+  "type": "statement-text",
+  "input": {
+    "ocrText": "EXTRAS DE CONT\nClient: ION POPESCU\nIBAN: RO49 BTRL ...\nPerioada: 01.05.2026 - 31.05.2026\n\nData         Descriere                                  Suma\n02.05.2026   LIDL #182 BUCURESTI                       -150,50 RON\n05.05.2026   SALARIU ANGAJATOR SRL                     +5200,00 RON\n10.05.2026   NETFLIX SUBSCRIPTION                       -49,99 RON\n\nSold final: 4999,51 RON",
+    "currency": "RON"
+  },
+  "canonical_response": "{\"rows\":[{\"date\":\"2026-05-02\",\"amount\":-150.50,\"currency\":\"RON\",\"description\":\"LIDL #182 BUCURESTI\",\"merchant\":\"LIDL\"},{\"date\":\"2026-05-05\",\"amount\":5200.00,\"currency\":\"RON\",\"description\":\"SALARIU ANGAJATOR SRL\",\"merchant\":\"ANGAJATOR SRL\"},{\"date\":\"2026-05-10\",\"amount\":-49.99,\"currency\":\"RON\",\"description\":\"NETFLIX SUBSCRIPTION\",\"merchant\":\"NETFLIX\"}]}",
+  "expected": {
+    "minRows": 3,
+    "maxRows": 3,
+    "rowsMustContain": [
+      { "merchant": "LIDL", "amountSign": "negative" },
+      { "merchant": "NETFLIX", "amountSign": "negative" },
+      { "merchant": "ANGAJATOR SRL", "amountSign": "positive" }
+    ],
+    "mustNotIncludeMerchants": ["Sold final"]
+  }
+}
