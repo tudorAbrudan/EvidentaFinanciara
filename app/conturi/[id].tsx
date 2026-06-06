@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams, useFocusEffect, Stack } from 'expo-router';
 import { useState, useCallback, useMemo } from 'react';
 import {
@@ -7,6 +8,7 @@ import {
   Pressable,
   RefreshControl,
   Alert,
+  ActivityIndicator,
   View as RNView,
   Text as RNText,
 } from 'react-native';
@@ -17,8 +19,13 @@ import Colors from '@/constants/Colors';
 import { useCategories } from '@/hooks/useCategories';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
+import { AI_CONSENT_KEY, getAiConfig } from '@/services/aiProvider';
 import { getBankStatementsForAccount, deleteBankStatement } from '@/services/bankStatements';
-import { backfillMissingRates, countMissingRates } from '@/services/transactions';
+import {
+  backfillMissingRates,
+  countMissingRates,
+  reanalyzeStatement,
+} from '@/services/transactions';
 import { primary, statusColors } from '@/theme/colors';
 import { FINANCIAL_ACCOUNT_TYPE_LABELS, type BankStatement, type Transaction } from '@/types';
 
@@ -42,6 +49,7 @@ export default function FinancialAccountDetailScreen() {
   const [statements, setStatements] = useState<BankStatement[]>([]);
   const [missingRates, setMissingRates] = useState(0);
   const [backfilling, setBackfilling] = useState(false);
+  const [reanalyzing, setReanalyzing] = useState<string | null>(null);
 
   const categoryMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -198,6 +206,57 @@ export default function FinancialAccountDetailScreen() {
         },
       ]
     );
+  }
+
+  async function runReanalyze(s: BankStatement, useAi: boolean) {
+    setReanalyzing(s.id);
+    try {
+      const res = await reanalyzeStatement(s.id, { useAi });
+      await Promise.all([loadStatements(), refresh(), refreshAccounts()]);
+      if (res.updated === 0) {
+        Alert.alert('Re-analiză gata', 'Nimic de corectat — totul era deja încadrat corect.');
+        return;
+      }
+      const parts = [
+        `${res.updated} ${res.updated === 1 ? 'tranzacție actualizată' : 'tranzacții actualizate'}`,
+      ];
+      if (res.signFlipped > 0) parts.push(`${res.signFlipped} semn corectat`);
+      if (res.aiUsed > 0) parts.push(`${res.aiUsed} prin AI`);
+      Alert.alert('Re-analiză gata', parts.join(' • '));
+    } catch (e) {
+      Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut re-analiza importul.');
+    } finally {
+      setReanalyzing(null);
+    }
+  }
+
+  function handleReanalyze(s: BankStatement) {
+    void (async () => {
+      let aiOn = (await AsyncStorage.getItem(AI_CONSENT_KEY)) === 'true';
+      if (aiOn) {
+        try {
+          aiOn = (await getAiConfig()).type !== 'none';
+        } catch {
+          aiOn = false;
+        }
+      }
+      const aiLine = aiOn
+        ? 'Comercianții și descrierile tranzacțiilor neîncadrate vor fi trimise la AI pentru categorii (consumă din cota AI).'
+        : 'AI dezactivat — încadrare doar pe reguli învățate + keyword.';
+      Alert.alert(
+        'Re-analizează importul',
+        `Recalculez semnul (venit/cheltuială) și categoria pentru tranzacțiile din ${s.period_from} → ${s.period_to}.\n\n${aiLine}\n\nCorecțiile manuale care nu sunt reguli salvate pot fi suprascrise.`,
+        [
+          { text: 'Anulează', style: 'cancel' },
+          {
+            text: 'Re-analizează',
+            onPress: () => {
+              void runReanalyze(s, aiOn);
+            },
+          },
+        ]
+      );
+    })();
   }
 
   return (
@@ -374,6 +433,8 @@ export default function FinancialAccountDetailScreen() {
                 stmt={s}
                 currency={account.currency}
                 C={C}
+                busy={reanalyzing === s.id}
+                onReanalyze={() => handleReanalyze(s)}
                 onDelete={() => handleDeleteStatement(s)}
               />
             ))}
@@ -498,11 +559,15 @@ function StatementRow({
   stmt,
   currency,
   C,
+  busy,
+  onReanalyze,
   onDelete,
 }: {
   stmt: BankStatement;
   currency: string;
   C: typeof Colors.light;
+  busy: boolean;
+  onReanalyze: () => void;
   onDelete: () => void;
 }) {
   const importedDate = stmt.imported_at.slice(0, 10);
@@ -525,8 +590,23 @@ function StatementRow({
         </RNText>
       </RNView>
       <Pressable
-        onPress={onDelete}
+        onPress={onReanalyze}
+        disabled={busy}
         hitSlop={10}
+        accessibilityLabel="Re-analizează importul"
+        style={({ pressed }) => [styles.stmtAction, pressed && { opacity: 0.6 }]}
+      >
+        {busy ? (
+          <ActivityIndicator size="small" color={C.primary} />
+        ) : (
+          <Ionicons name="sparkles-outline" size={18} color={C.primary} />
+        )}
+      </Pressable>
+      <Pressable
+        onPress={onDelete}
+        disabled={busy}
+        hitSlop={10}
+        accessibilityLabel="Șterge importul"
         style={({ pressed }) => [styles.stmtDelete, pressed && { opacity: 0.6 }]}
       >
         <Ionicons name="trash-outline" size={18} color={statusColors.critical} />
@@ -705,6 +785,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
+  stmtAction: { padding: 6, minWidth: 30, alignItems: 'center', justifyContent: 'center' },
   stmtDelete: { padding: 6 },
 
   emptyCard: {

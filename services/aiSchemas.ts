@@ -11,7 +11,7 @@
 
 import { z } from 'zod';
 
-import type { ChatTemplate } from '@/types';
+import type { CategoryKey, ChatTemplate } from '@/types';
 
 const TEMPLATES: [ChatTemplate, ...ChatTemplate[]] = [
   'search_merchant',
@@ -25,6 +25,33 @@ const TEMPLATES: [ChatTemplate, ...ChatTemplate[]] = [
   'cannot_answer',
 ];
 
+// ─── Chei de categorie (sursă unică pentru validarea răspunsurilor AI) ──────
+
+/** Valorile `CategoryKey` ca tuplu runtime — ținut sincron cu `types/index.ts`. */
+export const CATEGORY_KEY_VALUES = [
+  'food',
+  'transport',
+  'utilities',
+  'health',
+  'vehicle',
+  'home',
+  'entertainment',
+  'subscriptions',
+  'shopping',
+  'education',
+  'travel',
+  'income',
+  'transfer',
+  'other',
+] as const satisfies readonly CategoryKey[];
+
+const CATEGORY_KEY_SET: ReadonlySet<string> = new Set(CATEGORY_KEY_VALUES);
+
+/** Type-guard: șirul e o cheie de categorie validă (case-insensitive pe input). */
+export function isCategoryKey(value: string | undefined | null): value is CategoryKey {
+  return !!value && CATEGORY_KEY_SET.has(value);
+}
+
 // ─── Statement mapper (text OCR sau vision) ────────────────────────────────
 
 export const StatementRowSchema = z.object({
@@ -33,6 +60,9 @@ export const StatementRowSchema = z.object({
   currency: z.string().optional(),
   description: z.string().optional(),
   merchant: z.string().optional(),
+  // Categoria sugerată de AI; validată leneș în mapper (string liber aici ca o
+  // valoare necunoscută să nu respingă tot rândul — fallback pe keyword).
+  category: z.string().optional(),
 });
 
 export const StatementResponseSchema = z.object({
@@ -41,6 +71,19 @@ export const StatementResponseSchema = z.object({
 
 export type StatementRowParsed = z.infer<typeof StatementRowSchema>;
 export type StatementResponseParsed = z.infer<typeof StatementResponseSchema>;
+
+// ─── Categorizare batch (re-analiză extras) ────────────────────────────────
+
+export const CategorizeResponseSchema = z.object({
+  results: z.array(
+    z.object({
+      id: z.string(),
+      category: z.string(),
+    })
+  ),
+});
+
+export type CategorizeResponseParsed = z.infer<typeof CategorizeResponseSchema>;
 
 // ─── Chat AI (SQL gen + template) ──────────────────────────────────────────
 

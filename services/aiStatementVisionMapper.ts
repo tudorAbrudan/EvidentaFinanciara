@@ -19,7 +19,12 @@
  */
 
 import { sendAiRequestWithImage, AiContextOverflowError, getAiConfig } from './aiProvider';
-import { parseAiJsonResponse, StatementResponseSchema } from './aiSchemas';
+import {
+  parseAiJsonResponse,
+  StatementResponseSchema,
+  isCategoryKey,
+  CATEGORY_KEY_VALUES,
+} from './aiSchemas';
 import {
   normalizeDate,
   normalizeAmount,
@@ -52,7 +57,8 @@ Schema:
       "amount": -123.45,
       "currency": "RON",
       "description": "...",
-      "merchant": "..."
+      "merchant": "...",
+      "category": "food"
     }
   ]
 }
@@ -63,6 +69,7 @@ Reguli:
 - Nu inventa tranzacții. Dacă o linie e ambiguă, omite-o.
 - IMPORTANT: NU include solduri inițiale, solduri finale, totale (sume „Total debit", „Total credit", „Sold"), comisioane lunare de extras, dobânzi calculate sau orice agregat — doar tranzacțiile individuale efective.
 - "merchant" e numele furnizorului/comerciantului dacă apare clar; altfel omite-l.
+- "category" e categoria tranzacției, OBLIGATORIU una din lista exactă: ${CATEGORY_KEY_VALUES.join(', ')}. Alege pe baza comerciantului/descrierii (ex. LIDL/MEGAIMAGE → food, OMV/MOL → vehicle, EON/ELECTRICA/DIGI → utilities, farmacie/clinică → health, Netflix/Apple → subscriptions, eMAG/olx → shopping). Dacă nu ești sigur, omite "category".
 - Dacă primești mai multe pagini ale aceluiași extras, returnează tranzacțiile din TOATE paginile, fără să le repeți.`;
 
 function buildUserText(defaultCurrency: string, isChunk: boolean): string {
@@ -88,7 +95,11 @@ export function parseResponse(response: string, defaultCurrency: string): Parsed
     const currency = r.currency?.toUpperCase() || defaultCurrency;
     const description = r.description?.trim() || undefined;
     const merchant = r.merchant?.trim() || undefined;
-    const category_key = suggestCategory(description ?? '', merchant);
+    // Categoria AI dacă e validă, altfel fallback pe keyword-uri deterministe.
+    const aiCategory = r.category?.trim().toLowerCase();
+    const category_key = isCategoryKey(aiCategory)
+      ? aiCategory
+      : suggestCategory(description ?? '', merchant);
     rows.push({
       date: isoDate,
       amount,

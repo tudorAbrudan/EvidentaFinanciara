@@ -4,6 +4,8 @@ import {
   normalizeAmount,
   suggestCategory,
   parseBankStatementCsv,
+  applyDirectionHint,
+  type ParsedRow,
 } from '@/services/bankStatementParser';
 
 describe('parseCsvLine', () => {
@@ -135,6 +137,24 @@ describe('suggestCategory', () => {
   it('returns undefined for unknown text', () => {
     expect(suggestCategory('xyz unknown random text', '')).toBeUndefined();
   });
+
+  // String-uri reale dintr-un extras BT (anonimizat) care ratau încadrarea.
+  it('matches merchants exact din extras BT', () => {
+    // MEGAIMAGE fără spațiu (pattern avea „mega image")
+    expect(suggestCategory('Plata la POS', 'MEGAIMAGE 0844 Simion')).toBe('food');
+    // EON fără punct (pattern avea „e.on")
+    expect(suggestCategory('WWW.EON.RO/MYLINE TG MURES', '')).toBe('utilities');
+    // E-BLOC.RO — întreținere bloc
+    expect(suggestCategory('E-BLOC.RO CLUJ NAPOCA', '')).toBe('utilities');
+    // POLARIS MEDICAL — „medical", nu doar „medic"
+    expect(suggestCategory('POLARIS MEDICAL SAT SUCEAGU', '')).toBe('health');
+    // CTP — transport public Cluj
+    expect(suggestCategory('CTP CLUJ NAPOCA', '')).toBe('transport');
+    // olx, sportano, ZOOCENTER — cumpărături
+    expect(suggestCategory('olx.com NICOLAE TITULESC', '')).toBe('shopping');
+    expect(suggestCategory('sportano.ro Zielona Gora', '')).toBe('shopping');
+    expect(suggestCategory('ZOOCENTER CLUJ NAPOCA', '')).toBe('shopping');
+  });
 });
 
 describe('parseBankStatementCsv', () => {
@@ -208,5 +228,49 @@ describe('parseBankStatementCsv', () => {
     const result = parseBankStatementCsv(csv);
     expect(result.rows).toHaveLength(1);
     expect(result.warnings.length).toBeGreaterThan(0);
+  });
+});
+
+describe('applyDirectionHint', () => {
+  const base: ParsedRow = { date: '2026-05-15', amount: -100, currency: 'RON' };
+
+  it('flips a negative "Incasare" to income (real bug: BT incasare clasificată ca cheltuială)', () => {
+    const row = { ...base, amount: -26400, description: 'Incasare OP - canal electronic' };
+    expect(applyDirectionHint(row).amount).toBe(26400);
+  });
+
+  it('flips a negative "Salariu" to income', () => {
+    const row = { ...base, amount: -9200, description: 'Salariu mai 2026' };
+    expect(applyDirectionHint(row).amount).toBe(9200);
+  });
+
+  it('flips a positive "Plata POS" to expense', () => {
+    const row = { ...base, amount: 125.5, description: 'Plata POS Kaufland' };
+    expect(applyDirectionHint(row).amount).toBe(-125.5);
+  });
+
+  it('leaves a correctly-signed income untouched', () => {
+    const row = { ...base, amount: 5000, description: 'Incasare transfer' };
+    expect(applyDirectionHint(row).amount).toBe(5000);
+  });
+
+  it('leaves a correctly-signed expense untouched', () => {
+    const row = { ...base, amount: -50, description: 'Plata abonament Netflix' };
+    expect(applyDirectionHint(row).amount).toBe(-50);
+  });
+
+  it('does not touch ambiguous rows with both markers', () => {
+    const row = { ...base, amount: -3000, description: 'Plata salariu angajat' };
+    expect(applyDirectionHint(row).amount).toBe(-3000);
+  });
+
+  it('does not touch rows without any direction marker', () => {
+    const row = { ...base, amount: -42, description: 'Transfer XYZ', merchant: 'Cash' };
+    expect(applyDirectionHint(row).amount).toBe(-42);
+  });
+
+  it('matches markers in the merchant field too', () => {
+    const row = { ...base, amount: -700, description: undefined, merchant: 'Rambursare asigurare' };
+    expect(applyDirectionHint(row).amount).toBe(700);
   });
 });

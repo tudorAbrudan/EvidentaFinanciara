@@ -20,6 +20,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          // tabBarLabel e static — nu e suprascris de titlul de header al ecranului
+          // („Gestiune financiară"), care altfel trunchia eticheta din tab bar.
+          tabBarLabel: 'Gestiune',
           title: 'Sumar',
           tabBarIcon: ({ color }) => <Ionicons name="pie-chart" size={22} color={color} />,
         }}
@@ -27,6 +30,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="evolutie"
         options={{
+          tabBarLabel: 'Evoluție',
           title: 'Evoluție',
           tabBarIcon: ({ color }) => <Ionicons name="trending-up" size={22} color={color} />,
         }}

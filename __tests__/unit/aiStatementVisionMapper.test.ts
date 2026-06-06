@@ -81,6 +81,28 @@ describe('mapStatementWithVisionAi', () => {
     expect(mockSend).toHaveBeenCalledTimes(1);
   });
 
+  it('folosește categoria AI validă și face fallback pe keyword când lipsește/invalidă', async () => {
+    mockRender.mockResolvedValue(['base64-page-1']);
+    mockSend.mockResolvedValue(
+      JSON.stringify({
+        rows: [
+          // categorie AI validă → folosită direct
+          { date: '2026-03-15', amount: -120.5, merchant: 'Restaurant X', category: 'food' },
+          // categorie AI invalidă → fallback keyword pe merchant (OMV → vehicle)
+          { date: '2026-03-16', amount: -200, merchant: 'OMV statie', category: 'inexistent' },
+          // fără categorie → fallback keyword (eMAG → shopping)
+          { date: '2026-03-17', amount: -50, merchant: 'eMAG' },
+        ],
+      })
+    );
+
+    const result = await mapStatementWithVisionAi('file:///test.pdf', 'RON');
+
+    expect(result.rows[0].category_key).toBe('food');
+    expect(result.rows[1].category_key).toBe('vehicle');
+    expect(result.rows[2].category_key).toBe('shopping');
+  });
+
   it('returnează rows=[] și warning explicit pentru răspuns gol', async () => {
     mockRender.mockResolvedValue(['base64-page-1']);
     mockSend.mockResolvedValue(JSON.stringify({ rows: [] }));

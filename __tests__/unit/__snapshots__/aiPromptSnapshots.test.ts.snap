@@ -177,7 +177,8 @@ Schema:
       "amount": -123.45,
       "currency": "RON",
       "description": "...",
-      "merchant": "..."
+      "merchant": "...",
+      "category": "food"
     }
   ]
 }
@@ -188,7 +189,8 @@ Reguli:
 - Currency implicit "EUR" dacă nu e specificat în text.
 - Nu inventa tranzacții. Dacă o linie e ambiguă, omite-o.
 - Nu include solduri, totaluri, dobânzi sau comisioane de extras (doar tranzacțiile reale).
-- "merchant" e numele furnizorului/comerciantului dacă apare clar; altfel omite-l.",
+- "merchant" e numele furnizorului/comerciantului dacă apare clar; altfel omite-l.
+- "category" e categoria tranzacției, OBLIGATORIU una din lista exactă: food, transport, utilities, health, vehicle, home, entertainment, subscriptions, shopping, education, travel, income, transfer, other. Alege pe baza comerciantului/descrierii (ex. LIDL/MEGAIMAGE/restaurant → food, OMV/MOL → vehicle, EON/ELECTRICA/DIGI → utilities, farmacie/clinică → health, Netflix/Apple → subscriptions, eMAG/olx → shopping). Dacă nu ești sigur, omite "category".",
     "role": "system",
   },
   {
@@ -216,7 +218,8 @@ Schema:
       "amount": -123.45,
       "currency": "RON",
       "description": "...",
-      "merchant": "..."
+      "merchant": "...",
+      "category": "food"
     }
   ]
 }
@@ -227,7 +230,8 @@ Reguli:
 - Currency implicit "RON" dacă nu e specificat în text.
 - Nu inventa tranzacții. Dacă o linie e ambiguă, omite-o.
 - Nu include solduri, totaluri, dobânzi sau comisioane de extras (doar tranzacțiile reale).
-- "merchant" e numele furnizorului/comerciantului dacă apare clar; altfel omite-l.",
+- "merchant" e numele furnizorului/comerciantului dacă apare clar; altfel omite-l.
+- "category" e categoria tranzacției, OBLIGATORIU una din lista exactă: food, transport, utilities, health, vehicle, home, entertainment, subscriptions, shopping, education, travel, income, transfer, other. Alege pe baza comerciantului/descrierii (ex. LIDL/MEGAIMAGE/restaurant → food, OMV/MOL → vehicle, EON/ELECTRICA/DIGI → utilities, farmacie/clinică → health, Netflix/Apple → subscriptions, eMAG/olx → shopping). Dacă nu ești sigur, omite "category".",
     "role": "system",
   },
   {
@@ -255,7 +259,8 @@ Schema:
       "amount": -123.45,
       "currency": "RON",
       "description": "...",
-      "merchant": "..."
+      "merchant": "...",
+      "category": "food"
     }
   ]
 }
@@ -266,6 +271,7 @@ Reguli:
 - Nu inventa tranzacții. Dacă o linie e ambiguă, omite-o.
 - IMPORTANT: NU include solduri inițiale, solduri finale, totale (sume „Total debit", „Total credit", „Sold"), comisioane lunare de extras, dobânzi calculate sau orice agregat — doar tranzacțiile individuale efective.
 - "merchant" e numele furnizorului/comerciantului dacă apare clar; altfel omite-l.
+- "category" e categoria tranzacției, OBLIGATORIU una din lista exactă: food, transport, utilities, health, vehicle, home, entertainment, subscriptions, shopping, education, travel, income, transfer, other. Alege pe baza comerciantului/descrierii (ex. LIDL/MEGAIMAGE → food, OMV/MOL → vehicle, EON/ELECTRICA/DIGI → utilities, farmacie/clinică → health, Netflix/Apple → subscriptions, eMAG/olx → shopping). Dacă nu ești sigur, omite "category".
 - Dacă primești mai multe pagini ale aceluiași extras, returnează tranzacțiile din TOATE paginile, fără să le repeți."
 `;
 

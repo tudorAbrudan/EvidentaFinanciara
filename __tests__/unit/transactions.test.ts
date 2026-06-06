@@ -3,6 +3,7 @@ import {
   bulkDeleteTransactions,
   findDuplicateCandidates,
   findInternalTransferCandidates,
+  getMonthlyIncomeSeries,
   getMonthlyTotals,
   getTransaction,
   getTransactions,
@@ -386,5 +387,40 @@ describe('bulkDeleteTransactions', () => {
     });
     const result = await bulkDeleteTransactions(['t1', 't2', 't3']);
     expect(result.deletedCount).toBe(3);
+  });
+});
+
+describe('getMonthlyIncomeSeries', () => {
+  it('exclude transferurile interne și duplicatele (anti-dublare venit)', async () => {
+    (db.db.getAllAsync as jest.Mock).mockClear();
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+    await getMonthlyIncomeSeries(6);
+    const sql = (db.db.getAllAsync as jest.Mock).mock.calls[0][0] as string;
+    expect(sql).toMatch(/is_internal_transfer = 0/);
+    expect(sql).toMatch(/duplicate_of_id IS NULL/);
+    expect(sql).toMatch(/amount > 0/);
+  });
+
+  it('întoarce un punct pe lună, 0 pentru lunile fără venit', async () => {
+    // Calculăm a doua lună din interval ca să nu depindem de data curentă.
+    const now = new Date();
+    const ym = (back: number) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([{ ym: ym(1), total: 26400 }]);
+
+    const series = await getMonthlyIncomeSeries(3);
+
+    expect(series).toHaveLength(3);
+    expect(series.find(p => p.yearMonth === ym(1))?.total_ron).toBe(26400);
+    expect(series.find(p => p.yearMonth === ym(2))?.total_ron).toBe(0);
+  });
+
+  it('monthsBack <= 0 → listă goală fără query', async () => {
+    (db.db.getAllAsync as jest.Mock).mockClear();
+    const series = await getMonthlyIncomeSeries(0);
+    expect(series).toEqual([]);
+    expect(db.db.getAllAsync as jest.Mock).not.toHaveBeenCalled();
   });
 });

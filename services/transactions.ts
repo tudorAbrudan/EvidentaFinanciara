@@ -1,8 +1,11 @@
+import { categorizeTransactionsWithAi } from './aiCategoryMapper';
+import { applyDirectionHint, suggestCategory } from './bankStatementParser';
+import { getCategoryByKey } from './categories';
 import { db, generateId } from './db';
 import { getRateRon } from './fxRates';
 import { getRuleForMerchant, upsertRule } from './merchantCategoryRules';
 
-import type { Transaction, TransactionSource } from '@/types';
+import type { CategoryKey, Transaction, TransactionSource } from '@/types';
 
 type Row = {
   id: string;
@@ -716,6 +719,60 @@ export async function getMonthlyTotals(
   };
 }
 
+export interface MonthlyAmountPoint {
+  yearMonth: string; // YYYY-MM
+  total_ron: number; // sumă pozitivă în RON
+}
+
+/**
+ * Evoluția VENITURILOR pe ultimele `monthsBack` luni (sumă lunară, RON).
+ *
+ * Exclude duplicate ȘI transferurile interne — astfel banii deja contabilizați
+ * ca venit (ex. salariu în contul principal) nu se dublează când sunt mutați
+ * într-alt cont propriu (ex. retragere în cont „cash"), pentru că perechea de
+ * transfer e marcată `is_internal_transfer = 1`. Lunile fără venit apar cu 0.
+ */
+export async function getMonthlyIncomeSeries(
+  monthsBack: number,
+  accountId?: string
+): Promise<MonthlyAmountPoint[]> {
+  if (monthsBack <= 0) return [];
+
+  const months: string[] = [];
+  const now = new Date();
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  const fromMonth = months[0];
+
+  const where = [
+    'substr(date, 1, 7) >= ?',
+    'duplicate_of_id IS NULL',
+    'is_internal_transfer = 0',
+    'amount > 0',
+  ];
+  const params: (string | number)[] = [fromMonth];
+  if (accountId) {
+    where.push('account_id = ?');
+    params.push(accountId);
+  }
+
+  const rows = await db.getAllAsync<{ ym: string; total: number | null }>(
+    `SELECT substr(date, 1, 7) AS ym,
+            SUM(COALESCE(amount_ron, amount)) AS total
+     FROM transactions
+     WHERE ${where.join(' AND ')}
+     GROUP BY ym
+     ORDER BY ym ASC`,
+    params
+  );
+
+  const map = new Map<string, number>();
+  for (const r of rows) map.set(r.ym, r.total ?? 0);
+  return months.map(ym => ({ yearMonth: ym, total_ron: map.get(ym) ?? 0 }));
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Breakdown pe categorii
 // ────────────────────────────────────────────────────────────────────────────
@@ -919,6 +976,157 @@ export async function countMissingRates(accountId?: string): Promise<number> {
  * Pentru fiecare tranzacție non-RON cu `amount_ron` NULL, încearcă fetch curs
  * BNR și UPDATE. Necesită internet pentru anii ne-cache.
  */
+export interface ReanalyzeResult {
+  total: number; // tranzacții non-transfer din extras
+  updated: number; // câte au fost efectiv modificate
+  signFlipped: number; // câte au avut semnul corectat
+  aiUsed: number; // câte au primit categorie din apelul AI
+}
+
+/**
+ * Re-analizează tranzacțiile unui extras DEJA importat, fără re-import PDF:
+ * recalculează semnul (venit/cheltuială) și categoria pe baza câmpurilor deja
+ * stocate (`merchant`, `description`, `amount`).
+ *
+ * Precedență categorie: regulă merchant învățată → keyword determinist →
+ * (opțional) AI batch pentru ce rămâne neîncadrat. Transferurile interne sunt
+ * excluse. Suprascrie automat (decizie de design) — dar nu șterge o categorie
+ * existentă când nu poate deriva una nouă (nu „nullează").
+ */
+export async function reanalyzeStatement(
+  statementId: string,
+  opts: { useAi: boolean }
+): Promise<ReanalyzeResult> {
+  const txs = await db.getAllAsync<Row>(
+    'SELECT * FROM transactions WHERE statement_id = ? AND is_internal_transfer = 0',
+    [statementId]
+  );
+  if (txs.length === 0) return { total: 0, updated: 0, signFlipped: 0, aiUsed: 0 };
+
+  // Cache cheie-categorie → category_id (evită query repetat).
+  const keyIdCache = new Map<CategoryKey, string | null>();
+  const resolveKeyId = async (key: CategoryKey): Promise<string | null> => {
+    const cached = keyIdCache.get(key);
+    if (cached !== undefined) return cached;
+    const cat = await getCategoryByKey(key);
+    const id = cat?.id ?? null;
+    keyIdCache.set(key, id);
+    return id;
+  };
+
+  interface Plan {
+    id: string;
+    newAmount: number;
+    newAmountRon?: number; // setat doar dacă semnul s-a schimbat
+    signFlipped: boolean;
+    categoryId?: string; // undefined = lasă neschimbat
+    categoryLearned: 0 | 1;
+  }
+
+  const plans: Plan[] = [];
+  const needAi: { id: string; merchant?: string; description?: string }[] = [];
+
+  for (const tx of txs) {
+    // 1. Semn — guard determinist pe markeri neechivoci.
+    const hinted = applyDirectionHint({
+      date: tx.date,
+      amount: tx.amount,
+      currency: tx.currency || 'RON',
+      description: tx.description ?? undefined,
+      merchant: tx.merchant ?? undefined,
+    });
+    const signFlipped = hinted.amount !== tx.amount;
+    let newAmountRon: number | undefined;
+    if (signFlipped) {
+      if ((tx.currency || 'RON') === 'RON') newAmountRon = hinted.amount;
+      else if (tx.amount_ron !== null) newAmountRon = -tx.amount_ron;
+    }
+
+    // 2. Categorie: regulă merchant → keyword → (AI ulterior).
+    let categoryId: string | undefined;
+    let categoryLearned: 0 | 1 = 0;
+    const merchant = tx.merchant?.trim();
+    if (merchant) {
+      const rule = await getRuleForMerchant(merchant);
+      if (rule) {
+        categoryId = rule.category_id;
+        categoryLearned = 1;
+      }
+    }
+    if (categoryId === undefined) {
+      const key = suggestCategory(tx.description ?? '', merchant);
+      if (key) {
+        const id = await resolveKeyId(key);
+        if (id) categoryId = id;
+      }
+    }
+    if (categoryId === undefined && opts.useAi) {
+      needAi.push({
+        id: tx.id,
+        merchant: merchant || undefined,
+        description: tx.description ?? undefined,
+      });
+    }
+
+    plans.push({
+      id: tx.id,
+      newAmount: hinted.amount,
+      newAmountRon,
+      signFlipped,
+      categoryId,
+      categoryLearned,
+    });
+  }
+
+  // 3. AI batch pentru tranzacțiile rămase neîncadrate.
+  let aiUsed = 0;
+  if (opts.useAi && needAi.length > 0) {
+    const aiMap = await categorizeTransactionsWithAi(needAi);
+    for (const plan of plans) {
+      if (plan.categoryId !== undefined) continue;
+      const aiKey = aiMap.get(plan.id);
+      if (!aiKey) continue;
+      const id = await resolveKeyId(aiKey);
+      if (id) {
+        plan.categoryId = id;
+        plan.categoryLearned = 0;
+        aiUsed += 1;
+      }
+    }
+  }
+
+  // 4. Bulk update atomic.
+  let updated = 0;
+  let signFlippedCount = 0;
+  await db.withTransactionAsync(async () => {
+    for (const p of plans) {
+      const sets: string[] = [];
+      const params: (string | number | null)[] = [];
+      if (p.signFlipped) {
+        sets.push('amount = ?');
+        params.push(p.newAmount);
+        if (p.newAmountRon !== undefined) {
+          sets.push('amount_ron = ?');
+          params.push(p.newAmountRon);
+        }
+      }
+      if (p.categoryId !== undefined) {
+        sets.push('category_id = ?');
+        params.push(p.categoryId);
+        sets.push('category_learned = ?');
+        params.push(p.categoryLearned);
+      }
+      if (sets.length === 0) continue;
+      params.push(p.id);
+      await db.runAsync(`UPDATE transactions SET ${sets.join(', ')} WHERE id = ?`, params);
+      updated += 1;
+      if (p.signFlipped) signFlippedCount += 1;
+    }
+  });
+
+  return { total: txs.length, updated, signFlipped: signFlippedCount, aiUsed };
+}
+
 export async function backfillMissingRates(accountId?: string): Promise<BackfillResult> {
   const where = accountId
     ? "currency != 'RON' AND amount_ron IS NULL AND account_id = ?"

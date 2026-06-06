@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
     paddingVertical: 4,
-    maxHeight: 320,
+    overflow: 'hidden',
   },
   pickerItem: {
     flexDirection: 'row',

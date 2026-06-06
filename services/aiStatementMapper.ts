@@ -10,7 +10,12 @@
  */
 
 import { sendAiRequest, type AiMessage } from './aiProvider';
-import { parseAiJsonResponse, StatementResponseSchema } from './aiSchemas';
+import {
+  parseAiJsonResponse,
+  StatementResponseSchema,
+  isCategoryKey,
+  CATEGORY_KEY_VALUES,
+} from './aiSchemas';
 import {
   normalizeDate,
   normalizeAmount,
@@ -49,7 +54,8 @@ Schema:
       "amount": -123.45,
       "currency": "RON",
       "description": "...",
-      "merchant": "..."
+      "merchant": "...",
+      "category": "food"
     }
   ]
 }
@@ -60,7 +66,8 @@ Reguli:
 - Currency implicit "${defaultCurrency}" dacă nu e specificat în text.
 - Nu inventa tranzacții. Dacă o linie e ambiguă, omite-o.
 - Nu include solduri, totaluri, dobânzi sau comisioane de extras (doar tranzacțiile reale).
-- "merchant" e numele furnizorului/comerciantului dacă apare clar; altfel omite-l.`;
+- "merchant" e numele furnizorului/comerciantului dacă apare clar; altfel omite-l.
+- "category" e categoria tranzacției, OBLIGATORIU una din lista exactă: ${CATEGORY_KEY_VALUES.join(', ')}. Alege pe baza comerciantului/descrierii (ex. LIDL/MEGAIMAGE/restaurant → food, OMV/MOL → vehicle, EON/ELECTRICA/DIGI → utilities, farmacie/clinică → health, Netflix/Apple → subscriptions, eMAG/olx → shopping). Dacă nu ești sigur, omite "category".`;
 
   const user = `Text OCR extras bancar:
 ---
@@ -121,7 +128,11 @@ export function parseResponse(response: string, defaultCurrency: string): Mapper
     const currency = r.currency?.toUpperCase() || defaultCurrency;
     const description = r.description?.trim() || undefined;
     const merchant = r.merchant?.trim() || undefined;
-    const category_key = suggestCategory(description ?? '', merchant);
+    // Categoria AI dacă e validă, altfel fallback pe keyword-uri deterministe.
+    const aiCategory = r.category?.trim().toLowerCase();
+    const category_key = isCategoryKey(aiCategory)
+      ? aiCategory
+      : suggestCategory(description ?? '', merchant);
     rows.push({
       date: isoDate,
       amount,

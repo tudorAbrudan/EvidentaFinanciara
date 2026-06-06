@@ -23,7 +23,11 @@ import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { AI_CONSENT_KEY, getAiConfig, type AiProviderType } from '@/services/aiProvider';
 import { mapStatementWithAi } from '@/services/aiStatementMapper';
 import { mapStatementWithVisionAi } from '@/services/aiStatementVisionMapper';
-import { parseBankStatementCsv, type ParsedRow } from '@/services/bankStatementParser';
+import {
+  parseBankStatementCsv,
+  applyDirectionHint,
+  type ParsedRow,
+} from '@/services/bankStatementParser';
 import { parseStatementPdf, type PdfStatementFormat } from '@/services/bankStatementPdfParser';
 import { db, generateId } from '@/services/db';
 import { getRateRon } from '@/services/fxRates';
@@ -57,6 +61,10 @@ export default function ImportScreen() {
   const [parsing, setParsing] = useState(false);
   const [parsingStage, setParsingStage] = useState<string>('');
   const [rows, setRows] = useState<ParsedRow[]>([]);
+  // Toate sursele de import (CSV, PDF euristic, AI text, AI vision) trec prin
+  // corecția deterministă de semn înainte de preview — așa o „Incasare" greșit
+  // clasificată ca debit apare corect ca venit, iar userul vede deja semnul bun.
+  const setParsedRows = (parsed: ParsedRow[]) => setRows(parsed.map(applyDirectionHint));
   const [format, setFormat] = useState<ParseFormat>('');
   const [warnings, setWarnings] = useState<string[]>([]);
   const [usedAi, setUsedAi] = useState(false);
@@ -154,7 +162,7 @@ export default function ImportScreen() {
         setParsingStage('Se citește fișierul CSV…');
         const text = await FileSystem.readAsStringAsync(uri, { encoding: 'utf8' });
         const parsed = parseBankStatementCsv(text, currency);
-        setRows(parsed.rows);
+        setParsedRows(parsed.rows);
         setFormat(parsed.format);
         setWarnings(parsed.warnings);
       } else {
@@ -163,7 +171,7 @@ export default function ImportScreen() {
         setPdfText(text);
         setParsingStage('Se identifică tranzacțiile…');
         const parsed = parseStatementPdf(text, currency);
-        setRows(parsed.rows);
+        setParsedRows(parsed.rows);
         setFormat(parsed.format);
         setWarnings(parsed.warnings);
 
@@ -208,7 +216,7 @@ export default function ImportScreen() {
       setParsing(true);
       const aiResult = await mapStatementWithAi(text, currency);
       if (aiResult.rows.length > 0) {
-        setRows(aiResult.rows);
+        setParsedRows(aiResult.rows);
         setFormat(aiResult.format);
         setWarnings([
           ...aiResult.warnings,
@@ -292,7 +300,7 @@ export default function ImportScreen() {
           setParsingStage(`Se trimite la AI vision (pagina ${evt.current}/${evt.total})…`);
         }
       });
-      setRows(result.rows);
+      setParsedRows(result.rows);
       setFormat(result.format);
       setWarnings(result.warnings);
       setUsedAi(true);

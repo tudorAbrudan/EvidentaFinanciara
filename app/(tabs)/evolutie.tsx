@@ -71,6 +71,7 @@ export default function EvolutieScreen() {
   const [error, setError] = useState<string | null>(null);
   const [evolution, setEvolution] = useState<tx.CategoryEvolution[]>([]);
   const [totalsByMonth, setTotalsByMonth] = useState<{ ym: string; total: number }[]>([]);
+  const [incomeByMonth, setIncomeByMonth] = useState<{ ym: string; total: number }[]>([]);
 
   const { categories } = useCategories();
 
@@ -80,7 +81,10 @@ export default function EvolutieScreen() {
     try {
       const catIds = categories.map(c => c.id);
       catIds.push(null as unknown as string); // pentru „Necategorizat"
-      const evo = await tx.getCategoryEvolution(catIds as (string | null)[], monthsBack);
+      const [evo, income] = await Promise.all([
+        tx.getCategoryEvolution(catIds as (string | null)[], monthsBack),
+        tx.getMonthlyIncomeSeries(monthsBack),
+      ]);
       setEvolution(evo);
 
       // Calculăm și totalul lunar (suma tuturor categoriilor) pentru chartul agregat
@@ -93,6 +97,7 @@ export default function EvolutieScreen() {
         return { ym, total: sum };
       });
       setTotalsByMonth(totals);
+      setIncomeByMonth(income.map(p => ({ ym: p.yearMonth, total: p.total_ron })));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Eroare la încărcare evoluție');
     } finally {
@@ -105,6 +110,11 @@ export default function EvolutieScreen() {
   }, [refresh, categories.length]);
 
   const maxTotal = useMemo(() => Math.max(1, ...totalsByMonth.map(t => t.total)), [totalsByMonth]);
+  const maxIncome = useMemo(() => Math.max(1, ...incomeByMonth.map(t => t.total)), [incomeByMonth]);
+  const grandIncome = useMemo(
+    () => incomeByMonth.reduce((s, t) => s + t.total, 0),
+    [incomeByMonth]
+  );
 
   const topCategories = useMemo(() => {
     const withTotals = evolution.map(ev => {
@@ -128,7 +138,7 @@ export default function EvolutieScreen() {
 
   return (
     <RNView style={[styles.container, { backgroundColor: C.background }]}>
-      <Stack.Screen options={{ title: 'Evoluție cheltuieli' }} />
+      <Stack.Screen options={{ title: 'Evoluție' }} />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -186,6 +196,24 @@ export default function EvolutieScreen() {
           )}
         </RNView>
 
+        {/* Income summary card */}
+        <RNView
+          style={[styles.summaryCard, { backgroundColor: C.card, shadowColor: C.cardShadow }]}
+        >
+          <RNText style={[styles.summaryLabel, { color: C.textSecondary }]}>
+            Total venituri ({monthsBack} luni)
+          </RNText>
+          <RNText style={[styles.summaryValue, { color: statusColors.ok }]}>
+            +{Math.round(grandIncome).toLocaleString('ro-RO')} RON
+          </RNText>
+          {monthsBack > 0 && (
+            <RNText style={[styles.summarySub, { color: C.textSecondary }]}>
+              Media lunară: {Math.round(grandIncome / monthsBack).toLocaleString('ro-RO')} RON
+              {'  •  '}fără transferuri între conturile tale
+            </RNText>
+          )}
+        </RNView>
+
         {/* Bar chart pentru totaluri lunare */}
         <RNText style={[styles.sectionTitle, { color: C.textSecondary }]}>Cheltuieli lunare</RNText>
         {loading && totalsByMonth.length === 0 ? (
@@ -217,6 +245,69 @@ export default function EvolutieScreen() {
                           styles.chartBar,
                           {
                             backgroundColor: primary,
+                            height: `${Math.max(2, heightPct)}%`,
+                          },
+                        ]}
+                      />
+                    </RNView>
+                    <RNText style={[styles.chartBarLabel, { color: C.textSecondary }]}>
+                      {ymToShortLabel(t.ym)}
+                    </RNText>
+                    <RNText style={[styles.chartBarValue, { color: C.text }]}>
+                      {t.total > 0 ? Math.round(t.total / 1000) + 'k' : '—'}
+                    </RNText>
+                  </Pressable>
+                );
+              })}
+            </RNView>
+          </RNView>
+        )}
+
+        {/* Bar chart pentru venituri lunare */}
+        <RNText style={[styles.sectionTitle, { color: C.textSecondary }]}>Venituri lunare</RNText>
+        {loading && incomeByMonth.length === 0 ? (
+          <ActivityIndicator color={primary} style={{ marginVertical: 32 }} />
+        ) : grandIncome === 0 ? (
+          <RNView
+            style={[styles.emptyCard, { backgroundColor: C.card, shadowColor: C.cardShadow }]}
+          >
+            <Ionicons
+              name="trending-up-outline"
+              size={32}
+              color={C.textSecondary}
+              style={{ opacity: 0.5 }}
+            />
+            <RNText style={[styles.emptySub, { color: C.textSecondary }]}>
+              Niciun venit în intervalul selectat.
+            </RNText>
+          </RNView>
+        ) : (
+          <RNView
+            style={[styles.chartCard, { backgroundColor: C.card, shadowColor: C.cardShadow }]}
+          >
+            <RNView style={styles.chartArea}>
+              {incomeByMonth.map(t => {
+                const heightPct = maxIncome > 0 ? (t.total / maxIncome) * 100 : 0;
+                const range = ymToRange(t.ym);
+                return (
+                  <Pressable
+                    key={t.ym}
+                    style={styles.chartBarCol}
+                    disabled={!range || t.total === 0}
+                    onPress={() => {
+                      if (!range) return;
+                      router.push({
+                        pathname: '/tranzactii',
+                        params: { fromDate: range.fromDate, toDate: range.toDate },
+                      });
+                    }}
+                  >
+                    <RNView style={styles.chartBarWrap}>
+                      <RNView
+                        style={[
+                          styles.chartBar,
+                          {
+                            backgroundColor: statusColors.ok,
                             height: `${Math.max(2, heightPct)}%`,
                           },
                         ]}

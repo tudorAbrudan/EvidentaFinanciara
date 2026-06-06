@@ -35,7 +35,7 @@ const CATEGORY_KEYWORDS: { key: CategoryKey; patterns: RegExp[] }[] = [
   {
     key: 'food',
     patterns: [
-      /\b(kaufland|lidl|carrefour|auchan|profi|mega image|penny|cora|metro|selgros)\b/i,
+      /\b(kaufland|lidl|carrefour|auchan|profi|mega ?image|penny|cora|metro|selgros)\b/i,
       /\b(restaurant|pizz|kfc|mcdonald|burger|cafenea|cofetarie|patiserie|gelaterie|food)\b/i,
       /\bglovo|tazz|food panda|bolt food\b/i,
     ],
@@ -44,7 +44,7 @@ const CATEGORY_KEYWORDS: { key: CategoryKey; patterns: RegExp[] }[] = [
     key: 'transport',
     patterns: [
       /\bbolt|uber|str ?taxi|cab\b/i,
-      /\b(metrorex|stb|cfr|tramvai|tarom|wizz|ryanair|blue air)\b/i,
+      /\b(metrorex|stb|cfr|tramvai|tarom|wizz|ryanair|blue air|ctp)\b/i,
       /\b(rovinieta|vignette|toll)\b/i,
     ],
   },
@@ -59,9 +59,9 @@ const CATEGORY_KEYWORDS: { key: CategoryKey; patterns: RegExp[] }[] = [
   {
     key: 'utilities',
     patterns: [
-      /\b(enel|e\.on|electrica|engie|gdf|distrigaz|hidroelectrica|apanova|raja)\b/i,
+      /\b(enel|e\.?on|electrica|engie|gdf|distrigaz|hidroelectrica|apanova|raja)\b/i,
       /\b(orange|vodafone|digi|telekom|rcs)\b/i,
-      /\b(factur[aă] curent|gaz|apa|salubrit|internet|tv cablu)\b/i,
+      /\b(factur[aă] curent|gaz|apa|salubrit|internet|tv cablu|e-?bloc)\b/i,
     ],
   },
   {
@@ -69,7 +69,7 @@ const CATEGORY_KEYWORDS: { key: CategoryKey; patterns: RegExp[] }[] = [
     patterns: [
       /\b(farmacia|farmacie|catena|sensiblu|dr\.\s?max|help net)\b/i,
       /\b(spital|clinica|policlinica|medlife|regina maria|sanador|memorial|laborator|analize)\b/i,
-      /\b(stomatolog|dentist|medic)\b/i,
+      /\b(stomatolog|dentist|medic(?:al|ina)?|polaris medical)\b/i,
     ],
   },
   {
@@ -89,8 +89,8 @@ const CATEGORY_KEYWORDS: { key: CategoryKey; patterns: RegExp[] }[] = [
   {
     key: 'shopping',
     patterns: [
-      /\b(emag|altex|mediagalaxy|flanco|fashion days|hm|h&m|zara|reserved|c&a|deichmann|sport vision|decathlon)\b/i,
-      /\b(amazon|aliexpress|ebay|temu)\b/i,
+      /\b(emag|altex|mediagalaxy|flanco|fashion days|hm|h&m|zara|reserved|c&a|deichmann|sport vision|decathlon|sportano|roumasport|zoocenter)\b/i,
+      /\b(amazon|aliexpress|ebay|temu|olx)\b/i,
     ],
   },
   {
@@ -117,6 +117,43 @@ export function suggestCategory(description: string, merchant?: string): Categor
     }
   }
   return undefined;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Corecție deterministă de direcție (semn) pentru tranzacții importate
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Markeri neechivoci de încasare (credit) în extrase RO. Prezența unuia dintre
+ * ei semnalează aproape sigur bani primiți, deci sumă pozitivă.
+ */
+const INCOME_MARKERS =
+  /\b(incas[aă]ri?|incasare|salari(?:u|i)|venit|rambursare|restituire|dividend|dobând[aă]|dobanda|pensie|aloca[tț]ie)\b/i;
+
+/**
+ * Markeri neechivoci de plată (debit) — bani trimiși, deci sumă negativă.
+ */
+const EXPENSE_MARKERS =
+  /\b(plat[aă]|cump[aă]r[aă]ri?|comision|retragere|tax[aă]|impozit|achitare|abonament)\b/i;
+
+/**
+ * Corectează semnul unei tranzacții importate când un marker textual neechivoc
+ * contrazice semnul detectat. Unele surse (mai ales mapper-ul AI pe OCR) pot
+ * greși direcția — ex. o „Incasare OP" clasificată ca debit. Aplicăm corecția
+ * doar când exact un tip de marker e prezent, ca să nu stricăm rândurile deja
+ * corecte sau pe cele ambigue (ex. „Plata salariu"). Pură, fără efecte.
+ */
+export function applyDirectionHint(row: ParsedRow): ParsedRow {
+  const text = `${row.description ?? ''} ${row.merchant ?? ''}`;
+  const isIncome = INCOME_MARKERS.test(text);
+  const isExpense = EXPENSE_MARKERS.test(text);
+  if (isIncome && !isExpense && row.amount < 0) {
+    return { ...row, amount: Math.abs(row.amount) };
+  }
+  if (isExpense && !isIncome && row.amount > 0) {
+    return { ...row, amount: -Math.abs(row.amount) };
+  }
+  return row;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
