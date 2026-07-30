@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import AiPreflightDialog from '@/components/AiPreflightDialog';
+import ImportReconciliationCard from '@/components/ImportReconciliationCard';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -28,7 +29,12 @@ import {
   applyDirectionHint,
   type ParsedRow,
 } from '@/services/bankStatementParser';
-import { parseStatementPdf, type PdfStatementFormat } from '@/services/bankStatementPdfParser';
+import {
+  isFullyReconciled,
+  parseStatementPdf,
+  type PdfReconciliation,
+  type PdfStatementFormat,
+} from '@/services/bankStatementPdfParser';
 import { db, generateId } from '@/services/db';
 import { getRateRon } from '@/services/fxRates';
 import { listPendingTransferSuggestions } from '@/services/internalTransferSuggestion';
@@ -61,10 +67,15 @@ export default function ImportScreen() {
   const [parsing, setParsing] = useState(false);
   const [parsingStage, setParsingStage] = useState<string>('');
   const [rows, setRows] = useState<ParsedRow[]>([]);
-  // Toate sursele de import (CSV, PDF euristic, AI text, AI vision) trec prin
-  // corecția deterministă de semn înainte de preview — așa o „Incasare" greșit
-  // clasificată ca debit apare corect ca venit, iar userul vede deja semnul bun.
-  const setParsedRows = (parsed: ParsedRow[]) => setRows(parsed.map(applyDirectionHint));
+  const [reconciliation, setReconciliation] = useState<PdfReconciliation | null>(null);
+  // Sursele euristice (CSV, PDF generic, AI text, AI vision) trec prin corecția
+  // deterministă de semn înainte de preview — așa o „Incasare" greșit clasificată
+  // ca debit apare corect ca venit. Rândurile reconciliate cu totalurile băncii
+  // NU trec pe acolo: semnul lor e deja dovedit matematic, iar euristica ar
+  // strica exact cazurile pe care extrasul le confirmă (ex. „Rambursare credit"
+  // e o cheltuială, deși cuvântul sună a încasare).
+  const setParsedRows = (parsed: ParsedRow[], signsVerified = false) =>
+    setRows(signsVerified ? parsed : parsed.map(applyDirectionHint));
   const [format, setFormat] = useState<ParseFormat>('');
   const [warnings, setWarnings] = useState<string[]>([]);
   const [usedAi, setUsedAi] = useState(false);
@@ -120,6 +131,7 @@ export default function ImportScreen() {
 
   function resetParseState() {
     setRows([]);
+    setReconciliation(null);
     setFormat('');
     setWarnings([]);
     setUsedAi(false);
@@ -171,7 +183,9 @@ export default function ImportScreen() {
         setPdfText(extraction.text);
         setParsingStage('Se identifică tranzacțiile…');
         const parsed = parseStatementPdf(extraction.text, currency);
-        setParsedRows(parsed.rows);
+        const verified = isFullyReconciled(parsed.reconciliation);
+        setParsedRows(parsed.rows, verified);
+        setReconciliation(parsed.reconciliation ?? null);
         setFormat(parsed.format);
         setWarnings([...extraction.warnings, ...parsed.warnings]);
 
@@ -217,6 +231,7 @@ export default function ImportScreen() {
       const aiResult = await mapStatementWithAi(text, currency);
       if (aiResult.rows.length > 0) {
         setParsedRows(aiResult.rows);
+        setReconciliation(null);
         setFormat(aiResult.format);
         setWarnings([
           ...aiResult.warnings,
@@ -301,6 +316,7 @@ export default function ImportScreen() {
         }
       });
       setParsedRows(result.rows);
+      setReconciliation(null);
       setFormat(result.format);
       setWarnings(result.warnings);
       setUsedAi(true);
@@ -324,6 +340,11 @@ export default function ImportScreen() {
 
   const aiButtonMode: 'vision' | 'ocr-text' | 'hidden' =
     aiProviderType === 'external' ? 'vision' : aiProviderType === 'none' ? 'hidden' : 'ocr-text';
+
+  // Când extrasul nu se verifică cu totalurile băncii, a doua citire (AI) e
+  // acțiunea utilă — același buton, dar mutat sub cardul de reconciliere și
+  // scos în evidență, ca să nu se piardă printre rânduri corecte în aparență.
+  const needsSecondOpinion = reconciliation !== null && !isFullyReconciled(reconciliation);
 
   async function runImport() {
     if (!accountId) {
@@ -444,6 +465,33 @@ export default function ImportScreen() {
     }
   }
 
+  const aiButton =
+    sourceKind === 'pdf' && !parsing && pickedName && aiButtonMode !== 'hidden' ? (
+      <Pressable
+        onPress={() => {
+          void (aiButtonMode === 'vision' ? runVisionFlow() : reanalyzeWithAi());
+        }}
+        style={({ pressed }) => [
+          styles.aiBtn,
+          needsSecondOpinion
+            ? { borderColor: primary, backgroundColor: C.primaryMuted }
+            : { borderColor: primary, backgroundColor: C.card },
+          pressed && { opacity: 0.85 },
+        ]}
+      >
+        <Ionicons name="sparkles" size={18} color={primary} />
+        <RNText style={[styles.aiBtnText, { color: primary }]}>
+          {aiButtonMode === 'vision'
+            ? rows.length === 0
+              ? 'Trimite extras la AI'
+              : 'Re-analizează cu AI vision'
+            : rows.length === 0
+              ? 'Trimite la AI'
+              : 'Re-analizează cu AI'}
+        </RNText>
+      </Pressable>
+    ) : null;
+
   if (!account) {
     return (
       <RNView style={[styles.container, { backgroundColor: C.background, padding: 24 }]}>
@@ -516,35 +564,20 @@ export default function ImportScreen() {
           </RNView>
         )}
 
-        {sourceKind === 'pdf' && !parsing && pickedName && aiButtonMode !== 'hidden' && (
-          <Pressable
-            onPress={() => {
-              void (aiButtonMode === 'vision' ? runVisionFlow() : reanalyzeWithAi());
-            }}
-            style={({ pressed }) => [
-              styles.aiBtn,
-              { borderColor: primary, backgroundColor: C.card },
-              pressed && { opacity: 0.85 },
-            ]}
-          >
-            <Ionicons name="sparkles" size={18} color={primary} />
-            <RNText style={[styles.aiBtnText, { color: primary }]}>
-              {aiButtonMode === 'vision'
-                ? rows.length === 0
-                  ? 'Trimite extras la AI'
-                  : 'Re-analizează cu AI vision'
-                : rows.length === 0
-                  ? 'Trimite la AI'
-                  : 'Re-analizează cu AI'}
-            </RNText>
-          </Pressable>
-        )}
+        {!needsSecondOpinion && aiButton}
 
         {rows.length > 0 && (
           <>
             <RNText style={[styles.label, { color: C.text, marginTop: 24 }]}>
               Pasul 2 — Verifică tranzacțiile
             </RNText>
+            {reconciliation && (
+              <ImportReconciliationCard
+                reconciliation={reconciliation}
+                currency={account.currency}
+              />
+            )}
+            {needsSecondOpinion && aiButton}
             <RNView
               style={[styles.summaryCard, { backgroundColor: C.card, borderColor: C.border }]}
             >
