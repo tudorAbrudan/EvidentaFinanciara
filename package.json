@@ -19,6 +19,7 @@
     "test:watch": "jest --watch",
     "evals:ai": "jest __tests__/evals --no-coverage",
     "build:privacy": "node --experimental-strip-types scripts/build-privacy-html.ts",
+    "parse:pdf": "node --experimental-strip-types scripts/parse-real-pdf.ts",
     "knip": "knip",
     "madge": "madge --circular --extensions ts,tsx services components hooks app",
     "dep-cruise": "depcruise --validate .dependency-cruiser.cjs services components hooks app",

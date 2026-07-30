@@ -16,7 +16,9 @@ import {
   normalizeAmount,
   suggestCategory,
   type ParsedRow,
-} from './bankStatementParser';
+  // Extensia explicită e necesară ca `scripts/parse-real-pdf.ts` să poată
+  // importa parserul direct în Node (ESM), fără bundler.
+} from './bankStatementParser.ts';
 
 export type PdfStatementFormat = 'bt' | 'generic' | 'unknown';
 
@@ -168,6 +170,8 @@ interface BtTransaction {
   date: string;
   /** Sumă absolută; semnul se decide la reconciliere. */
   amount: number;
+  /** Prima linie a blocului — tipul operațiunii, baza lexiconului de semn. */
+  opType: string;
   description: string;
   reference: string;
   direction: Direction;
@@ -237,6 +241,7 @@ function parseBt(text: string, defaultCurrency: string): PdfParseResult {
     transactions.push({
       date: currentDate,
       amount: b.amount,
+      opType: b.descLines[0] ?? '',
       description,
       reference: b.reference,
       direction: classifyDirection(description, header),
@@ -341,7 +346,7 @@ function parseBt(text: string, defaultCurrency: string): PdfParseResult {
 
   const rows: ParsedRow[] = transactions.map(t => {
     const amount = t.direction === 'credit' ? t.amount : -t.amount;
-    const merchant = extractMerchant(t.description);
+    const merchant = extractMerchant(t.opType, t.description);
     const row: ParsedRow = {
       date: t.date,
       amount,
@@ -597,8 +602,11 @@ const MERCHANT_STOP = /;|\bvaloare\s+(?:tranzactie|trz)\b|\bRRN:?|\d{6,}/i;
 /**
  * Euristică de merchant: contrapartea pentru transferuri, numele comerciantului
  * de după codul TID pentru POS, altfel primul segment util din descriere.
+ *
+ * `opType` (prima linie a blocului) e exclus din varianta de fallback — altfel
+ * merchant-ul ar fi „Transfer intern - canal" în loc de „Transfer din economii".
  */
-function extractMerchant(description: string): string | undefined {
+function extractMerchant(opType: string, description: string): string | undefined {
   const recipient = P2P_RECIPIENT.exec(description);
   if (recipient) return firstWords(recipient[1], 4);
 
@@ -608,7 +616,8 @@ function extractMerchant(description: string): string | undefined {
     if (merchant) return merchant;
   }
 
-  for (const segment of description.split(';')) {
+  const rest = description.startsWith(opType) ? description.slice(opType.length) : description;
+  for (const segment of rest.split(';')) {
     const s = segment.trim();
     if (s.length >= 3 && /[A-Za-z]{3}/.test(s) && !/^REF/i.test(s)) return firstWords(s, 4);
   }
@@ -617,7 +626,9 @@ function extractMerchant(description: string): string | undefined {
 
 function firstWords(text: string, max: number): string | undefined {
   const words = text
-    .replace(/-\s+/g, '-')
+    // Numele rupte de sfârșitul de linie („ABRUDAN TUDOR-" + „VASILE") se lipesc
+    // la loc; cratima cu spațiu de ambele părți („intern - canal") rămâne.
+    .replace(/(\S)-\s+/g, '$1-')
     .split(/\s+/)
     .filter(w => w.length > 0)
     .slice(0, max);
