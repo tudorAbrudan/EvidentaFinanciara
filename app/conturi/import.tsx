@@ -166,17 +166,17 @@ export default function ImportScreen() {
         setFormat(parsed.format);
         setWarnings(parsed.warnings);
       } else {
-        setParsingStage('Se extrage textul din PDF (OCR)…');
-        const text = await extractTextFromPdf(uri);
-        setPdfText(text);
+        setParsingStage('Se extrage textul din PDF…');
+        const extraction = await extractTextFromPdf(uri);
+        setPdfText(extraction.text);
         setParsingStage('Se identifică tranzacțiile…');
-        const parsed = parseStatementPdf(text, currency);
+        const parsed = parseStatementPdf(extraction.text, currency);
         setParsedRows(parsed.rows);
         setFormat(parsed.format);
-        setWarnings(parsed.warnings);
+        setWarnings([...extraction.warnings, ...parsed.warnings]);
 
         if (parsed.rows.length === 0) {
-          await tryAiFallback(text, currency, true);
+          await tryAiFallback(extraction.text, currency, true);
         }
       }
     } catch (e) {
@@ -245,7 +245,7 @@ export default function ImportScreen() {
     let text = pdfText;
     if (!text && pickedUri) {
       try {
-        text = await extractTextFromPdf(pickedUri);
+        text = (await extractTextFromPdf(pickedUri)).text;
         setPdfText(text);
       } catch (e) {
         Alert.alert('Eroare', e instanceof Error ? e.message : 'Nu s-a putut citi PDF-ul.');
