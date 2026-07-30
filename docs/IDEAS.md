@@ -7,7 +7,7 @@
 > 3. Nu adăugăm complexitate inutilă — fiecare idee răspunde la: _câți utilizatori beneficiază real, merită complexitatea?_
 
 **Status:** roadmap inițial, înainte de primul spec implementat.
-**Ultima actualizare:** 2026-05-21.
+**Ultima actualizare:** 2026-07-30.
 
 ---
 
@@ -17,6 +17,7 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 
 ### Fundație produs
 
+0. **Harness agentic (enforcement pe faze)** — imediat după parser: plan-gate + Stop-gate cu chitanțe fingerprint, blocare push din agent, pre-push cu APPROVE uman, roluri planner/coder/reviewer/verifier cu modele impuse, AGENTS.md canonic + LEARNINGS.md. Adaptare a spec-ului portabil din proiectul sprint-board. Spec: `docs/specs/2026-07-30-agentic-harness-design.md`. Plan: `docs/plans/2026-07-30-agentic-harness.md`. Bugetele (#12) = primul feature rulat sub harness.
 1. **Onboarding wizard** — welcome, aspect (light/dark/auto), securitate (PIN/biometric), primul cont, AI consent, sumar. Adaptat din `documents/app/components/OnboardingWizard.tsx`, simplificat la specificul finanțelor (fără entități/documente — pașii relevanți: aspect, securitate, primul cont, notificări, AI, backup, sumar).
 2. **Quick-add tranzacție** — FAB („+") pe Sumar și Tranzacții. Modal rapid: sumă, categorie, opțional cont/notă/data. One-tap. Cea mai folosită acțiune trebuie să fie cea mai accesibilă.
 3. **Empty states** — pe fiecare ecran (Sumar, Conturi, Tranzacții, Categorii) când nu există date. Mesaj prietenos + acțiune sugerată.
@@ -50,6 +51,8 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 ---
 
 ## Implementat (post-MVP fundație)
+
+- **Parser BT PDF v2 + reconciliere** (2026-07-30) — parserul vechi producea date complet greșite pe extrase BT reale, fără niciun warning (pe extrasul din iunie: 83 rânduri plauzibile, venituri +364.210,90 în loc de +99.246,10). Trei schimbări. (1) `services/pdfTextLayer.ts` — extractor pur (fără Expo, rulează și în Node) care urmărește operatorii de poziționare `Tm`/`Td`/`TD`/`T*`/`TL`, grupează span-urile pe linii după y și sparge coloanele îndepărtate în linii separate, deci tabelul iese ca linii reale. (2) `services/pdfExtractor.ts` — text-layer first cu quality gate (`isUsableExtraction`), OCR doar fallback; semnătura devine `{ text, source, warnings }` iar tăierea OCR la 10 pagini nu mai e silențioasă. (3) `parseBt` v2 — state machine ancorată în `REF:` + linia-sumă (ordine indiferentă, ca să supraviețuiască granițelor de pagină), semn dedus în două trepte: lexicon determinist pe tipul operațiunii → reconciliere pe zi cu `RULAJ ZI` (căutare de semne aplicată doar când soluția e unică). Reconcilierea e output de prim rang (`PdfParseResult.reconciliation`) și se vede în `components/ImportReconciliationCard.tsx`: verde când fiecare zi și totalul bat la ban, galben cu zilele care nu bat + îndemn la a doua citire AI. Rândurile reconciliate nu mai trec prin `applyDirectionHint` — euristica ar întoarce exact cazurile pe care extrasul le confirmă („Rambursare principal credit"). Fixtures reale anonimizate în `__tests__/fixtures/bt-pdf/`; verificare pe PDF-uri locale fără a le commitui prin `npm run parse:pdf`. Spec: `docs/specs/2026-07-30-bt-pdf-parser-v2-design.md`. Plan: `docs/plans/2026-07-30-bt-pdf-parser-v2.md`.
 
 - **AI development harness** (2026-05-21) — `services/aiSchemas.ts` centralizează schemele Zod pentru toate răspunsurile AI structurate (StatementResponseSchema, ChatResponseSchema) + `parseAiJsonResponse` tolerant (strip code fence, gestiune `no_json_found` / `invalid_json` / `schema_violation` cu path Zod). Statement mapper refactor: returnează `MapperParseOutput` cu stats (total/accepted/rejected/schemaError) → warnings vizibile în UI în loc de drop silent. Snapshot tests pe `buildSystemPrompt`, `buildPrompt` (RON+EUR), `VISION_SYSTEM_PROMPT`, `buildVisionUserText` → orice modificare la prompt-uri → diff vizibil în PR. Token & cost tracking: `recordAiTokens` parsează `usage` din response Mistral, persistă daily + cumulative în AsyncStorage; UI în Setări afișează consum. AI eval harness în `__tests__/evals/` cu 5 fixture-uri (BT simplu, zgomot, prompt injection, sume malformate, schema violation) și runner Jest care verifică sanitizarea prompt-ului + corectitudinea parser-ului + anti-injection guards. Script `npm run evals:ai` pentru iterație rapidă. CI job dedicat `ai-evals` în `.github/workflows/check.yml` triggered pe modificări în `services/ai*` sau `__tests__/evals/**` → feedback clar pe PR când regresează modul de interpretare AI. LIVE mode (apel real AI) e TODO, documentat în README. Fix-uri concomitente: temperature 0 default pentru `sendAiRequest` (determinist pentru SQL/JSON), `category_new` ca tip nou de insight, `normalizeMerchant` strip-uiește zgomot (#cod, \*card, cifre), `pickNextRecapMonth` arată cea mai veche lună necitită, cadență bi-monthly pentru recurring.
 

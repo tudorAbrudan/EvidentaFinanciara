@@ -7,9 +7,11 @@
 
 ```
 Import extras (PDF/CSV)
-     ↓
+     ↓ (PDF) text layer cu poziții (services/pdfTextLayer.ts)
+     ↓        └─ quality gate pică → OCR pagini (services/pdfOcr.ts)
 Parser determinist (services/bankStatement*Parser.ts)
-     ↓ (necategorizate rămase)
+     ↓        └─ BT: reconciliere cu totalurile din extras (RULAJ ZI)
+     ↓ (necategorizate rămase, sau extras necitit)
 Mapper AI opțional (services/aiStatement*Mapper.ts)
      ↓
 SQLite (services/db.ts, services/transactions.ts)
@@ -38,7 +40,7 @@ Root `_layout.tsx` setează tema, autentificarea (PIN/biometric) și onboarding 
 | `categories.ts`                 | CRUD categorii, sugestii prin regex                                             |
 | `financialAccounts.ts`          | CRUD conturi                                                                    |
 | `bankStatementParser.ts`        | parser CSV pentru extrase BT/ING/Revolut/OTP                                    |
-| `bankStatementPdfParser.ts`     | parser PDF (text extraction)                                                    |
+| `bankStatementPdfParser.ts`     | parser PDF: BT (state machine + reconciliere cu RULAJ ZI) și generic euristic   |
 | `bankStatements.ts`             | orchestrare import + deduplicate                                                |
 | `internalTransferSuggestion.ts` | detectare cash/savings/investment + conversie bidirecțională în transfer intern |
 | `merchantCategoryRules.ts`      | reguli învățate `merchant → categorie` (upsert, match exact + prefix-pe-cuvânt) |
@@ -54,8 +56,9 @@ Root `_layout.tsx` setează tema, autentificarea (PIN/biometric) și onboarding 
 | `aiChatTemplates.ts`            | template-uri formatare răspuns determinist                                      |
 | `aiChatRepo.ts`                 | CRUD pe tabel `chat_messages`                                                   |
 | `aiSchemas.ts`                  | scheme Zod centralizate + `parseAiJsonResponse` tolerant pentru toate AI calls  |
-| `pdfExtractor.ts`               | extragere text PDF                                                              |
-| `pdfOcr.ts`                     | OCR pe PDF când text-extraction eșuează                                         |
+| `pdfTextLayer.ts`               | decodare text layer PDF cu poziții (pur, fără Expo — rulează și în Node)        |
+| `pdfExtractor.ts`               | orchestrator extragere PDF: text layer first, OCR doar fallback                 |
+| `pdfOcr.ts`                     | OCR pe PDF când text layer-ul nu trece quality gate-ul                          |
 | `ocr.ts`                        | wrapper ML Kit pentru OCR imagini                                               |
 | `backup.ts`                     | export/import ZIP cu manifest                                                   |
 | `cloudStorage.ts`               | iCloud Drive / Google Drive abstracție                                          |
