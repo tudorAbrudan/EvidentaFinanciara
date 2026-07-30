@@ -1,0 +1,78 @@
+BANCA TRANSILVANIA
+Info clienti:
+004 0264 30 8028 (BT) - apelabil din orice retea, 
+inclusiv international
+Solicitant: Online
+Tiparit: 2026-07-30 21:46:08 
+BANCA TRANSILVANIA S.A. • Capitalul social: 9.168.798.460 lei (RON) • Nr. Inreg. Registrul Comertului: J1993004155124 • R.B. - P.J.R-12-019 - 
+18.02.1999 • C.U.I. 5022670 • SWIFT: BTRLRO22 • Tel. +40 264 407150 • www.bancatransilvania.ro
+1 / 1
+POPESCU MONICA-ALINA
+Client: 0A11111
+ Informatii noi pentru clientii BT 
+Va informam ca Banca Transilvania a modificat Conditiile Generale de Afaceri aplicabile PERSOANELOR FIZICE, document care
+guverneaza relatia de afaceri dintre Banca si clientii persoane fizice.
+Data de intrare in vigoare a documentului este 20.05.2026, iar pentru clientii ale caror conturi au fost deschise pana la data de
+19.05.2026 (inclusiv), data de intrare in vigoare este 19.07.2026.
+Documentul poate fi consultat pe pagina web a Bancii Transilvania, in sectiunea "Informatii si documente utile" - "Conditii Generale de
+Afaceri" sau la cerere, in orice unitate BT.
+Fondurile pe care le aveti la Banca Transilvania - sume de pana la 100.000 euro, echivalent in lei - sunt garantate de Fondul de
+Garantare a Depozitelor Bancare. Mai multe informatii despre garantare si legea aferenta (Nr. 311/2015): www.bancatransilvania.
+ro/garantarea-depozitelor .
+  
+EXTRAS CONT
+Numarul: 2
+din 01/06/2026 - 30/06/2026
+CONT 213EURCRT00A1111101
+Valuta
+Cont de disponibil 
+EUR
+Cod IBAN: RO71BTRL01304203A11111XX
+Data
+Descriere 
+ Debit
+Credit
+SOLD ANTERIOR
+0.00
+18/06/2026
+Schimb valutar - canal electronic
+Schimb valutar BT Pay
+Cont debitat: RO96BTRL01301203A11111XX;POPESCU MONICA-ALINA, 
+CURS SCHIMB: 5.295
+CURS 5.295 RON ECHIVALENT LEI 105.90
+REF: K13ANON000000084 
+      20.00
+Plata instant EUR
+K1200000001 invoice: 80000000001;1;Hetzner Online GmbH;
+DE00760700120000000001;DEUTDEMM760;
+CURS 5.2328 RON ECHIVALENT LEI 78.91
+REF: K13ANON000000085 
+15.08
+      
+Comision Plata Instant
+CURS 5.2328 RON ECHIVALENT LEI 2.50
+REF: K13ANON000000085 
+0.48
+      
+18/06/2026
+RULAJ ZI
+15.56
+20.00
+SOLD FINAL ZI 
+4.44
+ 
+30/06/2026
+RULAJ TOTAL CONT
+15.56
+20.00
+SOLD FINAL CONT 
+4.44
+TOTAL DISPONIBIL 
+din care
+4.44
+Fonduri proprii
+4.44
+Credit neutilizat
+Acest extras de cont este valabil fara semnatura si stampila, putand fi obtinut 
+24/7 si din aplicatiile de internet si mobile banking 
+ 

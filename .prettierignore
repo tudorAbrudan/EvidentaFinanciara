@@ -1,0 +1,3 @@
+# Fixture-uri: text și ground truth extrase din documente reale.
+# Sunt sursa de adevăr pentru teste — nu le reformatăm.
+__tests__/fixtures/

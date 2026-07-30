@@ -1,0 +1,170 @@
+{
+  "bt-extras-ron-2026-06.txt": {
+    "account_currency": "RON",
+    "transaction_count": 84,
+    "total_debit": 97423.94,
+    "total_credit": 99246.1,
+    "sold_final": 2120.31,
+    "days": [
+      {
+        "date": "2026-06-02",
+        "debit": 7605.0,
+        "credit": 8431.1,
+        "sold_final": 1124.25
+      },
+      {
+        "date": "2026-06-03",
+        "debit": 334.4,
+        "credit": 0.0,
+        "sold_final": 789.85
+      },
+      {
+        "date": "2026-06-04",
+        "debit": 61.16,
+        "credit": 1000.0,
+        "sold_final": 1728.69
+      },
+      {
+        "date": "2026-06-05",
+        "debit": 841.1,
+        "credit": 0.0,
+        "sold_final": 887.59
+      },
+      {
+        "date": "2026-06-06",
+        "debit": 142.77,
+        "credit": 500.0,
+        "sold_final": 1244.82
+      },
+      {
+        "date": "2026-06-08",
+        "debit": 839.96,
+        "credit": 0.0,
+        "sold_final": 404.86
+      },
+      {
+        "date": "2026-06-09",
+        "debit": 48144.27,
+        "credit": 49500.0,
+        "sold_final": 1760.59
+      },
+      {
+        "date": "2026-06-10",
+        "debit": 279.76,
+        "credit": 0.0,
+        "sold_final": 1480.83
+      },
+      {
+        "date": "2026-06-11",
+        "debit": 802.84,
+        "credit": 0.0,
+        "sold_final": 677.99
+      },
+      {
+        "date": "2026-06-12",
+        "debit": 206.48,
+        "credit": 0.0,
+        "sold_final": 471.51
+      },
+      {
+        "date": "2026-06-13",
+        "debit": 315.0,
+        "credit": 0.0,
+        "sold_final": 156.51
+      },
+      {
+        "date": "2026-06-15",
+        "debit": 206.69,
+        "credit": 500.0,
+        "sold_final": 449.82
+      },
+      {
+        "date": "2026-06-16",
+        "debit": 406.17,
+        "credit": 3000.0,
+        "sold_final": 3043.65
+      },
+      {
+        "date": "2026-06-17",
+        "debit": 17003.89,
+        "credit": 26000.0,
+        "sold_final": 12039.76
+      },
+      {
+        "date": "2026-06-18",
+        "debit": 2059.75,
+        "credit": 0.0,
+        "sold_final": 9980.01
+      },
+      {
+        "date": "2026-06-19",
+        "debit": 9450.16,
+        "credit": 0.0,
+        "sold_final": 529.85
+      },
+      {
+        "date": "2026-06-20",
+        "debit": 569.15,
+        "credit": 1100.0,
+        "sold_final": 1060.7
+      },
+      {
+        "date": "2026-06-22",
+        "debit": 8.49,
+        "credit": 0.0,
+        "sold_final": 1052.21
+      },
+      {
+        "date": "2026-06-24",
+        "debit": 28.0,
+        "credit": 0.0,
+        "sold_final": 1024.21
+      },
+      {
+        "date": "2026-06-25",
+        "debit": 9.16,
+        "credit": 0.0,
+        "sold_final": 1015.05
+      },
+      {
+        "date": "2026-06-26",
+        "debit": 20.0,
+        "credit": 0.0,
+        "sold_final": 995.05
+      },
+      {
+        "date": "2026-06-27",
+        "debit": 55.5,
+        "credit": 2000.0,
+        "sold_final": 2939.55
+      },
+      {
+        "date": "2026-06-29",
+        "debit": 6778.67,
+        "credit": 7215.0,
+        "sold_final": 3375.88
+      },
+      {
+        "date": "2026-06-30",
+        "debit": 1255.57,
+        "credit": 0.0,
+        "sold_final": 2120.31
+      }
+    ]
+  },
+  "bt-extras-eur-2026-06.txt": {
+    "account_currency": "EUR",
+    "transaction_count": 3,
+    "total_debit": 15.56,
+    "total_credit": 20.0,
+    "sold_final": 4.44,
+    "days": [
+      {
+        "date": "2026-06-18",
+        "debit": 15.56,
+        "credit": 20.0,
+        "sold_final": 4.44
+      }
+    ]
+  }
+}

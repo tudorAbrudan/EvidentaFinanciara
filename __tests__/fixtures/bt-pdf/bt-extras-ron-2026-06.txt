@@ -1,0 +1,838 @@
+BANCA TRANSILVANIA
+Info clienti:
+004 0264 30 8028 (BT) - apelabil din orice retea, 
+inclusiv international
+Solicitant: Online
+Tiparit: 2026-07-30 21:45:17 
+BANCA TRANSILVANIA S.A. • Capitalul social: 9.168.798.460 lei (RON) • Nr. Inreg. Registrul Comertului: J1993004155124 • R.B. - P.J.R-12-019 - 
+18.02.1999 • C.U.I. 5022670 • SWIFT: BTRLRO22 • Tel. +40 264 407150 • www.bancatransilvania.ro
+1 / 8
+POPESCU MONICA-ALINA
+Client: 0A11111
+ Informatii noi pentru clientii BT 
+Va informam ca Banca Transilvania a modificat Conditiile Generale de Afaceri aplicabile PERSOANELOR FIZICE, document care
+guverneaza relatia de afaceri dintre Banca si clientii persoane fizice.
+Data de intrare in vigoare a documentului este 20.05.2026, iar pentru clientii ale caror conturi au fost deschise pana la data de
+19.05.2026 (inclusiv), data de intrare in vigoare este 19.07.2026.
+Documentul poate fi consultat pe pagina web a Bancii Transilvania, in sectiunea "Informatii si documente utile" - "Conditii Generale de
+Afaceri" sau la cerere, in orice unitate BT.
+Fondurile pe care le aveti la Banca Transilvania - sume de pana la 100.000 euro, echivalent in lei - sunt garantate de Fondul de
+Garantare a Depozitelor Bancare. Mai multe informatii despre garantare si legea aferenta (Nr. 311/2015): www.bancatransilvania.
+ro/garantarea-depozitelor .
+  
+EXTRAS CONT
+Numarul: 6
+din 01/06/2026 - 30/06/2026
+CONT 213RONCRT00A1111101
+Valuta
+Cont de disponibil 
+RON
+Cod IBAN: RO96BTRL01301203A11111XX
+Data
+Descriere 
+ Debit
+Credit
+SOLD ANTERIOR
+298.15
+02/06/2026
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000001 
+      300.00
+Incasare OP urgente/MV
+Airbnb Payments Luxembourg S.A. pay;out 900000001;Airbnb;/900000001;
+BTRLRO22;RNCBROBUXXX;
+REF: K13ANON000000002 
+      3,926.10
+Comision incasare OP
+REF: K13ANON000000002 
+5.00
+      
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000003 
+      4,000.00
+P2P BTPay
+Transfer din card 1111 POPESCU MONICA-ALINA catre POPESCU  CALIN 
+OANA reprezentand : Transfer BT Pay; POPESCU  CALIN OANA;
+REF: K13ANON000000004 
+7,600.00
+      
+P2P BTPay
+Transfer din card 2222 IONEL PETRE-VLAD catre POPESCU MONICA-
+ALINA reprezentand : parcare iunie; POPESCU MONICA-ALINA;
+REF: 967ANON000000005 
+      205.00
+02/06/2026
+RULAJ ZI
+7,605.00
+8,431.10
+SOLD FINAL ZI 
+1,124.25
+03/06/2026
+Plata la POS non-BT cu card MASTERCARD
+EPOS 01/06/2026 000000136 TID: Revolut**1234* 70 SIR JOHN 
+ROGERSON'S QUAY Dublin IE 54558543 valoare tranzactie: 290.00 RON 
+RRN:000000000000; POPESCU MONICA-ALINA;
+REF: 000ANON000000006 
+290.00
+      
+Nota contabila individuala
+Polita de asigurare facultativa IG_BTU 000000000 rata 5
+REF: K13ANON000000007 
+44.40
+      
+03/06/2026
+RULAJ ZI
+334.40
+0.00
+SOLD FINAL ZI 
+789.85
+04/06/2026
+Plata la POS non-BT cu card MASTERCARD
+EPOS 02/06/2026 332392000320418 TID:00332392 APPLEADS/APPLE164 
+Hollyhill Industrial Estate CORK IE 54558543 valoare tranzactie: 0.22 EUR 
+RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-
+ALINA;
+REF: 000ANON000000008 
+1.17
+      
+BANCA TRANSILVANIA
+Info clienti:
+004 0264 30 8028 (BT) - apelabil din orice retea, 
+inclusiv international
+Solicitant: Online
+Tiparit: 2026-07-30 21:45:17 
+BANCA TRANSILVANIA S.A. • Capitalul social: 9.168.798.460 lei (RON) • Nr. Inreg. Registrul Comertului: J1993004155124 • R.B. - P.J.R-12-019 - 
+18.02.1999 • C.U.I. 5022670 • SWIFT: BTRLRO22 • Tel. +40 264 407150 • www.bancatransilvania.ro
+2 / 8
+Data
+Descriere 
+ Debit
+Credit
+Plata la POS non-BT cu card MASTERCARD
+POS 02/06/2026 69590095 TID:21789850 DECATHLON CLUJ 10 DN1 E60 
+492-500 ST.IONEL,xxxx CLUJ-NAPOCA RO 54558543 valoare tranzactie: 
+59.99 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU 
+MONICA-ALINA;
+REF: 000ANON000000009 
+59.99
+      
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000010 
+      1,000.00
+04/06/2026
+RULAJ ZI
+61.16
+1,000.00
+SOLD FINAL ZI 
+1,728.69
+05/06/2026
+Rambursare principal credit
+Pentru creditul: 467RIA0140790001; Credit Imobiliar
+REF: 467ANON000000011 
+579.95
+      
+Dobanda credit
+Pentru creditul: 467RIA0140790001; Credit Imobiliar
+REF: 467ANON000000012 
+261.15
+      
+05/06/2026
+RULAJ ZI
+841.10
+0.00
+SOLD FINAL ZI 
+887.59
+06/06/2026
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000013 
+      500.00
+Plata la POS
+POS 06/06/2026 TID 61716008 LIDL RO-216               Alexandu Vaida 
+Voievod CLUJ NAPOCA   ROM 54558543 RRN:000000000000; POPESCU 
+MONICA-ALINA;
+REF: 043ANON000000014 
+142.77
+      
+06/06/2026
+RULAJ ZI
+142.77
+500.00
+SOLD FINAL ZI 
+1,244.82
+08/06/2026
+Plata la POS non-BT cu card MASTERCARD
+EPOS 06/06/2026 72004898260837 TID:PL320572 sportano.ro ul. 
+Wroclawska  Zielona G Zielona Gora PL 54558543 valoare tranzactie: 589.96 
+RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU 
+MONICA-ALINA;
+REF: 000ANON000000015 
+589.96
+      
+Plata la POS non-BT cu card MASTERCARD
+EPOS 06/06/2026 29648043185 TID:80000000 KOKOWA CHOCOLATE SRL
+STR. CSASZAR BALINT Nr. 1 SFANTU GHEORG RO 54558543 valoare 
+tranzactie: 250.00 RON RRN:000000000000 comision tranzactie 0.00 RON; 
+POPESCU MONICA-ALINA;
+REF: 000ANON000000016 
+250.00
+      
+08/06/2026
+RULAJ ZI
+839.96
+0.00
+SOLD FINAL ZI 
+404.86
+09/06/2026
+Plata la POS
+EPOS 08/06/2026 0640F220120CRON TID:064362ER PayU*eMAG.ro 
+Soseaua Virtutii, Nr. 148 Bucuresti ROM 54558543 valoare tranzactie: 144.27
+RON RRN:000000000000 comision tranzactie 0.00 RON  OD null; POPESCU
+MONICA-ALINA;
+REF: 064ANON000000017 
+144.27
+      
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000018 
+      1,000.00
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000019 
+      48,500.00
+P2P BTPay
+Transfer din card 1111 POPESCU MONICA-ALINA catre POPESCU GEORGE-
+CARMEN reprezentand : pt rambursare credit; POPESCU GEORGE-CARMEN;
+REF: K13ANON000000020 
+48,000.00
+      
+09/06/2026
+RULAJ ZI
+48,144.27
+49,500.00
+SOLD FINAL ZI 
+1,760.59
+10/06/2026
+Plata la POS
+EPOS 10/06/2026 MID 0430M9745600RON ELECTRICA FURNIZARE SA 
+71.19
+      
+BANCA TRANSILVANIA
+Info clienti:
+004 0264 30 8028 (BT) - apelabil din orice retea, 
+inclusiv international
+Solicitant: Online
+Tiparit: 2026-07-30 21:45:17 
+BANCA TRANSILVANIA S.A. • Capitalul social: 9.168.798.460 lei (RON) • Nr. Inreg. Registrul Comertului: J1993004155124 • R.B. - P.J.R-12-019 - 
+18.02.1999 • C.U.I. 5022670 • SWIFT: BTRLRO22 • Tel. +40 264 407150 • www.bancatransilvania.ro
+3 / 8
+Data
+Descriere 
+ Debit
+Credit
+BUCURESTI ROM valoare trz: 71.19 RON RRN:000000000000 comision trz 
+0.00 RON  OD Order 518654247-819721025; POPESCU MONICA-ALINA;
+REF: 043ANON000000021 
+Plata la POS
+EPOS 10/06/2026 MID 848344353101RON Pago*Digi(RCS RDS) Bucuresti 
+ROM valoare trz: 30.50 RON RRN:000000000000 comision trz 0.00 RON  OD
+Pago Digi Romania; POPESCU MONICA-ALINA;
+REF: 948ANON000000022 
+30.50
+      
+Plata la POS
+EPOS 10/06/2026 MID 848344353101RON Pago*Digi(RCS RDS) Bucuresti 
+ROM valoare trz: 147.57 RON RRN:000000000000 comision trz 0.00 RON  
+OD Pago Digi Romania; POPESCU MONICA-ALINA;
+REF: 948ANON000000023 
+147.57
+      
+Plata la POS
+EPOS 10/06/2026 MID 848344353101RON Pago*Digi(RCS RDS) Bucuresti 
+ROM valoare trz: 30.50 RON RRN:000000000000 comision trz 0.00 RON  OD
+Pago Digi Romania; POPESCU MONICA-ALINA;
+REF: 948ANON000000024 
+30.50
+      
+10/06/2026
+RULAJ ZI
+279.76
+0.00
+SOLD FINAL ZI 
+1,480.83
+11/06/2026
+Plata la POS non-BT cu card MASTERCARD
+EPOS 09/06/2026 024526998 TID:91051223 PIT STOP CAMPER DI NIC VIA
+DI SCANDICCI FIRENZE IT 54558543 valoare tranzactie: 151.00 EUR RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000025 
+800.77
+      
+Plata la POS non-BT cu card MASTERCARD
+EPOS 09/06/2026 332392000320418 TID:00332392 APPLEADS/APPLE164 
+Hollyhill Industrial Estate CORK IE 54558543 valoare tranzactie: 0.39 EUR 
+RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-
+ALINA;
+REF: 000ANON000000026 
+2.07
+      
+11/06/2026
+RULAJ ZI
+802.84
+0.00
+SOLD FINAL ZI 
+677.99
+12/06/2026
+Plata la POS non-BT cu card MASTERCARD
+POS 10/06/2026 46617233440 TID:16605471 RRL GELATO SRL STR. 
+VALEA CALUGAREASCA 14 SECTORUL 6 RO 54558543 valoare tranzactie:
+45.00 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU 
+MONICA-ALINA;
+REF: 000ANON000000027 
+45.00
+      
+Plata la POS non-BT cu card MASTERCARD
+UNKNOWN 09/06/2026 000000070006789 TID:70007792 CARGUS  
+APAHIDA RO 54558543 valoare tranzactie: 161.48 RON RRN:000000000000
+comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000028 
+161.48
+      
+12/06/2026
+RULAJ ZI
+206.48
+0.00
+SOLD FINAL ZI 
+471.51
+13/06/2026
+P2P BTPay
+Transfer din card 1111 POPESCU MONICA-ALINA catre DRAGOS RALUCA-
+CRISTINA reprezentand : Transfer BT Pay; DRAGOS RALUCA-CRISTINA;
+REF: K13ANON000000029 
+315.00
+      
+13/06/2026
+RULAJ ZI
+315.00
+0.00
+SOLD FINAL ZI 
+156.51
+15/06/2026
+Plata la POS non-BT cu card MASTERCARD
+POS 12/06/2026 20061958 TID:98107075 ZOOCENTER CLUJ NAPOCA 
+STR. ALEXANDRU VAIDA VOIEVOD NR CLUJ NAPOCA RO 54558543 
+valoare tranzactie: 77.69 RON RRN:000000000000 comision tranzactie 0.00 
+RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000030 
+77.69
+      
+P2P BTPay
+Transfer din card 3333 POPESCU GEORGE-CARMEN catre POPESCU MONICA-
+ALINA reprezentand : Transfer BT Pay; POPESCU MONICA-ALINA;
+REF: 367ANON000000031 
+      500.00
+Plata la POS non-BT cu card MASTERCARD
+29.00
+      
+BANCA TRANSILVANIA
+Info clienti:
+004 0264 30 8028 (BT) - apelabil din orice retea, 
+inclusiv international
+Solicitant: Online
+Tiparit: 2026-07-30 21:45:17 
+BANCA TRANSILVANIA S.A. • Capitalul social: 9.168.798.460 lei (RON) • Nr. Inreg. Registrul Comertului: J1993004155124 • R.B. - P.J.R-12-019 - 
+18.02.1999 • C.U.I. 5022670 • SWIFT: BTRLRO22 • Tel. +40 264 407150 • www.bancatransilvania.ro
+4 / 8
+Data
+Descriere 
+ Debit
+Credit
+POS 13/06/2026 654068001 TID:S0240781 MAGAZIN LEGUME FRUCTE 
+STR,EROILOR NR.4,xxxx FLORESTI RO 54558543 valoare tranzactie: 29.00
+RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU 
+MONICA-ALINA;
+REF: 000ANON000000032 
+P2P BTPay
+Transfer din card 1111 POPESCU MONICA-ALINA catre LAURA 
+IRINA reprezentand : Transfer BT Pay; LAURA IRINA;
+REF: K13ANON000000033 
+100.00
+      
+15/06/2026
+RULAJ ZI
+206.69
+500.00
+SOLD FINAL ZI 
+449.82
+16/06/2026
+Plata Instant
+INQ:202606160000409012+hidroelectri;ca.ro;216182357-0;WWW.
+HIDROELECTRICA.RO;RO78CECEB00030RON3884405;CECEROBU;
+REF: K13ANON000000034 
+353.92
+      
+P2P BTPay
+Transfer din card 4444 POPESCU COSTIN-PETRE catre POPESCU MONICA-
+ALINA reprezentand : Transfer BT Pay; POPESCU MONICA-ALINA;
+REF: 766ANON000000035 
+      3,000.00
+Plata la POS
+POS 16/06/2026 TID BD254105 BRICO DEPOT CLUJ NAPOCA Calea 
+Floresti Cluj Napoca ROM 54558543 RRN:000000000000; POPESCU 
+MONICA-ALINA;
+REF: 048ANON000000036 
+52.25
+      
+16/06/2026
+RULAJ ZI
+406.17
+3,000.00
+SOLD FINAL ZI 
+3,043.65
+17/06/2026
+Incasare OP - canal electronic
+C.I.F.:38122455;Cash;60;POPESCU MONICA ALINA PERSOANA FIZIC;
+RO95BTRLRONCRT0410403201;BTRLRO22;BTRLRO22;
+REF: B67ANON000000037 
+      26,000.00
+P2P BTPay
+Transfer din card 1111 POPESCU MONICA-ALINA catre POPESCU GEORGE-
+CARMEN reprezentand : scoala si rata; POPESCU GEORGE-CARMEN;
+REF: K13ANON000000038 
+7,000.00
+      
+Transfer intern - canal electronic
+Transfer in contul de economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000039 
+10,000.00
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 14/06/2026 20037252 TID:12545003 12545003 PETROLIUM - R STR. 
+PANDURILOR NR. 156 REGHIN RO 54558543 valoare tranzactie: 3.89 RON 
+RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-
+ALINA;
+REF: 000ANON000000040 
+3.89
+      
+17/06/2026
+RULAJ ZI
+17,003.89
+26,000.00
+SOLD FINAL ZI 
+12,039.76
+18/06/2026
+Plata la POS non-BT cu card MASTERCARD
+POS 16/06/2026 100000000006836 TID:NX522483 NYX*ELITEINFOSRL 
+Strada Trifoiului ClujNapoca RO 54558543 valoare tranzactie: 10.00 RON 
+RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-
+ALINA;
+REF: 000ANON000000041 
+10.00
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 16/06/2026 100000000006836 TID:NX522483 NYX*ELITEINFOSRL 
+Strada Trifoiului ClujNapoca RO 54558543 valoare tranzactie: 10.00 RON 
+RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-
+ALINA;
+REF: 000ANON000000042 
+10.00
+      
+Plata la POS non-BT cu card MASTERCARD
+EPOS 16/06/2026 526567000021183 TID: Trading 212 43-45 Dorset Street 
+London GB 54558543 valoare tranzactie: 251.75 EUR RRN:000000000000 
+comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000043 
+1,333.76
+      
+Plata la POS non-BT cu card MASTERCARD
+EPOS 16/06/2026 332392000320418 TID:00332392 APPLEADS/APPLE164 
+2.49
+      
+BANCA TRANSILVANIA
+Info clienti:
+004 0264 30 8028 (BT) - apelabil din orice retea, 
+inclusiv international
+Solicitant: Online
+Tiparit: 2026-07-30 21:45:17 
+BANCA TRANSILVANIA S.A. • Capitalul social: 9.168.798.460 lei (RON) • Nr. Inreg. Registrul Comertului: J1993004155124 • R.B. - P.J.R-12-019 - 
+18.02.1999 • C.U.I. 5022670 • SWIFT: BTRLRO22 • Tel. +40 264 407150 • www.bancatransilvania.ro
+5 / 8
+Data
+Descriere 
+ Debit
+Credit
+Hollyhill Industrial Estate CORK IE 54558543 valoare tranzactie: 0.47 EUR 
+RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-
+ALINA;
+REF: 000ANON000000044 
+Plata OP intra - canal electronic
+snagov 3/50;P5Tv;asoc propr snagov 3;RO46BTRLRONCRT0399103001;
+BTRLRO22;BTRLRO22;
+REF: K13ANON000000045 
+597.60
+      
+Schimb valutar - canal electronic
+Schimb valutar BT Pay
+Cont creditat: RO71BTRL01304203A11111XX;POPESCU MONICA-ALINA, 
+CURS SCHIMB: 5.295
+REF: K13ANON000000046 
+105.90
+      
+18/06/2026
+RULAJ ZI
+2,059.75
+0.00
+SOLD FINAL ZI 
+9,980.01
+19/06/2026
+Plata la POS non-BT cu card MASTERCARD
+POS 17/06/2026 30300060 TID:30300061 CABINET EXEMPLU str 
+EXEMPLULUI VERDE NR 19-21  A CLUJ NAPOCA RO 54558543 valoare 
+tranzactie: 1250.00 RON RRN:000000000000 comision tranzactie 0.00 RON; 
+POPESCU MONICA-ALINA;
+REF: 000ANON000000047 
+1,250.00
+      
+Plata la POS non-BT cu card MASTERCARD
+EPOS 16/06/2026 00000003L025501 TID:3L025501 WWW.GHISEUL.
+RO/MFINANT STR BUCURESTI RO 54558543 valoare tranzactie: 8113.00 
+RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU 
+MONICA-ALINA;
+REF: 000ANON000000048 
+8,113.00
+      
+Plata la POS
+POS 19/06/2026 TID 61776923 LIDL RO-216               Alexandu Vaida 
+Voievod CLUJ NAPOCA   ROM 54558543 RRN:000000000000; POPESCU 
+MONICA-ALINA;
+REF: 043ANON000000049 
+55.37
+      
+Plata la POS
+POS 19/06/2026 TID 61715980 LIDL RO-216               Alexandu Vaida 
+Voievod CLUJ NAPOCA   ROM 54558543 RRN:000000000000; POPESCU 
+MONICA-ALINA;
+REF: 043ANON000000050 
+31.79
+      
+19/06/2026
+RULAJ ZI
+9,450.16
+0.00
+SOLD FINAL ZI 
+529.85
+20/06/2026
+Plata la POS non-BT cu card MASTERCARD
+POS 18/06/2026 51175953306 TID:16617716 Thessaly Greek Taverna Nr. 
+94 PALTINOASA RO 54558543 valoare tranzactie: 283.80 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000051 
+283.80
+      
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000052 
+      1,100.00
+Plata la POS
+POS 20/06/2026 TID 61759370 LIDL RO-877               Str. Babadag TULCEA
+ROM 54558543 RRN:000000000000; POPESCU MONICA-ALINA;
+REF: 043ANON000000053 
+285.35
+      
+20/06/2026
+RULAJ ZI
+569.15
+1,100.00
+SOLD FINAL ZI 
+1,060.70
+22/06/2026
+Plata la POS non-BT cu card MASTERCARD
+EPOS 19/06/2026 318463000200925 TID:00318463 APPLE.COM/BILL 
+Hollyhill Industrial Estate CORK IE 54558543 valoare tranzactie: 4.99 RON 
+RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-
+ALINA;
+REF: 000ANON000000054 
+4.99
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 18/06/2026 3L1170030000 TID:L117K035 CTP CLUJ VALIDATOR  
+CLUJ NAPOCA RO 54558543 valoare tranzactie: 3.50 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000055 
+3.50
+      
+BANCA TRANSILVANIA
+Info clienti:
+004 0264 30 8028 (BT) - apelabil din orice retea, 
+inclusiv international
+Solicitant: Online
+Tiparit: 2026-07-30 21:45:17 
+BANCA TRANSILVANIA S.A. • Capitalul social: 9.168.798.460 lei (RON) • Nr. Inreg. Registrul Comertului: J1993004155124 • R.B. - P.J.R-12-019 - 
+18.02.1999 • C.U.I. 5022670 • SWIFT: BTRLRO22 • Tel. +40 264 407150 • www.bancatransilvania.ro
+6 / 8
+Data
+Descriere 
+ Debit
+Credit
+22/06/2026
+RULAJ ZI
+8.49
+0.00
+SOLD FINAL ZI 
+1,052.21
+24/06/2026
+Plata la POS non-BT cu card MASTERCARD
+POS 20/06/2026 PPC000001328 TID:P0001618 CALI IMPEX  CALIMANESTI
+RO 54558543 valoare tranzactie: 28.00 RON RRN:000000000000 comision 
+tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000056 
+28.00
+      
+24/06/2026
+RULAJ ZI
+28.00
+0.00
+SOLD FINAL ZI 
+1,024.21
+25/06/2026
+Plata la POS non-BT cu card MASTERCARD
+EPOS 23/06/2026 332392000320418 TID:00332392 APPLEADS/APPLE164 
+Hollyhill Industrial Estate CORK IE 54558543 valoare tranzactie: 1.73 EUR 
+RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-
+ALINA;
+REF: 000ANON000000057 
+9.16
+      
+25/06/2026
+RULAJ ZI
+9.16
+0.00
+SOLD FINAL ZI 
+1,015.05
+26/06/2026
+Plata la POS non-BT cu card MASTERCARD
+POS 24/06/2026 000000011495952 TID:90383737 SULINA SOUVENIRS A 
+V-A NR 51A SULINA RO 54558543 valoare tranzactie: 20.00 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000058 
+20.00
+      
+26/06/2026
+RULAJ ZI
+20.00
+0.00
+SOLD FINAL ZI 
+995.05
+27/06/2026
+Plata la POS non-BT cu card MASTERCARD
+POS 24/06/2026 PPC000000080 TID:P0001709 TIP-TOP-START SRL  
+SULINA RO 54558543 valoare tranzactie: 36.00 RON RRN:000000000000 
+comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000059 
+36.00
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 25/06/2026 20064774 TID:1X852001 ANDRA-PETRE STR. PORTULUI 
+NR. 2 CARAORMAN RO 54558543 valoare tranzactie: 19.50 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000060 
+19.50
+      
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000061 
+      2,000.00
+27/06/2026
+RULAJ ZI
+55.50
+2,000.00
+SOLD FINAL ZI 
+2,939.55
+29/06/2026
+Plata la POS non-BT cu card MASTERCARD
+EPOS 26/06/2026 000000136 TID: Revolut**1234* 70 SIR JOHN 
+ROGERSON'S QUAY Dublin IE 54558543 valoare tranzactie: 170.00 RON 
+RRN:000000000000; POPESCU MONICA-ALINA;
+REF: 000ANON000000062 
+170.00
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 26/06/2026 2642OM1229 TID:ORO2585B OMV 1229 Str. Babadag 148
+Tulcea RO 54558543 valoare tranzactie: 380.60 RON RRN:000000000000 
+comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000063 
+380.60
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 26/06/2026 2642OM1229 TID:ORO2584B OMV 1229 Str. Babadag 148
+Tulcea RO 54558543 valoare tranzactie: 14.76 RON RRN:000000000000 
+comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000064 
+14.76
+      
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000065 
+      3,000.00
+P2P BTPay
+Transfer din card 1111 POPESCU MONICA-ALINA catre POPESCU COSTIN-
+PETRE reprezentand : Transfer BT Pay; POPESCU COSTIN-PETRE;
+REF: K13ANON000000066 
+2,000.00
+      
+Transfer intern - canal electronic
+Constituire cont de economii; POPESCU MONICA-ALINA;
+2,000.00
+      
+BANCA TRANSILVANIA
+Info clienti:
+004 0264 30 8028 (BT) - apelabil din orice retea, 
+inclusiv international
+Solicitant: Online
+Tiparit: 2026-07-30 21:45:17 
+BANCA TRANSILVANIA S.A. • Capitalul social: 9.168.798.460 lei (RON) • Nr. Inreg. Registrul Comertului: J1993004155124 • R.B. - P.J.R-12-019 - 
+18.02.1999 • C.U.I. 5022670 • SWIFT: BTRLRO22 • Tel. +40 264 407150 • www.bancatransilvania.ro
+7 / 8
+Data
+Descriere 
+ Debit
+Credit
+REF: K13ANON000000067 
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000068 
+      1,000.00
+P2P BTPay
+Transfer din card 4444 POPESCU COSTIN-PETRE catre POPESCU MONICA-
+ALINA reprezentand : multam; POPESCU MONICA-ALINA;
+REF: 766ANON000000069 
+      500.00
+P2P BTPay
+Transfer din card 4444 POPESCU COSTIN-PETRE catre POPESCU MONICA-
+ALINA reprezentand : Transfer BT Pay; POPESCU MONICA-ALINA;
+REF: 766ANON000000070 
+      305.00
+P2P BTPay
+Transfer din card 5555 DANA BIANCA SIMONA catre POPESCU 
+MONICA-ALINA reprezentand : Transfer BT PAY; POPESCU MONICA-
+ALINA;
+REF: 313ANON000000071 
+      105.00
+P2P BTPay
+Transfer din card 6666 FLORIN DORIN-OVIDIU catre POPESCU MONICA-
+ALINA reprezentand : Transfer BT Pay; POPESCU MONICA-ALINA;
+REF: 052ANON000000072 
+      105.00
+P2P BTPay
+Transfer din card 1111 POPESCU MONICA-ALINA catre BARBU ELENA-
+SERGIU reprezentand : Transfer BT Pay; BARBU ELENA-SERGIU;
+REF: K13ANON000000073 
+50.00
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 27/06/2026 2642OM1918 TID:ORO2109B OMV 1918 DN 67 KM 198
+CALIMANESTI RO 54558543 valoare tranzactie: 9.70 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000074 
+9.70
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 27/06/2026 2642OM1083 TID:ORO2400B OMV 1083 Str. Parang FN
+Cluj Napoca RO 54558543 valoare tranzactie: 343.61 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000075 
+343.61
+      
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000076 
+      1,000.00
+Transfer intern - canal electronic
+Transfer din economii; POPESCU MONICA-ALINA;
+REF: K13ANON000000077 
+      1,200.00
+P2P BTPay
+Transfer din card 1111 POPESCU MONICA-ALINA catre TIBERIU MIRCEA-
+RADU-STANCU reprezentand : Transfer BT Pay; TIBERIU MIRCEA-RADU-
+STANCU;
+REF: K13ANON000000078 
+1,100.00
+      
+P2P BTPay
+Transfer din card 1111 POPESCU MONICA-ALINA catre BARBU ELENA-
+SERGIU reprezentand : Transfer BT Pay; BARBU ELENA-SERGIU;
+REF: K13ANON000000079 
+710.00
+      
+29/06/2026
+RULAJ ZI
+6,778.67
+7,215.00
+SOLD FINAL ZI 
+3,375.88
+30/06/2026
+Plata la POS non-BT cu card MASTERCARD
+EPOS 28/06/2026 000000136 TID: Revolut**1234* 70 SIR JOHN 
+ROGERSON'S QUAY Dublin IE 54558543 valoare tranzactie: 500.00 RON 
+RRN:000000000000; POPESCU MONICA-ALINA;
+REF: 000ANON000000080 
+500.00
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 28/06/2026 606493313 TID:P0014701 CARREFOUR CLUJ 2 SCO 2 
+BLD 1 DECEMBRIE NR 142,xxxx CLUJ RO 54558543 valoare tranzactie: 
+147.89 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU 
+MONICA-ALINA;
+REF: 000ANON000000081 
+147.89
+      
+Plata la POS non-BT cu card MASTERCARD
+POS 28/06/2026 2642OM1083 TID:ORO2401B OMV 1083 Str. Parang FN
+492.23
+      
+BANCA TRANSILVANIA
+Info clienti:
+004 0264 30 8028 (BT) - apelabil din orice retea, 
+inclusiv international
+Solicitant: Online
+Tiparit: 2026-07-30 21:45:17 
+BANCA TRANSILVANIA S.A. • Capitalul social: 9.168.798.460 lei (RON) • Nr. Inreg. Registrul Comertului: J1993004155124 • R.B. - P.J.R-12-019 - 
+18.02.1999 • C.U.I. 5022670 • SWIFT: BTRLRO22 • Tel. +40 264 407150 • www.bancatransilvania.ro
+8 / 8
+Data
+Descriere 
+ Debit
+Credit
+Cluj Napoca RO 54558543 valoare tranzactie: 492.23 RON RRN:000000000000 comision tranzactie 0.00 RON; POPESCU MONICA-ALINA;
+REF: 000ANON000000082 
+Plata la POS non-BT cu card MASTERCARD
+EPOS 28/06/2026 Q0RRUWQV26H30SO TID:G0A3LMSE ANTHROPIC* 
+CLAUDE SUB 548 Market Street SAN FRANCISCO US 54558543 valoare 
+tranzactie: 21.78 EUR RRN:000000000000 comision tranzactie 0.00 RON; 
+POPESCU MONICA-ALINA;
+REF: 000ANON000000083 
+115.45
+      
+30/06/2026
+RULAJ ZI
+1,255.57
+0.00
+SOLD FINAL ZI 
+2,120.31
+ 
+30/06/2026
+RULAJ TOTAL CONT
+97,423.94
+99,246.10
+SOLD FINAL CONT 
+2,120.31
+SUME BLOCATE
+La data curenta pe contul RO96BTRL01301203A11111XX aveti urmatoarele sume blocate:
+ 
+- 2,100.00 RON aferenta tranzactiei POS 29/06/2026 30300060 TID:30300061 CABINET EXEMPLU str EXEMPLULUI VERDE NR 19-21  A CLUJ 
+NAPOCA RO 54558543 valoare tranzactie: 2100.00 RON RRN:000000000000 comision tranzactie 0.00 RON
+TOTAL DISPONIBIL 
+din care
+20.31
+Fonduri proprii
+20.31
+Credit neutilizat
+Acest extras de cont este valabil fara semnatura si stampila, putand fi obtinut 
+24/7 si din aplicatiile de internet si mobile banking 
+ 
