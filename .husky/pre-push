@@ -1,0 +1,49 @@
+#!/usr/bin/env sh
+#
+# Pre-push: ultima poartă înainte ca munca să plece din mașină.
+#   1. check:workflow — chitanțe de fază valide + LEARNINGS.md atins la diff de feature
+#   2. npm run check  — tot lanțul de calitate
+#   3. APPROVE tastat de om, citit de la /dev/tty
+#
+# APPROVE se citește de la /dev/tty, nu de pe stdin: git alimentează stdin-ul hook-ului cu
+# lista de ref-uri, iar un agent nu are cum să fabrice consimțământul pe terminalul omului.
+
+node scripts/check-workflow.mjs || exit 1
+
+npm run check || exit 1
+
+if [ ! -e /dev/tty ]; then
+  echo ""
+  echo "Fără terminal interactiv — push refuzat."
+  echo "Rulează push-ul dintr-un terminal, ca să poți da APPROVE."
+  exit 1
+fi
+
+branch=$(git rev-parse --abbrev-ref HEAD)
+baza=$(git rev-parse --verify --quiet '@{push}' || git rev-parse --verify --quiet origin/main || echo "")
+
+echo ""
+echo "─────────────────────────────────────────────"
+echo "  Branch:  $branch"
+if [ -n "$baza" ]; then
+  numar=$(git rev-list --count "$baza"..HEAD)
+  echo "  Commit-uri de trimis: $numar"
+  git log --oneline "$baza"..HEAD | sed 's/^/    /'
+  echo ""
+  echo "  Fișiere atinse:"
+  git diff --name-only "$baza"..HEAD | sed 's/^/    /'
+else
+  echo "  Baza de comparație nu a putut fi determinată."
+fi
+echo "─────────────────────────────────────────────"
+echo ""
+
+printf "Tastează APPROVE pentru push: " > /dev/tty
+read -r raspuns < /dev/tty
+
+if [ "$raspuns" != "APPROVE" ]; then
+  echo "Push anulat."
+  exit 1
+fi
+
+echo "APPROVE primit."
