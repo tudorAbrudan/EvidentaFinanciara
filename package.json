@@ -25,7 +25,8 @@
     "dep-cruise": "depcruise --validate .dependency-cruiser.cjs services components hooks app",
     "type-coverage": "type-coverage --strict --at-least 97",
     "check:audit": "node --experimental-strip-types scripts/check-audit.ts",
-    "check": "npm run lint && npm run type-check && npm run type-coverage && npm test -- --coverage --watchAll=false && npm run knip && npm run madge && npm run dep-cruise && npm run check:audit",
+    "check:pointers": "node scripts/check-pointer-files.mjs",
+    "check": "npm run check:pointers && npm run lint && npm run type-check && npm run type-coverage && npm test -- --coverage --watchAll=false && npm run knip && npm run madge && npm run dep-cruise && npm run check:audit",
     "prepare": "husky"
   },
   "jest": {
