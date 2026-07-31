@@ -63,12 +63,34 @@ export function readStdinJson() {
   }
 }
 
+/** Extrage calea dintr-o linie `git status --porcelain` („XY cale", redenumiri „veche -> nouă"). */
+function caleDinStatus(linie) {
+  const parteCale = linie.slice(3).trim();
+  const bucati = parteCale.split(' -> ');
+  return bucati[bucati.length - 1].replace(/^"|"$/g, '');
+}
+
 /**
- * Amprenta stării de lucru: `git status --porcelain` + `\0` + `git diff HEAD`.
+ * `.claude/` e magazia harness-ului însuși (chitanțe, escape hatches, log de audit).
+ * Trebuie exclusă din amprentă: altfel scrierea chitanței de verify ar schimba chiar
+ * amprenta pe care tocmai a înregistrat-o, iar review-ul ar găsi-o instantaneu învechită.
+ * Nu ne bazăm pe .gitignore-ul repo-ului gazdă pentru asta.
+ */
+function esteStareInterna(cale) {
+  return cale === '.claude' || cale.startsWith('.claude/');
+}
+
+/**
+ * Amprenta stării de lucru: `git status --porcelain` + `\0` + `git diff HEAD`,
+ * fără fișierele interne ale harness-ului.
  * Orice editare ulterioară schimbă amprenta, deci invalidează chitanțele deja scrise.
  */
 export function diffFingerprint(cwd = process.cwd()) {
-  const status = git(['status', '--porcelain'], cwd);
+  const status = git(['status', '--porcelain'], cwd)
+    .split('\n')
+    .filter((linie) => linie.trim() !== '')
+    .filter((linie) => !esteStareInterna(caleDinStatus(linie)))
+    .join('\n');
   const diff = git(['diff', 'HEAD'], cwd);
   return createHash('sha256').update(status).update('\0').update(diff).digest('hex');
 }
@@ -114,11 +136,8 @@ export function filesInDiff(cwd = process.cwd()) {
 
   for (const linie of git(['status', '--porcelain'], cwd).split('\n')) {
     if (linie.trim() === '') continue;
-    // Format: XY<spațiu>cale, iar la redenumiri „veche -> nouă".
-    const parteCale = linie.slice(3).trim();
-    const bucati = parteCale.split(' -> ');
-    const finala = bucati[bucati.length - 1].replace(/^"|"$/g, '');
-    if (finala !== '') nume.add(finala);
+    const finala = caleDinStatus(linie);
+    if (finala !== '' && !esteStareInterna(finala)) nume.add(finala);
   }
 
   return [...nume].sort();
