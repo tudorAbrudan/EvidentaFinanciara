@@ -7,7 +7,7 @@
 > 3. Nu adăugăm complexitate inutilă — fiecare idee răspunde la: _câți utilizatori beneficiază real, merită complexitatea?_
 
 **Status:** roadmap inițial, înainte de primul spec implementat.
-**Ultima actualizare:** 2026-07-30.
+**Ultima actualizare:** 2026-07-31.
 
 ---
 
@@ -17,7 +17,7 @@ Lista e ordonată după priority. Fiecare punct devine propriul spec → plan �
 
 ### Fundație produs
 
-0. **Harness agentic (enforcement pe faze)** — imediat după parser: plan-gate + Stop-gate cu chitanțe fingerprint, blocare push din agent, pre-push cu APPROVE uman, roluri planner/coder/reviewer/verifier cu modele impuse, AGENTS.md canonic + LEARNINGS.md. Adaptare a spec-ului portabil din proiectul sprint-board. Spec: `docs/specs/2026-07-30-agentic-harness-design.md`. Plan: `docs/plans/2026-07-30-agentic-harness.md`. Bugetele (#12) = primul feature rulat sub harness.
+0. **Harness agentic (enforcement pe faze)** — **instalat 2026-07-31, în așteptarea rodajului live.** Pașii 1–8 din plan sunt livrați cu teste verzi: plan-gate + Stop-gate cu chitanțe legate de amprenta diff-ului, blocare push din agent, pre-push cu `check:workflow` + APPROVE uman la `/dev/tty`, roluri planner/coder/reviewer/verifier cu modele și unelte impuse prin front-matter, `AGENTS.md` canonic + `CLAUDE.md` pointer (gate `check:pointers`), `LEARNINGS.md`, statusline de fază, `permissions.deny` pe guardrails. **Rămâne pasul 9 — rodajul live**, care se execută manual, cu omul de față (checklist în plan): harness-ul nu e „activ" până nu trec cele 10 verificări. Adaptare a spec-ului portabil din proiectul sprint-board. Spec: `docs/specs/2026-07-30-agentic-harness-design.md`. Plan: `docs/plans/2026-07-30-agentic-harness.md`. Bugetele (#12) = primul feature rulat sub harness.
 1. **Onboarding wizard** — welcome, aspect (light/dark/auto), securitate (PIN/biometric), primul cont, AI consent, sumar. Adaptat din `documents/app/components/OnboardingWizard.tsx`, simplificat la specificul finanțelor (fără entități/documente — pașii relevanți: aspect, securitate, primul cont, notificări, AI, backup, sumar).
 2. **Quick-add tranzacție** — FAB („+") pe Sumar și Tranzacții. Modal rapid: sumă, categorie, opțional cont/notă/data. One-tap. Cea mai folosită acțiune trebuie să fie cea mai accesibilă.
 3. **Empty states** — pe fiecare ecran (Sumar, Conturi, Tranzacții, Categorii) când nu există date. Mesaj prietenos + acțiune sugerată.

@@ -86,7 +86,27 @@ Hook-uri care încapsulează state + side effects (ex. `useCategoryTransactions`
 ### `__tests__/`
 
 - `__tests__/unit/` — teste Jest pe `services/`. Snapshot-uri pentru prompt-uri AI în `__snapshots__/aiPromptSnapshots.test.ts.snap`. `setup.ts` configurează mock-uri Expo.
+- `__tests__/unit/harness/` — teste pe gate-urile de workflow. Fiecare script de enforcement e rulat ca proces separat, cu stdin de fixture, în repo-uri git temporare; se asertează exit code (0 permite / 2 blochează), mesajul de pe stderr și comportamentul fail-open.
 - `__tests__/evals/` — AI eval harness: `aiEvals.test.ts` iterează prin `fixtures/*.json` și verifică parser + schema + sanitizare prompt. Rulat automat în `npm test` și ca job CI separat (`ai-evals` în `.github/workflows/check.yml`). Vezi `__tests__/evals/README.md` pentru cum se adaugă fixture nou și planul de LIVE mode (apel real AI).
+
+### `agents/` — definițiile canonice ale rolurilor
+
+`orchestrator.md`, `planner.md`, `coder.md`, `reviewer.md`, `verifier.md` — ce face fiecare rol, ce nu face, checklist-ul lui. Bindings-urile subțiri din `.claude/agents/<rol>.md` impun mecanic modelul și uneltele prin front-matter (`model:`, `tools:`), astfel încât „planner-ul nu editează" să fie o proprietate a uneltelor, nu o promisiune. Agenții specializați existenți (`bank-parser-reviewer`, `landing-copy-reviewer`) rămân doar în `.claude/agents/`.
+
+### `scripts/` — gate-uri de workflow și utilitare
+
+Harness-ul agentic (vezi `AGENTS.md` → „Bucla de lucru"):
+
+- `workflow-lib.mjs` — contractele partajate: amprenta diff-ului (`git status --porcelain` + `\0` + `git diff HEAD`, cu `.claude/` exclus), definiția „cod de feature", chitanțele din `.claude/state/phase-*.json`, escape hatch-urile cu audit.
+- `record-phase.mjs` — scrie chitanța unei faze (plan/verify/review) legată de amprentă; hash-uiește screenshot-urile.
+- `check-plan-pretool.mjs` — hook PreToolUse: fără plan pe HEAD-ul curent nu se editează cod de feature.
+- `check-workflow-stop.mjs` — hook Stop: un diff de feature nu închide tura fără verify + review valide.
+- `check-no-push-pretool.mjs` — hook PreToolUse pe Bash: trimiterea la remote nu se face din sesiunile de agent.
+- `check-workflow.mjs` (`npm run check:workflow`) — gate de pre-push: `LEARNINGS.md` atins în range + chitanțe valide și pe HEAD, nu doar pe amprentă.
+- `check-pointer-files.mjs` (`npm run check:pointers`) — `CLAUDE.md` rămâne pointer subțire către `AGENTS.md`.
+- `statusline-phase.mjs` — statusline `◉ <fază> · <branch>`, faza dedusă din chitanțele încă valide.
+
+Toate hook-urile sunt **fail-open**: orice eroare internă → exit 0. Toate au teste în `__tests__/unit/harness/`, rulate ca procese cu stdin de fixture.
 
 ### `landing/`
 
