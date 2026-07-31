@@ -42,5 +42,17 @@
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/statusline-phase.mjs\""
+  },
+  "permissions": {
+    "deny": [
+      "Edit(./.claude/settings.json)",
+      "Write(./.claude/settings.json)",
+      "Edit(./.husky/**)",
+      "Write(./.husky/**)"
+    ]
   }
 }
