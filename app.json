@@ -3,7 +3,7 @@
     "name": "Finanțe Personale",
     "slug": "finante",
     "scheme": "finante",
-    "version": "0.4.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ax.finante",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "deploymentTarget": "16.0",
       "usesIcloudStorage": true,
       "entitlements": {
