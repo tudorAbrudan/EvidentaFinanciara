@@ -11,19 +11,24 @@ import {
   AppState,
 } from 'react-native';
 
+import { formatRemaining } from '@/services/appLockThrottle';
 import { primary, dark, statusColors } from '@/theme/colors';
 
 interface AppLockScreenProps {
   biometricAvailable: boolean;
   onUnlockBiometric: () => Promise<boolean>;
   onUnlockPin: (pin: string) => Promise<boolean>;
+  /** Milisecunde rămase din blocarea după prea multe PIN-uri greșite; 0 = neblocat. */
+  pinLockMsLeft?: number;
 }
 
 export default function AppLockScreen({
   biometricAvailable,
   onUnlockBiometric,
   onUnlockPin,
+  pinLockMsLeft = 0,
 }: AppLockScreenProps) {
+  const pinLocked = pinLockMsLeft > 0;
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -71,7 +76,7 @@ export default function AppLockScreen({
   }, [biometricAvailable, handleBiometric]);
 
   const handlePinSubmit = async () => {
-    if (!pin.trim()) return;
+    if (!pin.trim() || pinLocked) return;
     setError('');
     setLoading(true);
     try {
@@ -120,22 +125,29 @@ export default function AppLockScreen({
             keyboardType="number-pad"
             secureTextEntry
             maxLength={8}
-            editable={!loading}
+            editable={!loading && !pinLocked}
             onSubmitEditing={() => {
               void handlePinSubmit();
             }}
           />
           <Pressable
-            style={[styles.pinBtn, loading && styles.pinBtnDisabled]}
+            style={[styles.pinBtn, (loading || pinLocked) && styles.pinBtnDisabled]}
             onPress={() => {
               void handlePinSubmit();
             }}
-            disabled={loading || pin.length < 4}
+            disabled={loading || pinLocked || pin.length < 4}
           >
             <Text style={styles.pinBtnText}>Deschide</Text>
           </Pressable>
         </View>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {pinLocked ? (
+          <Text style={styles.error}>
+            Prea multe încercări greșite. Mai încearcă peste {formatRemaining(pinLockMsLeft)}.
+            {biometricAvailable ? ' Face ID / Touch ID rămâne disponibil.' : ''}
+          </Text>
+        ) : error ? (
+          <Text style={styles.error}>{error}</Text>
+        ) : null}
       </View>
     </KeyboardAvoidingView>
   );

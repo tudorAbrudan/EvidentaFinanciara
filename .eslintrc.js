@@ -49,13 +49,5 @@ module.exports = {
       },
     },
   ],
-  ignorePatterns: [
-    'node_modules/',
-    '.expo/',
-    'dist/',
-    'build/',
-    'coverage/',
-    'ios/',
-    'android/',
-  ],
+  ignorePatterns: ['node_modules/', '.expo/', 'dist/', 'build/', 'coverage/', 'ios/', 'android/'],
 };

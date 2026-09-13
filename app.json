@@ -3,7 +3,7 @@
     "name": "Finanțe Personale",
     "slug": "finante",
     "scheme": "finante",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,12 +11,12 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#A3B86C"
+      "backgroundColor": "#4E5F2E"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ax.finante",
-      "buildNumber": "11",
+      "buildNumber": "16",
       "deploymentTarget": "16.0",
       "usesIcloudStorage": true,
       "entitlements": {
@@ -38,7 +38,7 @@
       "package": "com.ax.finante",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#A3B86C"
+        "backgroundColor": "#4E5F2E"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false

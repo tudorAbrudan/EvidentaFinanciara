@@ -67,3 +67,66 @@ describe('aiChatSqlGuard', () => {
     });
   });
 });
+
+describe('SQL-ul din few-shot pentru template-urile noi trece guard-ul', () => {
+  it('spend_total: agregat cu BETWEEN pe interval', () => {
+    const sql =
+      "SELECT SUM(ABS(COALESCE(t.amount_ron, t.amount))) AS total, COUNT(*) AS count FROM transactions t JOIN financial_accounts a ON a.id = t.account_id JOIN expense_categories c ON c.id = t.category_id WHERE c.key = 'vehicle' AND a.name = 'BT_curent_ron' AND t.amount < 0 AND t.duplicate_of_id IS NULL AND t.is_internal_transfer = 0 AND t.date BETWEEN '2026-06-01' AND '2026-06-20' LIMIT 1";
+    const r = validateAndNormalizeSql(sql);
+    expect(r.ok).toBe(true);
+  });
+
+  it('top_spending: UNION ALL între categorii și comercianți', () => {
+    const sql =
+      "SELECT 'category' AS dim, c.name AS label, SUM(ABS(COALESCE(t.amount_ron, t.amount))) AS total, COUNT(*) AS count FROM transactions t JOIN expense_categories c ON c.id = t.category_id WHERE t.amount < 0 AND t.duplicate_of_id IS NULL AND t.is_internal_transfer = 0 AND substr(t.date, 1, 7) = '2026-05' GROUP BY c.name UNION ALL SELECT 'merchant' AS dim, COALESCE(t.merchant, 'Necunoscut') AS label, SUM(ABS(COALESCE(t.amount_ron, t.amount))) AS total, COUNT(*) AS count FROM transactions t WHERE t.amount < 0 AND t.duplicate_of_id IS NULL AND t.is_internal_transfer = 0 AND substr(t.date, 1, 7) = '2026-05' GROUP BY label ORDER BY dim ASC, total DESC LIMIT 40";
+    const r = validateAndNormalizeSql(sql);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.sql).toContain('UNION ALL');
+  });
+});
+
+describe('guard fail-closed: identificatori citați și comma-join', () => {
+  const blocked: [string, string][] = [
+    ['ghilimele duble', 'SELECT * FROM "chat_messages" LIMIT 1'],
+    ['paranteze drepte', 'SELECT * FROM [chat_messages] LIMIT 1'],
+    ['backtick', 'SELECT * FROM `chat_messages` LIMIT 1'],
+    ['citat pe bank_statements', 'SELECT * FROM "bank_statements" LIMIT 1'],
+    ['comma-join ascuns', 'SELECT * FROM transactions, chat_messages LIMIT 1'],
+    ['comma-join citat', 'SELECT * FROM transactions, "chat_messages" LIMIT 1'],
+    ['join citat', 'SELECT * FROM transactions t JOIN "chat_messages" c ON 1=1 LIMIT 1'],
+    ['tabel necunoscut citat', 'SELECT * FROM "sqlite_master" LIMIT 1'],
+  ];
+  for (const [name, sql] of blocked) {
+    it(`respinge ${name}`, () => {
+      expect(validateAndNormalizeSql(sql).ok).toBe(false);
+    });
+  }
+
+  const allowed: [string, string][] = [
+    ['tabel permis citat', 'SELECT * FROM "transactions" LIMIT 1'],
+    ['comma-join legitim', 'SELECT * FROM transactions t, expense_categories c LIMIT 1'],
+    ['subquery în FROM', 'SELECT * FROM (SELECT id FROM transactions) x LIMIT 1'],
+    ['CTE', 'WITH x AS (SELECT id FROM transactions) SELECT * FROM x LIMIT 1'],
+    [
+      'JOIN clasic',
+      'SELECT * FROM transactions t JOIN financial_accounts a ON a.id = t.account_id LIMIT 1',
+    ],
+    [
+      'LEFT JOIN (folosit de account_balance)',
+      'SELECT * FROM financial_accounts a LEFT JOIN transactions t ON t.account_id = a.id LIMIT 1',
+    ],
+    [
+      'UNION ALL (folosit de top_spending)',
+      'SELECT id FROM transactions UNION ALL SELECT id FROM expense_categories LIMIT 5',
+    ],
+    [
+      'cuvânt de tabel doar în literal',
+      "SELECT id FROM transactions WHERE merchant = 'from chat_messages' LIMIT 1",
+    ],
+  ];
+  for (const [name, sql] of allowed) {
+    it(`acceptă ${name}`, () => {
+      expect(validateAndNormalizeSql(sql).ok).toBe(true);
+    });
+  }
+});

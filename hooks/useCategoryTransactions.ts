@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 
+import { CASH_WITHDRAWN_CATEGORY_ID, getCashWithdrawalTransactions } from '@/services/cashSpending';
 import * as tx from '@/services/transactions';
 import type { Transaction } from '@/types';
 
@@ -39,6 +40,14 @@ export function useCategoryTransactions(
     setLoading(true);
     setError(null);
     try {
+      // „Numerar retras" nu e o categorie din DB: tranzacțiile ei sunt
+      // transferuri interne (excluse de filtrul obișnuit) plus retrageri cu
+      // altă categorie reală. Are nevoie de propriul traseu, ca `UNCATEGORIZED_KEY`.
+      if (categoryKey === CASH_WITHDRAWN_CATEGORY_ID) {
+        setTransactions(await getCashWithdrawalTransactions(yearMonth, accountId));
+        return;
+      }
+
       const filter: tx.TransactionFilter = {
         account_id: accountId,
         fromDate: `${yearMonth}-01`,

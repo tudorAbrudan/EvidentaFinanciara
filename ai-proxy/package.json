@@ -1,0 +1,15 @@
+{
+  "name": "finante-ai-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proxy OpenAI-compatible intre aplicatia Finante Personale si providerul AI. Tine cheia API pe server, nu in bundle.",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  }
+}

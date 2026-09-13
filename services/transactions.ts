@@ -1,5 +1,12 @@
 import { categorizeTransactionsWithAi } from './aiCategoryMapper';
+import { amountRonSql, missingRateCountSql, IS_EXPENSE_SQL, IS_INCOME_SQL } from './amountSql';
 import { applyDirectionHint, suggestCategory } from './bankStatementParser';
+import {
+  CASH_WITHDRAWN_CATEGORY_ID,
+  CASH_WITHDRAWN_LABEL,
+  loadCashBreakdownAdjustment,
+  loadCashWithdrawals,
+} from './cashSpending';
 import { getCategoryByKey } from './categories';
 import { db, generateId } from './db';
 import { getRateRon } from './fxRates';
@@ -138,10 +145,11 @@ export async function getTransactions(filter: TransactionFilter = {}): Promise<T
   const limitSql = filter.limit !== undefined ? `LIMIT ${Math.max(1, filter.limit | 0)}` : '';
   const offsetSql = filter.offset !== undefined ? `OFFSET ${Math.max(0, filter.offset | 0)}` : '';
 
-  const rows = await db.getAllAsync<Row>(
-    `SELECT * FROM transactions ${whereSql} ORDER BY date DESC, created_at DESC ${limitSql} ${offsetSql}`,
-    params
-  );
+  const rows =
+    (await db.getAllAsync<Row>(
+      `SELECT * FROM transactions ${whereSql} ORDER BY date DESC, created_at DESC ${limitSql} ${offsetSql}`,
+      params
+    )) ?? [];
   return rows.map(mapRow);
 }
 
@@ -443,7 +451,16 @@ export async function unmarkDuplicate(id: string): Promise<void> {
  *
  * Marchează ambele cu `is_internal_transfer = 1` și se referă reciproc prin `linked_transaction_id`.
  */
-export async function linkAsInternalTransfer(txId1: string, txId2: string): Promise<void> {
+/**
+ * `allowUnequal` e necesar pentru perechile deduse din comision sau din curs
+ * valutar, unde sumele NU se anulează exact. Se folosește doar după confirmarea
+ * utilizatorului — potrivirile automate rămân cele exacte.
+ */
+export async function linkAsInternalTransfer(
+  txId1: string,
+  txId2: string,
+  opts: { allowUnequal?: boolean } = {}
+): Promise<void> {
   if (txId1 === txId2) throw new Error('Trebuie 2 tranzacții diferite.');
   const t1 = await getTransaction(txId1);
   const t2 = await getTransaction(txId2);
@@ -451,7 +468,11 @@ export async function linkAsInternalTransfer(txId1: string, txId2: string): Prom
   if (t1.account_id && t2.account_id && t1.account_id === t2.account_id) {
     throw new Error('Transferul intern presupune conturi diferite.');
   }
-  if (Math.abs(t1.amount + t2.amount) > 0.01) {
+  if (t1.amount > 0 === t2.amount > 0) {
+    throw new Error('Transferul cere o sumă pozitivă și una negativă.');
+  }
+  const sameCurrency = t1.currency === t2.currency;
+  if (!opts.allowUnequal && sameCurrency && Math.abs(t1.amount + t2.amount) > 0.01) {
     throw new Error('Sumele transferului trebuie să fie opuse (una pozitivă, una negativă).');
   }
   const d1 = new Date(t1.date).getTime();
@@ -606,6 +627,14 @@ export async function findPossibleDuplicate(input: {
 export interface TransferCandidate {
   outflow: Transaction; // amount < 0
   inflow: Transaction; // amount > 0
+  /** Comisioane care explică diferența dintre sumele celor două laturi. */
+  fees?: Transaction[];
+  /**
+   * `exact` — sumele se anulează la ±0.01: se poate lega automat.
+   * `fee` / `fx` — potrivire prin toleranță: doar sugestie, cere confirmare,
+   * fiindcă un fals pozitiv ascunde venit real din analize.
+   */
+  kind: 'exact' | 'fee' | 'fx';
 }
 
 export async function findInternalTransferCandidates(): Promise<TransferCandidate[]> {
@@ -639,30 +668,116 @@ export async function findInternalTransferCandidatesNear(
   return matchTransferCandidates(txs);
 }
 
-function matchTransferCandidates(txs: Transaction[]): TransferCandidate[] {
+const FEE_RE = /\b(comision|taxa|speze|fee)\b/i;
+/** Spread bancar față de cursul BNR: 2% acoperă practica uzuală în RO. */
+const FX_TOLERANCE = 0.02;
+
+function stripDiacritics(s: string): string {
+  return s.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}
+
+function isFee(tx: Transaction): boolean {
+  return FEE_RE.test(stripDiacritics(`${tx.description ?? ''} ${tx.merchant ?? ''}`));
+}
+
+function daysBetween(a: string, b: string): number {
+  return Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86400000;
+}
+
+function matchTransferCandidates(
+  txs: Transaction[],
+  rates?: Map<string, number>
+): TransferCandidate[] {
   const outflows = txs.filter(t => t.amount < 0 && t.account_id);
   const inflows = txs.filter(t => t.amount > 0 && t.account_id);
+  const fees = outflows.filter(isFee);
 
   const result: TransferCandidate[] = [];
   const usedIn = new Set<string>();
+  const usedFee = new Set<string>();
+
+  // Conversia în RON pentru laturile în valute diferite. Fără curs disponibil
+  // nu inventăm unul — perechea pur și simplu nu se formează.
+  const toRon = (t: Transaction): number | undefined => {
+    if (t.currency === 'RON') return t.amount;
+    if (t.amount_ron !== undefined) return t.amount_ron;
+    const rate = rates?.get(`${t.date.slice(0, 10)}|${t.currency}`);
+    return rate === undefined ? undefined : t.amount * rate;
+  };
 
   for (const out of outflows) {
-    let bestMatch: Transaction | undefined;
+    if (isFee(out)) continue; // comisionul nu e el însuși latura unui transfer
+    let best: { inn: Transaction; kind: 'exact' | 'fee' | 'fx'; fees: Transaction[] } | undefined;
     let bestDelta = Infinity;
+
     for (const inn of inflows) {
       if (usedIn.has(inn.id)) continue;
       if (inn.account_id === out.account_id) continue;
-      if (Math.abs(out.amount + inn.amount) > 0.01) continue;
-      const days = Math.abs(new Date(out.date).getTime() - new Date(inn.date).getTime()) / 86400000;
+      const days = daysBetween(out.date, inn.date);
       if (days > 2) continue;
-      if (days < bestDelta) {
-        bestDelta = days;
-        bestMatch = inn;
+
+      let kind: 'exact' | 'fee' | 'fx' | undefined;
+      let matchedFees: Transaction[] = [];
+
+      if (out.currency === inn.currency) {
+        if (Math.abs(out.amount + inn.amount) <= 0.01) {
+          kind = 'exact';
+        } else {
+          // Diferența poate fi explicată de comisioane din aceeași fereastră,
+          // din contul sursă: 1000 ieșit = 995 intrat + 5 comision.
+          const gap = Math.abs(out.amount) - Math.abs(inn.amount);
+          if (gap > 0) {
+            const nearby = fees.filter(
+              f =>
+                !usedFee.has(f.id) &&
+                f.account_id === out.account_id &&
+                f.id !== out.id &&
+                daysBetween(f.date, out.date) <= 2
+            );
+            let acc = 0;
+            const picked: Transaction[] = [];
+            for (const f of nearby) {
+              if (acc >= gap - 0.01) break;
+              acc += Math.abs(f.amount);
+              picked.push(f);
+            }
+            if (Math.abs(acc - gap) <= 0.01) {
+              kind = 'fee';
+              matchedFees = picked;
+            }
+          }
+        }
+      } else {
+        // Valute diferite: comparăm valorile convertite în RON, cu toleranță
+        // pentru spreadul băncii (cursul ei nu e cel BNR).
+        const outRon = toRon(out);
+        const innRon = toRon(inn);
+        if (outRon !== undefined && innRon !== undefined) {
+          const base = Math.max(Math.abs(outRon), Math.abs(innRon));
+          if (base > 0 && Math.abs(outRon + innRon) / base <= FX_TOLERANCE) {
+            kind = 'fx';
+          }
+        }
+      }
+
+      if (!kind) continue;
+      // Potrivirea exactă bate orice potrivire prin toleranță, indiferent de dată.
+      const rank = kind === 'exact' ? days : days + 100;
+      if (rank < bestDelta) {
+        bestDelta = rank;
+        best = { inn, kind, fees: matchedFees };
       }
     }
-    if (bestMatch) {
-      result.push({ outflow: out, inflow: bestMatch });
-      usedIn.add(bestMatch.id);
+
+    if (best) {
+      result.push({
+        outflow: out,
+        inflow: best.inn,
+        kind: best.kind,
+        ...(best.fees.length > 0 ? { fees: best.fees } : {}),
+      });
+      usedIn.add(best.inn.id);
+      for (const f of best.fees) usedFee.add(f.id);
     }
   }
   return result;
@@ -677,6 +792,14 @@ export interface MonthlyTotals {
   expense_ron: number; // suma absolută cheltuieli (positivă)
   net_ron: number; // income - expense (poate fi negativ)
   transaction_count: number;
+  /** Tranzacții în valută sărite din sume fiindcă le lipsește cursul. */
+  missing_rate_count?: number;
+  /**
+   * Cât din `expense_ron` e numerar retras (convertit în transfer sau nu).
+   * Prezent doar când există. UI-ul îl arată explicit, ca schimbarea cifrelor
+   * față de versiunea anterioară să nu pară un bug.
+   */
+  cash_withdrawn_ron?: number;
 }
 
 /**
@@ -699,23 +822,33 @@ export async function getMonthlyTotals(
     income: number | null;
     expense: number | null;
     cnt: number;
+    missing_rate: number | null;
   }>(
     `SELECT
-       COALESCE(SUM(CASE WHEN amount > 0 THEN COALESCE(amount_ron, amount) ELSE 0 END), 0) AS income,
-       COALESCE(SUM(CASE WHEN amount < 0 THEN COALESCE(amount_ron, amount) ELSE 0 END), 0) AS expense,
-       COUNT(*) AS cnt
+       COALESCE(SUM(CASE WHEN ${IS_INCOME_SQL} THEN ${amountRonSql()} ELSE 0 END), 0) AS income,
+       COALESCE(SUM(CASE WHEN ${IS_EXPENSE_SQL} THEN ${amountRonSql()} ELSE 0 END), 0) AS expense,
+       COUNT(*) AS cnt,
+       ${missingRateCountSql()} AS missing_rate
      FROM transactions
      WHERE ${whereSql}`,
     params
   );
 
+  // Numerarul retras: retragerile convertite în transfer sunt excluse de
+  // `is_internal_transfer = 0` din interogarea de mai sus, deci se adaugă aici.
+  // Cele neconvertite sunt deja în `expense` și nu se adună a doua oară.
+  const cash = await loadCashWithdrawals(yearMonth, accountId);
+
   const income = row?.income ?? 0;
-  const expense = Math.abs(row?.expense ?? 0);
+  const expense = Math.abs(row?.expense ?? 0) + cash.added_ron;
+  const missing = row?.missing_rate ?? 0;
   return {
     income_ron: income,
     expense_ron: expense,
     net_ron: income - expense,
     transaction_count: row?.cnt ?? 0,
+    ...(missing > 0 ? { missing_rate_count: missing } : {}),
+    ...(cash.total_ron > 0 ? { cash_withdrawn_ron: cash.total_ron } : {}),
   };
 }
 
@@ -760,7 +893,7 @@ export async function getMonthlyIncomeSeries(
 
   const rows = await db.getAllAsync<{ ym: string; total: number | null }>(
     `SELECT substr(date, 1, 7) AS ym,
-            SUM(COALESCE(amount_ron, amount)) AS total
+            SUM(${amountRonSql()}) AS total
      FROM transactions
      WHERE ${where.join(' AND ')}
      GROUP BY ym
@@ -826,7 +959,7 @@ export async function getCategoryBreakdown(
        c.key AS category_key,
        c.icon,
        c.color,
-       SUM(COALESCE(t.amount_ron, t.amount)) AS total,
+       SUM(${amountRonSql('t')}) AS total,
        COUNT(*) AS cnt
      FROM transactions t
      LEFT JOIN expense_categories c ON c.id = t.category_id
@@ -847,6 +980,36 @@ export async function getCategoryBreakdown(
     percentage: 0,
   }));
 
+  // Numerarul retras intră ca pseudo-categorie. Retragerile neconvertite sunt
+  // deja în categoriile lor, deci se scad de acolo înainte: altfel aceiași bani
+  // ar apărea de două ori, iar suma categoriilor n-ar mai da totalul lunii.
+  const cash = await loadCashBreakdownAdjustment(yearMonth, accountId);
+  if (cash.total_ron > 0) {
+    for (const deduction of cash.deductions) {
+      const target = items.find(it => it.category_id === deduction.category_id);
+      if (target === undefined) continue;
+      target.total_ron = Math.max(
+        0,
+        Math.round((target.total_ron - deduction.amount_ron) * 100) / 100
+      );
+      target.transaction_count = Math.max(0, target.transaction_count - deduction.count);
+    }
+    items.push({
+      category_id: CASH_WITHDRAWN_CATEGORY_ID,
+      category_name: CASH_WITHDRAWN_LABEL,
+      category_key: null,
+      icon: 'cash-outline',
+      color: null,
+      total_ron: cash.total_ron,
+      transaction_count: cash.count,
+      percentage: 0,
+    });
+  }
+
+  const visible = items.filter(it => it.total_ron > 0);
+  items.length = 0;
+  items.push(...visible);
+
   const grandTotal = items.reduce((s, it) => s + it.total_ron, 0);
   if (grandTotal > 0) {
     for (const it of items) {
@@ -855,6 +1018,75 @@ export async function getCategoryBreakdown(
   }
 
   return items.sort((a, b) => b.total_ron - a.total_ron);
+}
+
+export interface CategoryMonthlyPoint {
+  yearMonth: string;
+  category_id: string | null;
+  category_name: string;
+  /** Sumă absolută, pozitivă. */
+  total_ron: number;
+  transaction_count: number;
+}
+
+/**
+ * Totalurile și numărul de tranzacții pe (lună, categorie), într-o interogare.
+ *
+ * Detectarea anomaliilor (B2) are nevoie de 13 luni deodată. `getCategoryEvolution`
+ * nu poate servi: face câte o interogare per categorie și își calculează lunile
+ * din `new Date()`, deci e legat de luna curentă. Aici intervalul e explicit, iar
+ * numărul de tranzacții — necesar pentru `more_frequent` și `higher_ticket` —
+ * vine din aceeași trecere.
+ *
+ * Lunile fără cheltuieli pe o categorie lipsesc din rezultat; apelantul decide
+ * dacă absența înseamnă zero sau „nu știm".
+ */
+export async function getCategoryMonthlySeries(
+  fromMonth: string,
+  toMonth: string,
+  accountId?: string
+): Promise<CategoryMonthlyPoint[]> {
+  const where = [
+    'substr(t.date, 1, 7) >= ?',
+    'substr(t.date, 1, 7) <= ?',
+    't.duplicate_of_id IS NULL',
+    't.is_internal_transfer = 0',
+    't.amount < 0',
+  ];
+  const params: (string | number)[] = [fromMonth, toMonth];
+  if (accountId) {
+    where.push('t.account_id = ?');
+    params.push(accountId);
+  }
+
+  const rows =
+    (await db.getAllAsync<{
+      ym: string;
+      category_id: string | null;
+      category_name: string | null;
+      total: number | null;
+      cnt: number;
+    }>(
+      `SELECT substr(t.date, 1, 7) AS ym,
+              t.category_id,
+              c.name AS category_name,
+              SUM(${amountRonSql('t')}) AS total,
+              COUNT(*) AS cnt
+       FROM transactions t
+       LEFT JOIN expense_categories c ON c.id = t.category_id
+       WHERE ${where.join(' AND ')}
+       GROUP BY ym, t.category_id, c.name
+       ORDER BY ym ASC`,
+      params
+    )) ?? [];
+
+  return rows.map(r => ({
+    yearMonth: r.ym,
+    category_id: r.category_id,
+    category_name: r.category_name ?? 'Necategorizat',
+    total_ron: Math.abs(r.total ?? 0),
+    transaction_count: r.cnt,
+  }));
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -918,7 +1150,7 @@ export async function getCategoryEvolution(
 
     const rows = await db.getAllAsync<{ ym: string; total: number | null }>(
       `SELECT substr(date, 1, 7) AS ym,
-              SUM(COALESCE(amount_ron, amount)) AS total
+              SUM(${amountRonSql()}) AS total
        FROM transactions
        WHERE ${localWhere.join(' AND ')}
        GROUP BY ym

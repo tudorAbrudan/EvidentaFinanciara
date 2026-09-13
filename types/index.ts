@@ -73,7 +73,13 @@ export interface ExpenseCategory {
 // Tranzacții
 // ────────────────────────────────────────────────────────────────────────────
 
-export type TransactionSource = 'manual' | 'statement' | 'ocr' | 'demo';
+/**
+ * `adjustment` = tranzacția creată de „Aliniază la extras", când userul hotărăște
+ * că extrasul are dreptate și diferența rămasă trebuie închisă. Corectează soldul,
+ * dar e exclusă din analizele de cheltuieli și venituri: n-a fost o plată, ci o
+ * recunoaștere a faptului că lipsea ceva.
+ */
+export type TransactionSource = 'manual' | 'statement' | 'ocr' | 'demo' | 'adjustment';
 
 /**
  * Tranzacție financiară: cheltuială (amount < 0), venit (amount > 0) sau transfer.
@@ -122,6 +128,15 @@ export interface BankStatement {
   account_id: string;
   period_from: string; // YYYY-MM-DD
   period_to: string; // YYYY-MM-DD
+  /**
+   * `header` = perioada tipărită pe extras, validată de parser.
+   * `inferred` = dedusă din prima și ultima tranzacție, deci poate fi mai îngustă
+   * decât perioada reală (un extras pe iunie cu prima plată pe 3 iunie).
+   */
+  period_source: 'header' | 'inferred';
+  /** `SOLD ANTERIOR` / `SOLD FINAL CONT`, doar când extrasul le tipărește și se verifică. */
+  opening_balance?: number;
+  closing_balance?: number;
   file_path?: string;
   file_hash?: string;
   imported_at: string; // ISO

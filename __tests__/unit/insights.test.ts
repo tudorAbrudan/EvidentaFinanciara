@@ -1,204 +1,167 @@
-import { buildInsightsFromBreakdowns } from '@/services/insights';
-import type { CategoryBreakdownItem } from '@/services/transactions';
+import { buildInsightsFromAnomalies, computeMonthlyInsights } from '@/services/insights';
+import type { SpendingAnomaly } from '@/services/spendingAnomalies';
+import * as coverage from '@/services/statementCoverage';
+import * as txService from '@/services/transactions';
 
-function cat(category_id: string | null, name: string, total_ron: number): CategoryBreakdownItem {
+// `spendingAnomalies` importă `formatMonthLabel` de aici: fără el în mock,
+// detectorul ar primi `undefined` și ar arunca la prima anomalie, iar testul ar
+// părea că demonstrează altceva.
+jest.mock('@/services/statementCoverage', () => ({
+  __esModule: true,
+  loadCoverageReport: jest.fn(),
+  isMonthComplete: jest.fn(),
+  formatMonthLabel: (ym: string) => ym,
+}));
+
+jest.mock('@/services/transactions', () => ({
+  __esModule: true,
+  getCategoryMonthlySeries: jest.fn(),
+  getTransactions: jest.fn(),
+}));
+
+function anomaly(over: Partial<SpendingAnomaly> = {}): SpendingAnomaly {
   return {
-    category_id,
-    category_name: name,
-    category_key: null,
-    icon: null,
-    color: null,
-    total_ron,
-    percentage: 0,
-    transaction_count: 1,
+    id: 'anomaly:cat-food:2026-08',
+    category_id: 'cat-food',
+    category_name: 'Mâncare',
+    month: '2026-08',
+    direction: 'up',
+    severity: 'warning',
+    explanation: 'single_large',
+    current_ron: 2100,
+    median_ron: 1200,
+    excess_ron: 900,
+    z: 5,
+    message: 'Mâncare: 2.100 RON în august 2026, față de 1.200 RON obișnuit.',
+    evidence_tx_ids: ['t1'],
+    ...over,
   };
 }
 
-describe('buildInsightsFromBreakdowns — total general', () => {
-  it('detectează creștere semnificativă > 20%', () => {
-    const insights = buildInsightsFromBreakdowns(
-      1500,
-      [1000, 1000, 1000],
-      [cat('cat-food', 'Mâncare', 800), cat('cat-other', 'Altceva', 700)],
-      [
-        [cat('cat-food', 'Mâncare', 600), cat('cat-other', 'Altceva', 400)],
-        [cat('cat-food', 'Mâncare', 600), cat('cat-other', 'Altceva', 400)],
-        [cat('cat-food', 'Mâncare', 600), cat('cat-other', 'Altceva', 400)],
-      ]
+describe('buildInsightsFromAnomalies', () => {
+  it('păstrează mesajul detectorului, nu îl rescrie', () => {
+    // Cifrele și explicația sunt deja decise acolo; aici doar se potrivește forma.
+    const result = buildInsightsFromAnomalies(null, [anomaly()]);
+    expect(result[0]?.message).toBe(
+      'Mâncare: 2.100 RON în august 2026, față de 1.200 RON obișnuit.'
     );
-    const total = insights.find(i => i.type === 'total_change');
-    expect(total).toBeDefined();
-    expect(total?.severity).toBe('warning');
-    expect(total?.delta_ron).toBe(500);
-    expect(Math.round(total?.delta_pct ?? 0)).toBe(50);
-    expect(total?.message).toMatch(/cu 50% mai mult/);
-    expect(total?.message).toMatch(/500 RON/);
+    expect(result[0]?.type).toBe('category_change');
+    expect(result[0]?.category_name).toBe('Mâncare');
   });
 
-  it('detectează scădere semnificativă cu severity positive', () => {
-    const insights = buildInsightsFromBreakdowns(500, [1000, 1000, 1000], [], []);
-    const total = insights.find(i => i.type === 'total_change');
-    expect(total?.severity).toBe('positive');
-    expect(total?.delta_ron).toBe(-500);
-    expect(total?.message).toMatch(/cu 50% mai puțin/);
+  it('procentul se raportează la mediană, nu la medie', () => {
+    const result = buildInsightsFromAnomalies(null, [anomaly()]);
+    expect(Math.round(result[0]?.delta_pct ?? 0)).toBe(75); // 900 / 1200
   });
 
-  it('ignoră schimbări sub 20%', () => {
-    const insights = buildInsightsFromBreakdowns(1100, [1000, 1000, 1000], [], []);
-    expect(insights.find(i => i.type === 'total_change')).toBeUndefined();
+  it('totalul trece primul, înaintea categoriilor', () => {
+    const total = anomaly({ category_id: null, category_name: 'Total', excess_ron: 500 });
+    const result = buildInsightsFromAnomalies(total, [anomaly()]);
+    expect(result[0]?.type).toBe('total_change');
+    expect(result[0]?.id).toBe('total');
+    expect(result[1]?.type).toBe('category_change');
   });
 
-  it('ignoră schimbări sub 50 RON absolut', () => {
-    // 30 / 100 = 30% (peste prag relativ), dar absolut sub 50 RON
-    const insights = buildInsightsFromBreakdowns(130, [100, 100, 100], [], []);
-    expect(insights.find(i => i.type === 'total_change')).toBeUndefined();
+  it('păstrează severitatea neutră a anomaliilor sezoniere', () => {
+    const result = buildInsightsFromAnomalies(null, [anomaly({ severity: 'neutral' })]);
+    expect(result[0]?.severity).toBe('neutral');
   });
 
-  it('istoric gol → fără insight total', () => {
-    const insights = buildInsightsFromBreakdowns(1500, [], [], []);
-    expect(insights.find(i => i.type === 'total_change')).toBeUndefined();
+  it('cap de 3 carduri, ca înainte', () => {
+    const many = ['a', 'b', 'c', 'd'].map(id =>
+      anomaly({ category_id: `cat-${id}`, category_name: id.toUpperCase() })
+    );
+    expect(buildInsightsFromAnomalies(anomaly(), many)).toHaveLength(3);
   });
 
-  it('istoric cu zerouri → folosește doar lunile non-zero', () => {
-    // doar 1000 e valid; 1500 vs 1000 = +50%
-    const insights = buildInsightsFromBreakdowns(1500, [1000, 0, 0], [], []);
-    const total = insights.find(i => i.type === 'total_change');
-    expect(total).toBeDefined();
-    expect(Math.round(total?.delta_pct ?? 0)).toBe(50);
+  it('fără anomalii → niciun card', () => {
+    expect(buildInsightsFromAnomalies(null, [])).toEqual([]);
   });
 });
 
-describe('buildInsightsFromBreakdowns — categorii', () => {
-  it('detectează creștere categorie peste 20% și ≥ 100 RON', () => {
-    const insights = buildInsightsFromBreakdowns(
-      0,
-      [0, 0, 0],
-      [cat('cat-food', 'Mâncare', 600)],
-      [
-        [cat('cat-food', 'Mâncare', 400)],
-        [cat('cat-food', 'Mâncare', 400)],
-        [cat('cat-food', 'Mâncare', 400)],
-      ]
+describe('computeMonthlyInsights', () => {
+  const COMPLETE = new Set([
+    '2025-09',
+    '2025-10',
+    '2025-11',
+    '2025-12',
+    '2026-01',
+    '2026-02',
+    '2026-03',
+    '2026-04',
+    '2026-05',
+    '2026-06',
+    '2026-07',
+    '2026-08',
+  ]);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (coverage.loadCoverageReport as jest.Mock).mockResolvedValue({
+      accounts: [],
+      last_closed_month: '2026-08',
+    });
+    (coverage.isMonthComplete as jest.Mock).mockImplementation((_r: unknown, ym: string) =>
+      COMPLETE.has(ym)
     );
-    const food = insights.find(i => i.id === 'cat:cat-food');
+    (txService.getTransactions as jest.Mock).mockResolvedValue([]);
+    (txService.getCategoryMonthlySeries as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('lună incompletă → niciun card, fără să atingă baza', async () => {
+    (coverage.isMonthComplete as jest.Mock).mockReturnValue(false);
+    const result = await computeMonthlyInsights('2026-08');
+    expect(result).toEqual([]);
+    // Poarta e înainte de orice interogare: pe date parțiale nu calculăm nimic.
+    expect(txService.getCategoryMonthlySeries).not.toHaveBeenCalled();
+  });
+
+  it('fără nicio lună completă înainte → niciun card', async () => {
+    (coverage.isMonthComplete as jest.Mock).mockImplementation(
+      (_r: unknown, ym: string) => ym === '2026-08'
+    );
+    expect(await computeMonthlyInsights('2026-08')).toEqual([]);
+  });
+
+  it('categorie mult peste obicei → card cu mesajul detectorului', async () => {
+    const history = [...COMPLETE]
+      .filter(ym => ym !== '2026-08')
+      .map(ym => ({
+        yearMonth: ym,
+        category_id: 'cat-food',
+        category_name: 'Mâncare',
+        total_ron: 1200,
+        transaction_count: 10,
+      }));
+    (txService.getCategoryMonthlySeries as jest.Mock).mockResolvedValue([
+      ...history,
+      {
+        yearMonth: '2026-08',
+        category_id: 'cat-food',
+        category_name: 'Mâncare',
+        total_ron: 2100,
+        transaction_count: 10,
+      },
+    ]);
+
+    const result = await computeMonthlyInsights('2026-08');
+    const food = result.find(i => i.category_id === 'cat-food');
     expect(food).toBeDefined();
     expect(food?.severity).toBe('warning');
-    expect(food?.message).toMatch(/Mai mult la Mâncare/);
-    expect(Math.round(food?.delta_pct ?? 0)).toBe(50);
-    expect(Math.round(food?.delta_ron ?? 0)).toBe(200);
+    expect(food?.delta_ron).toBe(900);
+    expect(food?.message).toContain('Mâncare');
+    expect(food?.message).toContain('2.100');
   });
 
-  it('ignoră categorii sub 100 RON luna curentă', () => {
-    const insights = buildInsightsFromBreakdowns(
-      0,
-      [0, 0, 0],
-      [cat('cat-rare', 'Rare', 80)],
-      [[cat('cat-rare', 'Rare', 10)], [cat('cat-rare', 'Rare', 10)], [cat('cat-rare', 'Rare', 10)]]
-    );
-    expect(insights.find(i => i.id === 'cat:cat-rare')).toBeUndefined();
-  });
-
-  it('detectează categorie nouă cu cheltuieli >= 200 RON ca insight category_new', () => {
-    const insights = buildInsightsFromBreakdowns(
-      0,
-      [0, 0, 0],
-      [cat('cat-new', 'Veterinar', 500)],
-      [[], [], []]
-    );
-    const newCat = insights.find(i => i.id === 'cat:cat-new');
-    expect(newCat).toBeDefined();
-    expect(newCat?.type).toBe('category_new');
-    expect(newCat?.severity).toBe('neutral');
-    expect(newCat?.delta_ron).toBe(500);
-    expect(newCat?.message).toMatch(/Categorie nouă: Veterinar cu 500 RON/);
-  });
-
-  it('ignoră categorie nouă sub pragul 200 RON', () => {
-    const insights = buildInsightsFromBreakdowns(
-      0,
-      [0, 0, 0],
-      [cat('cat-new', 'Nouă', 150)],
-      [[], [], []]
-    );
-    expect(insights.find(i => i.id === 'cat:cat-new')).toBeUndefined();
-  });
-
-  it('ignoră necategorizat (category_id null)', () => {
-    const insights = buildInsightsFromBreakdowns(
-      0,
-      [0, 0, 0],
-      [cat(null, 'Necategorizat', 500)],
-      [[cat(null, 'Necategorizat', 100)]]
-    );
-    expect(insights.find(i => i.id === 'cat:null')).toBeUndefined();
-  });
-
-  it('detectează scădere categorie cu severity positive', () => {
-    const insights = buildInsightsFromBreakdowns(
-      0,
-      [0, 0, 0],
-      [cat('cat-food', 'Mâncare', 200)],
-      [
-        [cat('cat-food', 'Mâncare', 500)],
-        [cat('cat-food', 'Mâncare', 500)],
-        [cat('cat-food', 'Mâncare', 500)],
-      ]
-    );
-    const food = insights.find(i => i.id === 'cat:cat-food');
-    expect(food?.severity).toBe('positive');
-    expect(food?.message).toMatch(/Mai puțin la Mâncare/);
-  });
-});
-
-describe('buildInsightsFromBreakdowns — selecție și ordine', () => {
-  it('total e mereu primul, apoi categorii ordonate descrescător după delta', () => {
-    const insights = buildInsightsFromBreakdowns(
-      2000,
-      [1000, 1000, 1000],
-      [
-        cat('cat-food', 'Mâncare', 800),
-        cat('cat-fuel', 'Combustibil', 600),
-        cat('cat-fun', 'Distracție', 600),
-      ],
-      [
-        [
-          cat('cat-food', 'Mâncare', 400),
-          cat('cat-fuel', 'Combustibil', 200),
-          cat('cat-fun', 'Distracție', 500),
-        ],
-        [
-          cat('cat-food', 'Mâncare', 400),
-          cat('cat-fuel', 'Combustibil', 200),
-          cat('cat-fun', 'Distracție', 500),
-        ],
-        [
-          cat('cat-food', 'Mâncare', 400),
-          cat('cat-fuel', 'Combustibil', 200),
-          cat('cat-fun', 'Distracție', 500),
-        ],
-      ]
-    );
-
-    expect(insights.length).toBeLessThanOrEqual(3);
-    expect(insights[0].type).toBe('total_change');
-    // următoarele sunt sortate descrescător după magnitudine
-    const cats = insights.slice(1);
-    if (cats.length >= 2) {
-      expect(Math.abs(cats[0].delta_ron)).toBeGreaterThanOrEqual(Math.abs(cats[1].delta_ron));
-    }
-  });
-
-  it('cap 3 insights chiar dacă există mai multe candidate', () => {
-    const insights = buildInsightsFromBreakdowns(
-      2000,
-      [1000, 1000, 1000],
-      [cat('a', 'A', 500), cat('b', 'B', 500), cat('c', 'C', 500), cat('d', 'D', 500)],
-      [
-        [cat('a', 'A', 200), cat('b', 'B', 200), cat('c', 'C', 200), cat('d', 'D', 200)],
-        [cat('a', 'A', 200), cat('b', 'B', 200), cat('c', 'C', 200), cat('d', 'D', 200)],
-        [cat('a', 'A', 200), cat('b', 'B', 200), cat('c', 'C', 200), cat('d', 'D', 200)],
-      ]
-    );
-    expect(insights.length).toBe(3);
+  it('lună în tipar → niciun card', async () => {
+    const flat = [...COMPLETE].map(ym => ({
+      yearMonth: ym,
+      category_id: 'cat-food',
+      category_name: 'Mâncare',
+      total_ron: 1200,
+      transaction_count: 10,
+    }));
+    (txService.getCategoryMonthlySeries as jest.Mock).mockResolvedValue(flat);
+    expect(await computeMonthlyInsights('2026-08')).toEqual([]);
   });
 });

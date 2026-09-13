@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
+import { INITIAL_THROTTLE, type ThrottleState } from './appLockThrottle';
+
 import type { SnapshotFrequency } from '@/types';
 
 const KEY_NOTIF_DAYS = 'settings_notif_days';
@@ -44,6 +46,30 @@ export async function setAppLockEnabled(enabled: boolean): Promise<void> {
   await SecureStore.setItemAsync(KEY_APP_LOCK_ENABLED, enabled ? 'true' : 'false');
 }
 
+const KEY_APP_LOCK_THROTTLE = 'app_lock_throttle';
+
+/** Starea de limitare a încercărilor de PIN; persistată ca să supraviețuiască repornirii. */
+export async function getAppLockThrottle(): Promise<ThrottleState> {
+  if (Platform.OS === 'web') return { ...INITIAL_THROTTLE };
+  const raw = await SecureStore.getItemAsync(KEY_APP_LOCK_THROTTLE);
+  if (!raw) return { ...INITIAL_THROTTLE };
+  try {
+    const parsed = JSON.parse(raw) as Partial<ThrottleState>;
+    return {
+      failed: typeof parsed.failed === 'number' ? parsed.failed : 0,
+      lockedUntil: typeof parsed.lockedUntil === 'number' ? parsed.lockedUntil : 0,
+    };
+  } catch {
+    // Valoare coruptă: repornim de la zero, nu blocăm userul afară din aplicație.
+    return { ...INITIAL_THROTTLE };
+  }
+}
+
+export async function setAppLockThrottle(state: ThrottleState): Promise<void> {
+  if (Platform.OS === 'web') return;
+  await SecureStore.setItemAsync(KEY_APP_LOCK_THROTTLE, JSON.stringify(state));
+}
+
 export async function getAppLockPin(): Promise<string | null> {
   if (Platform.OS === 'web') return null;
   return await SecureStore.getItemAsync(KEY_APP_LOCK_PIN);
@@ -58,6 +84,7 @@ export async function setAppLockPin(pin: string): Promise<void> {
 export async function clearAppLockPin(): Promise<void> {
   if (Platform.OS === 'web') return;
   await SecureStore.deleteItemAsync(KEY_APP_LOCK_PIN);
+  await SecureStore.deleteItemAsync(KEY_APP_LOCK_THROTTLE);
 }
 
 const KEY_ONBOARDING_DONE = 'settings_onboarding_done';
@@ -73,6 +100,39 @@ export async function setOnboardingDone(): Promise<void> {
 
 export async function resetOnboarding(): Promise<void> {
   await AsyncStorage.removeItem(KEY_ONBOARDING_DONE);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Acoperirea cu extrase
+// ────────────────────────────────────────────────────────────────────────────
+
+const KEY_COVERAGE_MUTED_ACCOUNTS = 'settings_coverage_muted_accounts';
+
+/**
+ * Conturile pentru care userul a spus explicit că nu importă extrase.
+ *
+ * Fără portița asta, un cont ținut altfel (economii atinse o dată pe an) ar
+ * produce o alertă în fiecare lună, iar alerta care nu se poate opri ajunge
+ * ignorată cu totul — inclusiv când semnalează ceva real.
+ */
+export async function getCoverageMutedAccounts(): Promise<string[]> {
+  const raw = await AsyncStorage.getItem(KEY_COVERAGE_MUTED_ACCOUNTS);
+  if (raw == null) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((v): v is string => typeof v === 'string');
+  } catch {
+    // Valoare coruptă: verificăm toate conturile, nu tăcem niciunul.
+    return [];
+  }
+}
+
+export async function setCoverageMuted(accountId: string, muted: boolean): Promise<void> {
+  const current = new Set(await getCoverageMutedAccounts());
+  if (muted) current.add(accountId);
+  else current.delete(accountId);
+  await AsyncStorage.setItem(KEY_COVERAGE_MUTED_ACCOUNTS, JSON.stringify([...current]));
 }
 
 export type ThemePreference = 'light' | 'dark' | 'auto';

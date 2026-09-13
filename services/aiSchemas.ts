@@ -22,6 +22,9 @@ const TEMPLATES: [ChatTemplate, ...ChatTemplate[]] = [
   'list_accounts',
   'list_categories',
   'raw_list',
+  'spend_total',
+  'top_spending',
+  'account_balance',
   'cannot_answer',
 ];
 

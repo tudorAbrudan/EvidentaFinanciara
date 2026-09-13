@@ -15,18 +15,32 @@
  *     and confirm any third party provides the same or equal protection.
  */
 
-export const POLICY_LAST_UPDATED = '2026-04-30';
+export const POLICY_LAST_UPDATED = '2026-09-12';
 export const APP_NAME = 'Finanțe Personale';
 export const CONTACT_EMAIL = 'apps.tudor@gmail.com';
 export const AI_PROVIDER_NAME = 'Mistral AI';
 export const AI_PROVIDER_LEGAL = 'Mistral SAS, Franța';
 export const AI_PROVIDER_TERMS_URL = 'https://mistral.ai/terms';
+/** Unde rulează serverul intermediar pentru „Finanțe AI" (`ai-proxy/`). */
+export const AI_PROXY_HOST = 'Danube Data';
 
 export interface DisclosureSection {
   heading: string;
   paragraphs: string[];
   bullets?: string[];
 }
+
+const PROXY_EXPLANATION = `Cu „Finanțe AI", cererile trec printr-un server intermediar al aplicației, găzduit la ${AI_PROXY_HOST}, care le trimite mai departe la ${AI_PROVIDER_NAME}. Serverul intermediar nu stochează și nu înregistrează conținutul cererilor sau al răspunsurilor. Păstrează doar, în memorie, contoare de cereri pe zi: unul legat de un identificator anonim generat aleator pe device și unul legat de adresa IP a cererii, pentru limitele zilnice. Contoarele se șterg la prima cerere din ziua următoare (ora UTC) și la fiecare repornire a serverului.`;
+
+const OWN_KEY_EXPLANATION = `Dacă alegi „Cheia mea API" în loc de „Finanțe AI", cererile merg direct de pe device la furnizorul tău (OpenAI, Mistral self-hosted etc.), fără serverul intermediar, și sunt guvernate de termenii lui.`;
+
+const DATA_SENT_BULLETS = [
+  'Asistent conversațional: textul întrebărilor tale + un sumar al ultimelor 4 schimburi din conversație + numele conturilor și ale categoriilor tale (fără solduri și fără sume), ca AI-ul să poată lega întrebarea de datele tale. Conținutul tranzacțiilor NU se trimite — AI primește schema bazei de date și generează interogarea, care rulează local pe device.',
+  'Mapare extras CSV/text: textul integral al fișierului bancar (descrieri tranzacții, sume, date, eventual nume titular sau IBAN dacă apar în fișier).',
+  'Mapare extras PDF (vision), disponibilă doar cu cheie API proprie: paginile PDF ca imagini base64. Conține tot ce e vizibil — inclusiv nume titular, IBAN, adresă, sume, descrieri tranzacții.',
+];
+
+const RETENTION_PARAGRAPH = `Cererile sunt procesate conform termenilor ${AI_PROVIDER_NAME} (${AI_PROVIDER_TERMS_URL}). Mistral declară că nu folosește input-urile API pentru antrenarea implicită a modelelor; cererile pot fi reținute temporar în scopuri de abuz și securitate, conform politicii lor curente.`;
 
 /**
  * Versiunea scurtă (consent surface) — ce date, cui, scop, control.
@@ -37,18 +51,15 @@ export const AI_DISCLOSURE: DisclosureSection[] = [
   {
     heading: 'Cu cine procesează AI-ul aplicația',
     paragraphs: [
-      `Asistentul AI folosește ${AI_PROVIDER_NAME} (operat de ${AI_PROVIDER_LEGAL}) ca furnizor de inferență. Cererile sunt trimise direct către API-ul Mistral.`,
-      `Dacă alegi „Cheia mea API" în loc de „Finanțe AI", datele merg la furnizorul tău (OpenAI, Mistral self-hosted, etc.) — guvernate de termenii lui.`,
+      `Asistentul AI folosește ${AI_PROVIDER_NAME} (operat de ${AI_PROVIDER_LEGAL}) ca furnizor de inferență.`,
+      PROXY_EXPLANATION,
+      OWN_KEY_EXPLANATION,
     ],
   },
   {
     heading: 'Ce date trimit la Mistral',
     paragraphs: ['Datele trimise diferă în funcție de funcționalitate:'],
-    bullets: [
-      'Asistent conversațional: textul întrebărilor tale + un sumar al ultimelor 4 schimburi din conversație. Conținutul tranzacțiilor NU se trimite — AI primește doar schema bazei de date și generează interogarea, care rulează local pe device.',
-      'Mapare extras CSV/text: textul integral al fișierului bancar (descrieri tranzacții, sume, date, eventual nume titular sau IBAN dacă apar în fișier).',
-      'Mapare extras PDF (vision): paginile PDF ca imagini base64. Conține tot ce e vizibil — inclusiv nume titular, IBAN, adresă, sume, descrieri tranzacții.',
-    ],
+    bullets: DATA_SENT_BULLETS,
   },
   {
     heading: 'Scopul prelucrării',
@@ -58,9 +69,7 @@ export const AI_DISCLOSURE: DisclosureSection[] = [
   },
   {
     heading: 'Politica Mistral & reținere',
-    paragraphs: [
-      `Cererile sunt procesate conform termenilor ${AI_PROVIDER_NAME} (${AI_PROVIDER_TERMS_URL}). Mistral declară că nu folosește input-urile API pentru antrenarea implicită a modelelor; cererile pot fi reținute temporar în scopuri de abuz și securitate, conform politicii lor curente.`,
-    ],
+    paragraphs: [RETENTION_PARAGRAPH],
   },
   {
     heading: 'Controlul tău',
@@ -69,7 +78,7 @@ export const AI_DISCLOSURE: DisclosureSection[] = [
       'Opt-in: nimic nu se trimite dacă nu ai bifat consimțământul.',
       'Revocare oricând: Setări → Asistent AI → debifezi consimțământul sau alegi „Fără AI".',
       'Pre-flight la upload: pentru import PDF/CSV apare un dialog separat cu numele fișierului înainte de fiecare trimitere.',
-      'Local-first: tranzacțiile, conturile, categoriile, backup-ul rămân pe device. Nu există server propriu, niciun cont, niciun tracking, niciun analytics.',
+      'Local-first: tranzacțiile, conturile, categoriile, backup-ul rămân pe device. Nu există cont de utilizator, tracking sau analytics. Singurul server al aplicației e intermediarul AI descris mai sus, prin care trec doar cererile AI.',
     ],
   },
 ];
@@ -82,7 +91,7 @@ export const PRIVACY_POLICY_FULL: DisclosureSection[] = [
     heading: '1. Cine suntem',
     paragraphs: [
       `${APP_NAME} este o aplicație mobilă pentru gestiunea finanțelor personale. Aplicația este local-first: toate datele rămân pe device-ul tău, în afară de cazurile descrise în secțiunea 3 (Asistent AI opțional) și secțiunea 4 (Backup iCloud opțional).`,
-      `Nu avem servere proprii. Nu folosim analytics. Nu vindem date.`,
+      `Nu avem baze de date pe server, nu folosim analytics și nu vindem date. Singurul server al aplicației e intermediarul pentru Asistentul AI (secțiunea 3), care nu stochează conținut.`,
     ],
   },
   {
@@ -100,13 +109,10 @@ export const PRIVACY_POLICY_FULL: DisclosureSection[] = [
     heading: '3. Asistent AI (opțional) — date trimise terților',
     paragraphs: [
       `Aplicația include un asistent AI opțional. Dacă îl activezi și accepți consimțământul, anumite date sunt trimise către ${AI_PROVIDER_NAME} (operat de ${AI_PROVIDER_LEGAL}) sau către furnizorul propriu ales de tine.`,
+      PROXY_EXPLANATION,
       `Datele trimise diferă în funcție de funcționalitate:`,
     ],
-    bullets: [
-      'Asistent conversațional: textul întrebărilor tale + sumar al ultimelor 4 schimburi din conversație. Conținutul tranzacțiilor NU se trimite — AI primește doar schema bazei de date și generează interogarea, care rulează local pe device.',
-      'Mapare extras CSV/text: textul integral al fișierului bancar (descrieri tranzacții, sume, date, eventual nume titular sau IBAN dacă apar).',
-      'Mapare extras PDF (vision): paginile PDF ca imagini base64. Conține tot ce e vizibil — nume titular, IBAN, adresă, sume, descrieri tranzacții.',
-    ],
+    bullets: DATA_SENT_BULLETS,
   },
   {
     heading: '3.1. Scopul prelucrării',
@@ -117,8 +123,9 @@ export const PRIVACY_POLICY_FULL: DisclosureSection[] = [
   {
     heading: `3.2. Politica ${AI_PROVIDER_NAME} & reținere`,
     paragraphs: [
-      `Cererile sunt procesate conform termenilor ${AI_PROVIDER_NAME} (${AI_PROVIDER_TERMS_URL}). Mistral declară că nu folosește input-urile API pentru antrenarea implicită a modelelor; cererile pot fi reținute temporar în scopuri de abuz și securitate, conform politicii lor curente.`,
-      `Dacă folosești „Cheia mea API" în loc de varianta inclusă, datele merg direct la furnizorul tău (OpenAI, Mistral self-hosted etc.) — guvernate de termenii lui.`,
+      RETENTION_PARAGRAPH,
+      `Serverul intermediar nu reține conținutul cererilor. Contoarele zilnice (identificator anonim de device sau adresă IP, plus numărul de cereri) stau doar în memorie și se șterg la prima cerere din ziua următoare (ora UTC) sau la repornirea serverului.`,
+      OWN_KEY_EXPLANATION,
     ],
   },
   {
@@ -189,5 +196,5 @@ export function preflightDescription(info: PreflightInfo): string {
     info.contentKind === 'pdf-images'
       ? 'Conținutul vizibil al PDF-ului — inclusiv nume titular, IBAN, descrieri tranzacții, sume.'
       : 'Textul fișierului — descrieri tranzacții, sume, date, eventual nume sau IBAN.';
-  return `Vor fi trimise ${what} către ${AI_PROVIDER_NAME} (${AI_PROVIDER_LEGAL}), care va extrage tranzacțiile.\n\n${contains}`;
+  return `Vor fi trimise ${what} către ${AI_PROVIDER_NAME} (${AI_PROVIDER_LEGAL}), care va extrage tranzacțiile. Cu „Finanțe AI", cererea trece prin serverul intermediar al aplicației, care nu păstrează conținutul.\n\n${contains}`;
 }

@@ -29,7 +29,5 @@
     "@react-navigation/elements"
   ],
   "ignoreExportsUsedInFile": true,
-  "ignoreUnresolved": [
-    "@/modules/pdf-renderer/src"
-  ]
+  "ignoreUnresolved": ["@/modules/pdf-renderer/src"]
 }

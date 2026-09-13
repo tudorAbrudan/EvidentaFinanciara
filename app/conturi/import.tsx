@@ -24,6 +24,7 @@ import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { AI_CONSENT_KEY, getAiConfig, type AiProviderType } from '@/services/aiProvider';
 import { mapStatementWithAi } from '@/services/aiStatementMapper';
 import { mapStatementWithVisionAi } from '@/services/aiStatementVisionMapper';
+import { loadBalanceCheckForStatement } from '@/services/balanceCheck';
 import {
   parseBankStatementCsv,
   applyDirectionHint,
@@ -34,12 +35,19 @@ import {
   parseStatementPdf,
   type PdfReconciliation,
   type PdfStatementFormat,
+  type PdfStatementInfo,
 } from '@/services/bankStatementPdfParser';
-import { db, generateId } from '@/services/db';
+import { recordBankStatement } from '@/services/bankStatements';
 import { getRateRon } from '@/services/fxRates';
 import { listPendingTransferSuggestions } from '@/services/internalTransferSuggestion';
 import { extractTextFromPdf } from '@/services/pdfExtractor';
 import type { PreflightInfo } from '@/services/privacyPolicy';
+import {
+  formatMonthLabel,
+  loadCoverageReport,
+  monthStatus,
+  type MonthAccountStatus,
+} from '@/services/statementCoverage';
 import {
   createTransaction,
   findInternalTransferCandidates,
@@ -68,6 +76,18 @@ export default function ImportScreen() {
   const [parsingStage, setParsingStage] = useState<string>('');
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [reconciliation, setReconciliation] = useState<PdfReconciliation | null>(null);
+  // Perioada și soldurile tipărite pe extras, când parserul le-a validat. Numai
+  // parserul BT le produce: la CSV, PDF generic sau AI rămân null, iar perioada
+  // se deduce din tranzacții.
+  const [statementInfo, setStatementInfo] = useState<PdfStatementInfo | null>(null);
+  // Starea lunii tocmai importate, pe toate conturile care o așteptau. Se arată
+  // la finalul importului, singurul moment în care userul mai are fișierele la
+  // îndemână: altfel află că lipsește un extras abia luna viitoare.
+  const [coverage, setCoverage] = useState<MonthAccountStatus[] | null>(null);
+  const [coverageMonth, setCoverageMonth] = useState<string | null>(null);
+  // Diagnosticul de sold pentru extrasul tocmai importat. Aici doar informează;
+  // acțiunile de reparare stau în detaliul contului, unde e și istoricul.
+  const [balanceMessage, setBalanceMessage] = useState<string | null>(null);
   // Sursele euristice (CSV, PDF generic, AI text, AI vision) trec prin corecția
   // deterministă de semn înainte de preview — așa o „Incasare" greșit clasificată
   // ca debit apare corect ca venit. Rândurile reconciliate cu totalurile băncii
@@ -117,6 +137,35 @@ export default function ImportScreen() {
     };
   }, []);
 
+  // Ecranul se refolosește când CTA-ul de la finalul importului trimite la alt
+  // cont: `router.replace` pe aceeași rută schimbă doar parametrul, nu
+  // remontează componenta. Fără resetul ăsta userul ar rămâne pe „Import
+  // reușit" cu cifrele importului precedent, iar butonul „importă extrasul
+  // pentru…" ar părea că nu face nimic. Configurația AI nu se atinge: e
+  // globală, nu a contului.
+  useEffect(() => {
+    setPickedName(null);
+    setPickedUri(null);
+    setSourceKind(null);
+    setPdfText(null);
+    setParsing(false);
+    setParsingStage('');
+    setRows([]);
+    setReconciliation(null);
+    setStatementInfo(null);
+    setCoverage(null);
+    setCoverageMonth(null);
+    setBalanceMessage(null);
+    setFormat('');
+    setWarnings([]);
+    setUsedAi(false);
+    setUsedVision(false);
+    setImporting(false);
+    setImportedCount(null);
+    setPreflightInfo(null);
+    pendingAiActionRef.current = null;
+  }, [accountId]);
+
   const account = accounts.find(a => a.id === accountId);
 
   const totals = useMemo(() => {
@@ -132,6 +181,7 @@ export default function ImportScreen() {
   function resetParseState() {
     setRows([]);
     setReconciliation(null);
+    setStatementInfo(null);
     setFormat('');
     setWarnings([]);
     setUsedAi(false);
@@ -186,6 +236,7 @@ export default function ImportScreen() {
         const verified = isFullyReconciled(parsed.reconciliation);
         setParsedRows(parsed.rows, verified);
         setReconciliation(parsed.reconciliation ?? null);
+        setStatementInfo(parsed.statement ?? null);
         setFormat(parsed.format);
         setWarnings([...extraction.warnings, ...parsed.warnings]);
 
@@ -232,6 +283,7 @@ export default function ImportScreen() {
       if (aiResult.rows.length > 0) {
         setParsedRows(aiResult.rows);
         setReconciliation(null);
+        setStatementInfo(null);
         setFormat(aiResult.format);
         setWarnings([
           ...aiResult.warnings,
@@ -317,6 +369,7 @@ export default function ImportScreen() {
       });
       setParsedRows(result.rows);
       setReconciliation(null);
+      setStatementInfo(null);
       setFormat(result.format);
       setWarnings(result.warnings);
       setUsedAi(true);
@@ -357,30 +410,16 @@ export default function ImportScreen() {
     }
     setImporting(true);
     try {
-      const dates = rows.map(r => r.date).sort();
-      const periodFrom = dates[0];
-      const periodTo = dates[dates.length - 1];
-
-      const stmtId = generateId();
-      const now = new Date().toISOString();
-      await db.runAsync(
-        `INSERT INTO bank_statements
-           (id, account_id, period_from, period_to, file_path, file_hash,
-            imported_at, transaction_count, total_inflow, total_outflow, notes, created_at)
-         VALUES (?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?)`,
-        [
-          stmtId,
-          accountId,
-          periodFrom,
-          periodTo,
-          now,
-          rows.length,
-          totals.inflow,
-          totals.outflow,
-          usedVision ? 'Importat via AI vision' : usedAi ? 'Importat via AI' : null,
-          now,
-        ]
-      );
+      const stmtId = await recordBankStatement({
+        accountId,
+        rowDates: rows.map(r => r.date),
+        statementInfo,
+        accountCurrency: account?.currency,
+        transactionCount: rows.length,
+        totalInflow: totals.inflow,
+        totalOutflow: totals.outflow,
+        notes: usedVision ? 'Importat via AI vision' : usedAi ? 'Importat via AI' : null,
+      });
 
       let missingRates = 0;
       for (const r of rows) {
@@ -420,6 +459,10 @@ export default function ImportScreen() {
       try {
         const transfers = await findInternalTransferCandidates();
         for (const cand of transfers) {
+          // Doar potrivirile exacte se leagă automat. Cele deduse din comision
+          // sau din curs valutar rămân sugestii de confirmat: un fals pozitiv
+          // ar scoate tăcut venit real din analize.
+          if (cand.kind !== 'exact') continue;
           if (cand.outflow.statement_id === stmtId || cand.inflow.statement_id === stmtId) {
             await linkAsInternalTransfer(cand.outflow.id, cand.inflow.id);
           }
@@ -448,6 +491,24 @@ export default function ImportScreen() {
             params: { source: 'import', statementId: stmtId },
           });
           return;
+        }
+      } catch {}
+
+      // Ce mai lipsește pe luna extrasului. Un eșec aici nu strică importul:
+      // semnalul e un plus, nu o condiție a salvării.
+      try {
+        const month = [...rows.map(r => r.date)].sort().pop()?.slice(0, 7);
+        if (month !== undefined && month !== '') {
+          const report = await loadCoverageReport();
+          setCoverageMonth(month);
+          setCoverage(monthStatus(report, month));
+        }
+      } catch {}
+
+      try {
+        const check = await loadBalanceCheckForStatement(stmtId, accountId);
+        if (check !== null && check.diagnosis !== 'ok' && check.diagnosis !== 'unverifiable') {
+          setBalanceMessage(check.message);
         }
       } catch {}
 
@@ -503,6 +564,9 @@ export default function ImportScreen() {
     );
   }
 
+  // Primul cont rămas descoperit pe luna importată: ținta CTA-ului de la final.
+  const missingNext = coverage?.find(s => !s.covered);
+
   if (importedCount !== null) {
     return (
       <RNView style={[styles.container, { backgroundColor: C.background }]}>
@@ -513,6 +577,60 @@ export default function ImportScreen() {
           <RNText style={[styles.successSub, { color: C.textSecondary }]}>
             {importedCount} tranzacții importate în „{account.name}".
           </RNText>
+          {balanceMessage !== null && (
+            <RNView
+              style={[
+                styles.coverageCard,
+                { backgroundColor: C.card, borderColor: statusColors.critical },
+              ]}
+            >
+              <RNText style={[styles.coverageTitle, { color: C.text }]}>
+                Soldul nu se potrivește
+              </RNText>
+              <RNText style={[styles.coverageText, { color: C.textSecondary }]}>
+                {balanceMessage}
+              </RNText>
+              <RNText style={[styles.coverageText, { color: C.textSecondary }]}>
+                Acțiunile de reparare sunt în ecranul contului.
+              </RNText>
+            </RNView>
+          )}
+          {coverageMonth !== null && coverage !== null && coverage.length > 0 && (
+            <RNView
+              style={[styles.coverageCard, { backgroundColor: C.card, borderColor: C.border }]}
+            >
+              <RNText style={[styles.coverageTitle, { color: C.text }]}>
+                Luna {formatMonthLabel(coverageMonth)}
+              </RNText>
+              {coverage.map(s => (
+                <RNView key={s.account_id} style={styles.coverageRow}>
+                  <Ionicons
+                    name={s.covered ? 'checkmark-circle' : 'alert-circle-outline'}
+                    size={16}
+                    color={s.covered ? statusColors.ok : statusColors.warning}
+                  />
+                  <RNText style={[styles.coverageText, { color: C.textSecondary }]}>
+                    {s.covered ? s.account_name : `lipsește ${s.account_name}`}
+                  </RNText>
+                </RNView>
+              ))}
+              {missingNext !== undefined && (
+                <Pressable
+                  onPress={() =>
+                    router.replace({
+                      pathname: '/conturi/import' as '/',
+                      params: { account_id: missingNext.account_id },
+                    })
+                  }
+                  style={({ pressed }) => [styles.coverageCta, pressed && { opacity: 0.85 }]}
+                >
+                  <RNText style={[styles.coverageCtaText, { color: primary }]}>
+                    Importă extrasul pentru „{missingNext.account_name}"
+                  </RNText>
+                </Pressable>
+              )}
+            </RNView>
+          )}
           <Pressable
             onPress={() => {
               if (router.canGoBack()) router.back();
@@ -822,4 +940,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   successBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  coverageCard: {
+    alignSelf: 'stretch',
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+  },
+  coverageTitle: { fontSize: 14, fontWeight: '600' },
+  coverageRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  coverageText: { fontSize: 13, flex: 1 },
+  coverageCta: { marginTop: 6, paddingVertical: 8 },
+  coverageCtaText: { fontSize: 14, fontWeight: '600' },
 });

@@ -21,11 +21,11 @@
 
   <main class="container legal-content">
     <h1>Politica de confidențialitate</h1>
-    <p class="legal-meta">Versiunea 2026-04-30</p>
+    <p class="legal-meta">Versiunea 2026-09-12</p>
 
 <h2>1. Cine suntem</h2>
 <p>Finanțe Personale este o aplicație mobilă pentru gestiunea finanțelor personale. Aplicația este local-first: toate datele rămân pe device-ul tău, în afară de cazurile descrise în secțiunea 3 (Asistent AI opțional) și secțiunea 4 (Backup iCloud opțional).</p>
-<p>Nu avem servere proprii. Nu folosim analytics. Nu vindem date.</p>
+<p>Nu avem baze de date pe server, nu folosim analytics și nu vindem date. Singurul server al aplicației e intermediarul pentru Asistentul AI (secțiunea 3), care nu stochează conținut.</p>
 
 <h2>2. Ce date păstrăm pe device</h2>
 <p>Aplicația stochează local, într-o bază SQLite criptată de iOS:</p>
@@ -39,11 +39,12 @@
 
 <h2>3. Asistent AI (opțional) — date trimise terților</h2>
 <p>Aplicația include un asistent AI opțional. Dacă îl activezi și accepți consimțământul, anumite date sunt trimise către Mistral AI (operat de Mistral SAS, Franța) sau către furnizorul propriu ales de tine.</p>
+<p>Cu „Finanțe AI&quot;, cererile trec printr-un server intermediar al aplicației, găzduit la Danube Data, care le trimite mai departe la Mistral AI. Serverul intermediar nu stochează și nu înregistrează conținutul cererilor sau al răspunsurilor. Păstrează doar, în memorie, un contor de cereri pe zi asociat unui identificator anonim generat aleator pe device, pentru limita zilnică.</p>
 <p>Datele trimise diferă în funcție de funcționalitate:</p>
 <ul>
-<li>Asistent conversațional: textul întrebărilor tale + sumar al ultimelor 4 schimburi din conversație. Conținutul tranzacțiilor NU se trimite — AI primește doar schema bazei de date și generează interogarea, care rulează local pe device.</li>
-<li>Mapare extras CSV/text: textul integral al fișierului bancar (descrieri tranzacții, sume, date, eventual nume titular sau IBAN dacă apar).</li>
-<li>Mapare extras PDF (vision): paginile PDF ca imagini base64. Conține tot ce e vizibil — nume titular, IBAN, adresă, sume, descrieri tranzacții.</li>
+<li>Asistent conversațional: textul întrebărilor tale + un sumar al ultimelor 4 schimburi din conversație + numele conturilor și ale categoriilor tale (fără solduri și fără sume), ca AI-ul să poată lega întrebarea de datele tale. Conținutul tranzacțiilor NU se trimite — AI primește schema bazei de date și generează interogarea, care rulează local pe device.</li>
+<li>Mapare extras CSV/text: textul integral al fișierului bancar (descrieri tranzacții, sume, date, eventual nume titular sau IBAN dacă apar în fișier).</li>
+<li>Mapare extras PDF (vision), disponibilă doar cu cheie API proprie: paginile PDF ca imagini base64. Conține tot ce e vizibil — inclusiv nume titular, IBAN, adresă, sume, descrieri tranzacții.</li>
 </ul>
 
 <h2>3.1. Scopul prelucrării</h2>
@@ -51,7 +52,8 @@
 
 <h2>3.2. Politica Mistral AI &amp; reținere</h2>
 <p>Cererile sunt procesate conform termenilor Mistral AI (<a href="https://mistral.ai/terms)." target="_blank" rel="noopener">https://mistral.ai/terms).</a> Mistral declară că nu folosește input-urile API pentru antrenarea implicită a modelelor; cererile pot fi reținute temporar în scopuri de abuz și securitate, conform politicii lor curente.</p>
-<p>Dacă folosești „Cheia mea API&quot; în loc de varianta inclusă, datele merg direct la furnizorul tău (OpenAI, Mistral self-hosted etc.) — guvernate de termenii lui.</p>
+<p>Serverul intermediar nu reține conținutul cererilor. Contorul zilnic (identificator anonim + număr de cereri) stă doar în memorie și se pierde la sfârșitul zilei sau la repornirea serverului.</p>
+<p>Dacă alegi „Cheia mea API&quot; în loc de „Finanțe AI&quot;, cererile merg direct de pe device la furnizorul tău (OpenAI, Mistral self-hosted etc.), fără serverul intermediar, și sunt guvernate de termenii lui.</p>
 
 <h2>3.3. Controlul tău</h2>
 <p>Ai control total asupra trimiterii:</p>
@@ -75,7 +77,7 @@
 <p>Revocare consimțământ AI: oricând, din Setări → Asistent AI.</p>
 
 <h2>7. Modificări ale politicii</h2>
-<p>Versiunea curentă: 2026-04-30.</p>
+<p>Versiunea curentă: 2026-09-12.</p>
 <p>Modificările sunt versionate public în repository-ul aplicației. La modificări semnificative ale fluxului AI sau backup, vom cere consimțământ nou la următoarea pornire.</p>
 
 <h2>8. Contact</h2>

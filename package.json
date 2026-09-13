@@ -1,12 +1,13 @@
 {
   "name": "finante",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "scripts": {
     "start": "expo start --clear",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "ios:release": "expo run:ios --configuration Release",
+    "ios:device": "expo run:ios --device --configuration Release",
     "ios:dist:sim": "bash scripts/build-sim-release.sh",
     "web": "expo start --web",
     "lint": "eslint . --ext .ts,.tsx",
@@ -26,8 +27,10 @@
     "type-coverage": "type-coverage --strict --at-least 97",
     "check:audit": "node --experimental-strip-types scripts/check-audit.ts",
     "check:pointers": "node scripts/check-pointer-files.mjs",
+    "check:secrets": "node scripts/check-expo-public-secrets.mjs",
     "check:workflow": "node scripts/check-workflow.mjs",
-    "check": "npm run check:pointers && npm run lint && npm run type-check && npm run type-coverage && npm test -- --coverage --watchAll=false && npm run knip && npm run madge && npm run dep-cruise && npm run check:audit",
+    "test:proxy": "node --test --test-timeout=10000 --test-force-exit ai-proxy/test/*.test.js",
+    "check": "npm run check:pointers && npm run check:secrets && npm run lint && npm run type-check && npm run type-coverage && npm test -- --coverage --watchAll=false && npm run test:proxy && npm run knip && npm run madge && npm run dep-cruise && npm run check:audit",
     "prepare": "husky"
   },
   "jest": {

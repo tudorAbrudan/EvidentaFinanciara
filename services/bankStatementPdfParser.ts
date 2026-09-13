@@ -50,11 +50,27 @@ export interface PdfReconciliation {
   refCount: number;
 }
 
+/**
+ * Ce declară extrasul despre el însuși: perioada din antet și soldurile tipărite.
+ * Câmpurile lipsesc când extrasul nu le are sau când nu se verifică — nu ghicim.
+ */
+export interface PdfStatementInfo {
+  /** Perioada tipărită pe extras („din 01/06/2026 - 30/06/2026"), YYYY-MM-DD. */
+  periodFrom?: string;
+  periodTo?: string;
+  /** `SOLD ANTERIOR` și `SOLD FINAL CONT`, în valuta extrasului. */
+  openingBalance?: number;
+  closingBalance?: number;
+  /** Valuta extrasului, ca soldurile să nu fie comparate cu un cont în altă valută. */
+  currency?: string;
+}
+
 export interface PdfParseResult {
   rows: ParsedRow[];
   format: PdfStatementFormat;
   warnings: string[];
   reconciliation?: PdfReconciliation;
+  statement?: PdfStatementInfo;
 }
 
 /** Extrasul e verificat matematic: fiecare zi și totalul bat la ban. */
@@ -187,6 +203,8 @@ interface BtHeader {
   holder: string;
   currency: string;
   iban: string;
+  periodFrom: string | null;
+  periodTo: string | null;
 }
 
 // ─── Parser BT ────────────────────────────────────────────────────────────────
@@ -211,6 +229,8 @@ function parseBt(text: string, defaultCurrency: string): PdfParseResult {
   const dayTotals = new Map<string, { debit: number; credit: number }>();
   const dayOrder: string[] = [];
   let accountTotals: { debit: number; credit: number } | null = null;
+  let openingBalance: number | null = null;
+  let closingBalance: number | null = null;
   let refCount = 0;
 
   let currentDate: string | null = null;
@@ -261,9 +281,13 @@ function parseBt(text: string, defaultCurrency: string): PdfParseResult {
       dayTotals.set(currentDate, { debit: values[0], credit: values[1] });
     } else if (marker === 'rulaj-total') {
       accountTotals = { debit: values[0], credit: values[1] };
+    } else if (marker === 'sold-anterior') {
+      // Primul contează: soldul de la începutul perioadei.
+      if (openingBalance === null) openingBalance = values[0];
+    } else if (marker === 'sold-total') {
+      closingBalance = values[0];
     }
-    // `SOLD FINAL ZI` / `SOLD FINAL CONT` / `SOLD ANTERIOR`: consumate ca să nu
-    // rămână sume orfane, dar nu intră în reconciliere.
+    // `SOLD FINAL ZI`: consumat ca să nu rămână sume orfane, dar nu intră în reconciliere.
   };
 
   for (const rawLine of lines) {
@@ -367,28 +391,115 @@ function parseBt(text: string, defaultCurrency: string): PdfParseResult {
     );
   }
 
-  return { rows, format: 'bt', warnings, reconciliation };
+  // Perioada și soldurile se expun doar dacă extrasul s-a reconciliat integral.
+  // Reconcilierea arată că extrasul e coerent cu el însuși, nu că extragerea a
+  // fost completă: pe un extras trunchiat, antetul ar declara luna întreagă
+  // peste jumătate din tranzacții, iar detectarea extraselor lipsă ar considera
+  // luna acoperită.
+  const reconciled = isFullyReconciled(reconciliation);
+  const statement = reconciled
+    ? buildStatementInfo(
+        header,
+        openingBalance,
+        closingBalance,
+        accountTotals,
+        transactions,
+        warnings
+      )
+    : undefined;
+  if (!reconciled && (header.periodFrom !== null || openingBalance !== null)) {
+    warnings.push(
+      'Extrasul nu s-a reconciliat integral — perioada și soldurile din antet nu sunt folosite.'
+    );
+  }
+
+  return { rows, format: 'bt', warnings, reconciliation, statement };
 }
 
 // ─── Header extras ────────────────────────────────────────────────────────────
 
+/** „din 01/06/2026 - 30/06/2026", sub „EXTRAS CONT". */
+const PERIOD_RE = /^din\s+(\d{2}[./]\d{2}[./]\d{4})\s*-\s*(\d{2}[./]\d{2}[./]\d{4})\b/i;
+
 function extractHeader(lines: string[], defaultCurrency: string): BtHeader {
   let holder = '';
   let currency = defaultCurrency;
+  let currencyFound = false;
   let iban = '';
+  let periodFrom: string | null = null;
+  let periodTo: string | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!holder && /^Client:/i.test(line) && i > 0) {
       holder = lines[i - 1].trim();
     }
+    // Prima potrivire contează: pe un fișier cu două extrase lipite, ultima ar
+    // eticheta rândurile primului cont cu valuta celui de-al doilea.
     const cur = /\bCONT\s+\d{3}([A-Z]{3})CRT/.exec(line);
-    if (cur) currency = cur[1];
+    if (cur && !currencyFound) {
+      currency = cur[1];
+      currencyFound = true;
+    }
     const ib = /^Cod IBAN:\s*(\S+)/i.exec(line);
     if (ib) iban = ib[1];
+    const period = PERIOD_RE.exec(line);
+    if (period && periodFrom === null) {
+      periodFrom = normalizeDate(period[1]);
+      periodTo = normalizeDate(period[2]);
+    }
   }
 
-  return { holder, currency, iban };
+  return { holder, currency, iban, periodFrom, periodTo };
+}
+
+/**
+ * Ce declară extrasul despre el însuși, expus doar dacă se verifică.
+ *
+ * Perioada trebuie să cuprindă toate tranzacțiile extrase, iar soldurile trebuie
+ * să se lege prin rulaj: `SOLD ANTERIOR + credit − debit = SOLD FINAL CONT`.
+ * O valoare neverificată e mai rea decât una lipsă — detectarea extraselor lipsă
+ * și verificarea soldului ar trage concluzii ferme dintr-o citire greșită.
+ */
+function buildStatementInfo(
+  header: BtHeader,
+  openingBalance: number | null,
+  closingBalance: number | null,
+  accountTotals: { debit: number; credit: number } | null,
+  transactions: BtTransaction[],
+  warnings: string[]
+): PdfStatementInfo {
+  const info: PdfStatementInfo = {};
+  const { periodFrom, periodTo } = header;
+
+  if (periodFrom && periodTo) {
+    const outside = transactions.filter(t => t.date < periodFrom || t.date > periodTo).length;
+    if (periodFrom > periodTo || outside > 0) {
+      warnings.push(
+        `Perioada din antet (${periodFrom} – ${periodTo}) nu cuprinde toate tranzacțiile — nu e folosită.`
+      );
+    } else {
+      info.periodFrom = periodFrom;
+      info.periodTo = periodTo;
+    }
+  }
+
+  if (openingBalance !== null && closingBalance !== null && accountTotals !== null) {
+    const expected = CENT(openingBalance) + CENT(accountTotals.credit) - CENT(accountTotals.debit);
+    if (Math.abs(expected - CENT(closingBalance)) <= TOLERANCE) {
+      info.openingBalance = openingBalance;
+      info.closingBalance = closingBalance;
+      info.currency = header.currency;
+    } else {
+      warnings.push(
+        `Soldurile din extras nu se leagă de rulaj: ${formatAmountRo(openingBalance)} + ` +
+          `${formatAmountRo(accountTotals.credit)} − ${formatAmountRo(accountTotals.debit)} ≠ ` +
+          `${formatAmountRo(closingBalance)}. Nu sunt folosite la verificarea soldului.`
+      );
+    }
+  }
+
+  return info;
 }
 
 // ─── Treapta 1: lexicon determinist pe tipul operațiunii ──────────────────────

@@ -68,6 +68,7 @@ export default function RootLayout() {
             biometricAvailable={appLock.biometricAvailable}
             onUnlockBiometric={appLock.unlockWithBiometric}
             onUnlockPin={appLock.unlockWithPin}
+            pinLockMsLeft={appLock.pinLockMsLeft}
           />
         )}
         {onboardingChecked && needsOnboarding && !appLock.locked && (

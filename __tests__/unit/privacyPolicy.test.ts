@@ -3,6 +3,7 @@ import {
   AI_PROVIDER_LEGAL,
   AI_PROVIDER_NAME,
   AI_PROVIDER_TERMS_URL,
+  AI_PROXY_HOST,
   CONTACT_EMAIL,
   POLICY_LAST_UPDATED,
   PRIVACY_POLICY_FULL,
@@ -42,6 +43,18 @@ describe('AI_DISCLOSURE', () => {
   it('clarifică că tranzacțiile NU se trimit la chatbot', () => {
     expect(text).toMatch(/NU se trimite|nu se trimite/);
     expect(text).toMatch(/local pe device|rulează local/);
+  });
+
+  it('declară serverul intermediar pentru Finanțe AI și că nu stochează conținut', () => {
+    expect(text).toContain(AI_PROXY_HOST);
+    expect(text).toMatch(/server intermediar/);
+    expect(text).toMatch(/nu stochează/);
+    expect(text).toMatch(/identificator anonim/);
+  });
+
+  it('nu mai afirmă că aplicația n-are server sau că cererile merg direct la Mistral', () => {
+    expect(text).not.toMatch(/Nu există server propriu/);
+    expect(text).not.toMatch(/trimise direct către API-ul Mistral/);
   });
 });
 

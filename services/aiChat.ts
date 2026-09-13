@@ -1,4 +1,4 @@
-import { buildMessages } from './aiChatPrompt';
+import { buildMessages, type PromptContext } from './aiChatPrompt';
 import { appendMessage, recentPairs } from './aiChatRepo';
 import { validateAndNormalizeSql } from './aiChatSqlGuard';
 import { formatResponse, type CtxLookups } from './aiChatTemplates';
@@ -18,12 +18,34 @@ export interface AskResult {
   assistant: ChatMessage;
 }
 
-async function loadCtx(): Promise<CtxLookups> {
+/**
+ * Data locală, nu UTC: `toISOString()` ar da ziua precedentă seara (RO e UTC+2/+3),
+ * ceea ce mută greșit „azi" și „luna asta" la granița de lună.
+ */
+function localToday(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * Un singur load pentru ambele scopuri: catalogul trimis modelului în prompt și
+ * lookup-urile folosite la formatarea răspunsului. Se încarcă înainte de
+ * `buildMessages`, nu după rularea SQL-ului.
+ */
+async function loadCtx(): Promise<{ lookups: CtxLookups; prompt: PromptContext }> {
   const accs = await getFinancialAccounts(false);
   const cats = await getCategories(false);
   return {
-    accounts: new Map(accs.map(a => [a.id, { id: a.id, name: a.name, type: a.type }])),
-    categories: new Map(cats.map(c => [c.id, { id: c.id, name: c.name }])),
+    lookups: {
+      accounts: new Map(accs.map(a => [a.id, { id: a.id, name: a.name, type: a.type }])),
+      categories: new Map(cats.map(c => [c.id, { id: c.id, name: c.name }])),
+    },
+    prompt: {
+      today: localToday(),
+      accounts: accs.map(a => ({ id: a.id, name: a.name, currency: a.currency })),
+      categories: cats.map(c => ({ id: c.id, name: c.name, key: c.key })),
+    },
   };
 }
 
@@ -62,8 +84,9 @@ export async function askAssistant(question: string): Promise<AskResult> {
     return { user: userMsg, assistant };
   }
 
+  const ctx = await loadCtx();
   const history = await recentPairs(MAX_HISTORY_PAIRS);
-  const messages = buildMessages(history, question);
+  const messages = buildMessages(ctx.prompt, history, question);
 
   let aiText: string;
   let parsed: ChatResponseParsed | null = null;
@@ -144,8 +167,7 @@ export async function askAssistant(question: string): Promise<AskResult> {
     }
   }
 
-  const ctx = await loadCtx();
-  const formatted = formatResponse(parsed.template, rows, parsed.params, ctx);
+  const formatted = formatResponse(parsed.template, rows, parsed.params, ctx.lookups);
 
   const assistant = await appendMessage({
     role: 'assistant',

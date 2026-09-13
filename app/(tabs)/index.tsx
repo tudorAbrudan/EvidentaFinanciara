@@ -15,6 +15,7 @@ import {
 import InsightsCard from '@/components/InsightsCard';
 import MonthlyRecapModal from '@/components/MonthlyRecapModal';
 import RecurringSummary from '@/components/RecurringSummary';
+import { StatementCoverageBanner } from '@/components/StatementCoverageBanner';
 import { TransferSuggestionBanner } from '@/components/TransferSuggestionBanner';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -31,6 +32,11 @@ import {
   type MonthlyRecap,
 } from '@/services/monthlyRecap';
 import { detectRecurringSeries, type RecurringSeries } from '@/services/recurring';
+import {
+  describeIncompleteMonth,
+  isMonthComplete,
+  loadCoverageReport,
+} from '@/services/statementCoverage';
 import { formatYearMonth, updateTransaction } from '@/services/transactions';
 import { primary, statusColors } from '@/theme/colors';
 import type { Transaction, ExpenseCategory } from '@/types';
@@ -72,6 +78,7 @@ export default function FinanciarHubScreen() {
   const [pickerTxId, setPickerTxId] = useState<string | null>(null);
   const [pickerSaving, setPickerSaving] = useState(false);
   const [insights, setInsights] = useState<MonthlyInsight[]>([]);
+  const [incompleteNote, setIncompleteNote] = useState<string | null>(null);
   const [recurring, setRecurring] = useState<RecurringSeries[]>([]);
   const [recap, setRecap] = useState<MonthlyRecap | null>(null);
 
@@ -89,6 +96,22 @@ export default function FinanciarHubScreen() {
       })
       .catch(() => {
         if (!cancelled) setInsights([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [yearMonth, accountFilter]);
+
+  // Luna afișată e acoperită de extrase? Dacă nu, insights-urile nu mai au voie
+  // să compare: pe date parțiale, comparația e o afirmație falsă, nu una slabă.
+  useEffect(() => {
+    let cancelled = false;
+    void loadCoverageReport()
+      .then(report => {
+        if (!cancelled) setIncompleteNote(describeIncompleteMonth(report, yearMonth));
+      })
+      .catch(() => {
+        if (!cancelled) setIncompleteNote(null);
       });
     return () => {
       cancelled = true;
@@ -118,6 +141,11 @@ export default function FinanciarHubScreen() {
       try {
         const target = await shouldShowRecap();
         if (!target || cancelled) return;
+        // Recapul spune „ai cheltuit cu X% mai puțin decât luna trecută". Pe o
+        // lună fără toate extrasele, propoziția e falsă — tăcem până se
+        // completează, în loc să livrăm o concluzie pe date pe jumătate.
+        const coverageReport = await loadCoverageReport();
+        if (!isMonthComplete(coverageReport, target) || cancelled) return;
         const built = await buildRecap(target);
         if (!built || cancelled) return;
         setRecap(built);
@@ -331,7 +359,7 @@ export default function FinanciarHubScreen() {
           </Pressable>
         </RNView>
 
-        <InsightsCard insights={insights} />
+        <InsightsCard insights={insights} incompleteNote={incompleteNote} />
 
         <RecurringSummary series={recurring} />
 
@@ -396,6 +424,13 @@ export default function FinanciarHubScreen() {
           />
         </RNView>
 
+        {(totals?.cash_withdrawn_ron ?? 0) > 0 && (
+          <RNText style={[styles.cashNote, { color: C.textSecondary }]}>
+            include {Math.round(totals?.cash_withdrawn_ron ?? 0).toLocaleString('ro-RO')} RON
+            numerar retras
+          </RNText>
+        )}
+
         {/* Primary action: Import extras */}
         <Pressable
           onPress={openImport}
@@ -451,6 +486,8 @@ export default function FinanciarHubScreen() {
             <RNText style={[styles.actionTextSecondary, { color: C.text }]}>Categorii</RNText>
           </Pressable>
         </RNView>
+
+        <StatementCoverageBanner />
 
         <TransferSuggestionBanner />
 
@@ -927,6 +964,14 @@ function ExpandedTransactionRow({
 }
 
 const styles = StyleSheet.create({
+  // Cifrele se schimbă față de versiunea anterioară, fiindcă numerarul retras
+  // intră acum în cheltuieli. Fără nota asta, schimbarea ar părea un bug.
+  cashNote: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 2,
+  },
   container: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 96 },
 

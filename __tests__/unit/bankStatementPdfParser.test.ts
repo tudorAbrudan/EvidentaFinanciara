@@ -247,6 +247,77 @@ Statement period 01.03 - 31.03
   });
 });
 
+describe('parseStatementPdf — perioada și soldurile declarate de extras', () => {
+  const ronText = readFileSync(join(FIXTURES, RON_FIXTURE), 'utf8');
+
+  it('citește perioada tipărită în antet, nu intervalul tranzacțiilor', () => {
+    const result = parseFixture(RON_FIXTURE);
+    // Prima tranzacție e pe 2 iunie, dar extrasul acoperă luna întreagă.
+    expect(result.statement?.periodFrom).toBe('2026-06-01');
+    expect(result.statement?.periodTo).toBe('2026-06-30');
+  });
+
+  it('expune soldurile care se leagă de rulaj', () => {
+    const result = parseFixture(RON_FIXTURE);
+    // 298,15 + 99.246,10 − 97.423,94 = 2.120,31
+    expect(result.statement?.openingBalance).toBeCloseTo(298.15, 2);
+    expect(result.statement?.closingBalance).toBeCloseTo(expected[RON_FIXTURE].sold_final, 2);
+  });
+
+  it('la fel pe extrasul EUR, cu sold anterior zero', () => {
+    const result = parseFixture(EUR_FIXTURE, 'RON');
+    expect(result.statement?.periodFrom).toBe('2026-06-01');
+    expect(result.statement?.openingBalance).toBe(0);
+    expect(result.statement?.closingBalance).toBeCloseTo(expected[EUR_FIXTURE].sold_final, 2);
+  });
+
+  it('nu expune soldurile când nu se leagă de rulaj', () => {
+    const tampered = ronText.replace(/SOLD ANTERIOR\s*\n298\.15/, 'SOLD ANTERIOR\n398.15');
+    const result = parseStatementPdf(tampered, 'RON');
+    expect(result.statement?.openingBalance).toBeUndefined();
+    expect(result.statement?.closingBalance).toBeUndefined();
+    expect(result.warnings.join(' ')).toMatch(/nu se leagă de rulaj/);
+  });
+
+  it('nu folosește o perioadă care nu cuprinde toate tranzacțiile', () => {
+    const tampered = ronText.replace('din 01/06/2026 - 30/06/2026', 'din 05/06/2026 - 30/06/2026');
+    const result = parseStatementPdf(tampered, 'RON');
+    expect(result.statement?.periodFrom).toBeUndefined();
+    expect(result.warnings.join(' ')).toMatch(/nu cuprinde toate tranzacțiile/);
+  });
+
+  it('extras fără linia de perioadă → fără perioadă, dar soldurile rămân', () => {
+    const tampered = ronText.replace('din 01/06/2026 - 30/06/2026', '');
+    const result = parseStatementPdf(tampered, 'RON');
+    expect(result.statement?.periodFrom).toBeUndefined();
+    expect(result.statement?.openingBalance).toBeCloseTo(298.15, 2);
+  });
+
+  it('extras trunchiat, care nu se reconciliază → nici perioadă, nici solduri', () => {
+    // Reconcilierea arată că extrasul e coerent cu el însuși, nu că parserul a
+    // citit tot. Altfel antetul ar declara luna întreagă peste o extragere
+    // parțială, iar luna ar părea acoperită integral.
+    const trunchiat = ronText.split('\n').slice(0, 400).join('\n');
+    const result = parseStatementPdf(trunchiat, 'RON');
+    expect(result.rows.length).toBeGreaterThan(0);
+    expect(result.rows.length).toBeLessThan(expected[RON_FIXTURE].transaction_count);
+    expect(isFullyReconciled(result.reconciliation)).toBe(false);
+    expect(result.statement).toBeUndefined();
+    expect(result.warnings.join(' ')).toMatch(/nu s-a reconciliat integral/);
+  });
+
+  it('păstrează valuta extrasului pe solduri', () => {
+    expect(parseFixture(RON_FIXTURE).statement?.currency).toBe('RON');
+    expect(parseFixture(EUR_FIXTURE, 'RON').statement?.currency).toBe('EUR');
+  });
+
+  it('două extrase lipite: valuta e a primului, nu a ultimului din fișier', () => {
+    const lipite = `${ronText}\n${readFileSync(join(FIXTURES, EUR_FIXTURE), 'utf8')}`;
+    const result = parseStatementPdf(lipite, 'RON');
+    expect(result.rows.every(r => r.currency === 'RON')).toBe(true);
+  });
+});
+
 describe('formatAmountRo', () => {
   it('formatează sumele în stil RO', () => {
     expect(formatAmountRo(97423.94)).toBe('97.423,94');

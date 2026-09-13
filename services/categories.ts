@@ -1,3 +1,4 @@
+import { amountRonSql, missingRateCountSql, IS_EXPENSE_SQL } from './amountSql';
 import { db, generateId } from './db';
 
 import type { CategoryKey, ExpenseCategory } from '@/types';
@@ -166,6 +167,8 @@ export async function deleteCategory(id: string): Promise<void> {
 export interface CategorySpending {
   category: ExpenseCategory;
   spent_ron: number; // suma absolută cheltuită (positivă) luna curentă
+  /** Tranzacții în valută sărite din sumă fiindcă le lipsește cursul. */
+  missing_rate_count?: number;
   remaining_ron?: number; // limită - cheltuit; undefined dacă nu e setată limita
   pct_used?: number; // 0..1 (sau peste 1 dacă a depășit)
 }
@@ -174,26 +177,39 @@ export async function getMonthlySpending(yearMonth?: string): Promise<CategorySp
   const ym = yearMonth ?? new Date().toISOString().slice(0, 7); // YYYY-MM
   const cats = await getCategories(false);
 
-  const sums = await db.getAllAsync<{ category_id: string; total: number }>(
-    `SELECT category_id, COALESCE(SUM(COALESCE(amount_ron, amount)), 0) AS total
+  // Restituirile intră cu semn pozitiv pe categoria lor și reduc cheltuiala.
+  const sums = await db.getAllAsync<{
+    category_id: string;
+    total: number;
+    missing_rate: number;
+  }>(
+    `SELECT category_id,
+            COALESCE(SUM(${amountRonSql()}), 0) AS total,
+            ${missingRateCountSql()} AS missing_rate
      FROM transactions
      WHERE substr(date, 1, 7) = ?
        AND duplicate_of_id IS NULL
        AND is_internal_transfer = 0
-       AND amount < 0
+       AND ${IS_EXPENSE_SQL}
      GROUP BY category_id`,
     [ym]
   );
 
   const sumMap = new Map<string, number>();
+  const missingMap = new Map<string, number>();
   for (const r of sums) {
-    if (r.category_id) sumMap.set(r.category_id, r.total);
+    if (r.category_id) {
+      sumMap.set(r.category_id, r.total);
+      missingMap.set(r.category_id, r.missing_rate ?? 0);
+    }
   }
 
   return cats.map(cat => {
     const totalNegative = sumMap.get(cat.id) ?? 0;
     const spent = Math.abs(totalNegative);
     const result: CategorySpending = { category: cat, spent_ron: spent };
+    const missing = missingMap.get(cat.id) ?? 0;
+    if (missing > 0) result.missing_rate_count = missing;
     if (cat.monthly_limit && cat.monthly_limit > 0) {
       result.remaining_ron = cat.monthly_limit - spent;
       result.pct_used = spent / cat.monthly_limit;

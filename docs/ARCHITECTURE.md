@@ -1,7 +1,7 @@
 # Arhitectură — Finanțe Personale
 
 > Document point-in-time. Hook-ul `sync-docs` semnalează când conținutul poate fi învechit.
-> **Ultima actualizare:** 2026-05-04.
+> **Ultima actualizare:** 2026-09-12.
 
 ## Overview
 
@@ -33,41 +33,41 @@ Root `_layout.tsx` setează tema, autentificarea (PIN/biometric) și onboarding 
 
 ### `services/` — logică pură
 
-| Fișier                          | Rol                                                                             |
-| ------------------------------- | ------------------------------------------------------------------------------- |
-| `db.ts`                         | conexiune SQLite + schema + migrații                                            |
-| `transactions.ts`               | CRUD tranzacții, filtre, agregări                                               |
-| `categories.ts`                 | CRUD categorii, sugestii prin regex                                             |
-| `financialAccounts.ts`          | CRUD conturi                                                                    |
-| `bankStatementParser.ts`        | parser CSV pentru extrase BT/ING/Revolut/OTP                                    |
-| `bankStatementPdfParser.ts`     | parser PDF: BT (state machine + reconciliere cu RULAJ ZI) și generic euristic   |
-| `bankStatements.ts`             | orchestrare import + deduplicate                                                |
-| `internalTransferSuggestion.ts` | detectare cash/savings/investment + conversie bidirecțională în transfer intern |
-| `merchantCategoryRules.ts`      | reguli învățate `merchant → categorie` (upsert, match exact + prefix-pe-cuvânt) |
-| `insights.ts`                   | narativi lunari (compară luna curentă vs media ultimelor 3 luni)                |
-| `recurring.ts`                  | detectare abonamente recurente (lunar) cu status active/missing/expired         |
-| `monthlyRecap.ts`               | mini-recap lunar one-shot (modal sumar lună trecută la trecerea în lună nouă)   |
-| `aiProvider.ts`                 | abstracție provider AI (built-in cu cotă, sau cheie proprie)                    |
-| `aiStatementMapper.ts`          | mapare tranzacții necategorizate prin AI                                        |
-| `aiStatementVisionMapper.ts`    | OCR + mapare AI pentru extrase imagine                                          |
-| `aiChat.ts`                     | orchestrator chat AI (SQL gen → guard → execute → format)                       |
-| `aiChatPrompt.ts`               | construire system prompt + history compaction                                   |
-| `aiChatSqlGuard.ts`             | validare SQL allowlist + clamp `LIMIT`                                          |
-| `aiChatTemplates.ts`            | template-uri formatare răspuns determinist                                      |
-| `aiChatRepo.ts`                 | CRUD pe tabel `chat_messages`                                                   |
-| `aiSchemas.ts`                  | scheme Zod centralizate + `parseAiJsonResponse` tolerant pentru toate AI calls  |
-| `pdfTextLayer.ts`               | decodare text layer PDF cu poziții (pur, fără Expo — rulează și în Node)        |
-| `pdfExtractor.ts`               | orchestrator extragere PDF: text layer first, OCR doar fallback                 |
-| `pdfOcr.ts`                     | OCR pe PDF când text layer-ul nu trece quality gate-ul                          |
-| `ocr.ts`                        | wrapper ML Kit pentru OCR imagini                                               |
-| `backup.ts`                     | export/import ZIP cu manifest                                                   |
-| `cloudStorage.ts`               | iCloud Drive / Google Drive abstracție                                          |
-| `cloudSync.ts`                  | sync periodic cu cloud storage                                                  |
-| `fxRates.ts`                    | rate de schimb (cache local)                                                    |
-| `settings.ts`                   | preferințe utilizator (theme, lock, AI consent)                                 |
-| `demoData.ts`                   | tranzacții demo pentru onboarding                                               |
-| `manifestHash.ts`               | hash structură DB pentru invalidare cache                                       |
-| `privacyPolicy.ts`              | sursa unică text confidențialitate (consent + politică)                         |
+| Fișier                          | Rol                                                                               |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| `db.ts`                         | conexiune SQLite + schema + migrații                                              |
+| `transactions.ts`               | CRUD tranzacții, filtre, agregări                                                 |
+| `categories.ts`                 | CRUD categorii, sugestii prin regex                                               |
+| `financialAccounts.ts`          | CRUD conturi                                                                      |
+| `bankStatementParser.ts`        | parser CSV pentru extrase BT/ING/Revolut/OTP                                      |
+| `bankStatementPdfParser.ts`     | parser PDF: BT (state machine + reconciliere cu RULAJ ZI) și generic euristic     |
+| `bankStatements.ts`             | orchestrare import + deduplicate                                                  |
+| `internalTransferSuggestion.ts` | detectare cash/savings/investment + conversie bidirecțională în transfer intern   |
+| `merchantCategoryRules.ts`      | reguli învățate `merchant → categorie` (upsert, match exact + prefix-pe-cuvânt)   |
+| `insights.ts`                   | narativi lunari (compară luna curentă vs media ultimelor 3 luni)                  |
+| `recurring.ts`                  | detectare abonamente recurente (lunar) cu status active/missing/expired           |
+| `monthlyRecap.ts`               | mini-recap lunar one-shot (modal sumar lună trecută la trecerea în lună nouă)     |
+| `aiProvider.ts`                 | provider AI: Finanțe AI prin `ai-proxy/` (token + cotă), sau cheie proprie direct |
+| `aiStatementMapper.ts`          | mapare tranzacții necategorizate prin AI                                          |
+| `aiStatementVisionMapper.ts`    | OCR + mapare AI pentru extrase imagine                                            |
+| `aiChat.ts`                     | orchestrator chat AI (SQL gen → guard → execute → format)                         |
+| `aiChatPrompt.ts`               | construire system prompt + history compaction                                     |
+| `aiChatSqlGuard.ts`             | validare SQL allowlist + clamp `LIMIT`                                            |
+| `aiChatTemplates.ts`            | template-uri formatare răspuns determinist                                        |
+| `aiChatRepo.ts`                 | CRUD pe tabel `chat_messages`                                                     |
+| `aiSchemas.ts`                  | scheme Zod centralizate + `parseAiJsonResponse` tolerant pentru toate AI calls    |
+| `pdfTextLayer.ts`               | decodare text layer PDF cu poziții (pur, fără Expo — rulează și în Node)          |
+| `pdfExtractor.ts`               | orchestrator extragere PDF: text layer first, OCR doar fallback                   |
+| `pdfOcr.ts`                     | OCR pe PDF când text layer-ul nu trece quality gate-ul                            |
+| `ocr.ts`                        | wrapper ML Kit pentru OCR imagini                                                 |
+| `backup.ts`                     | export/import ZIP cu manifest                                                     |
+| `cloudStorage.ts`               | iCloud Drive / Google Drive abstracție                                            |
+| `cloudSync.ts`                  | sync periodic cu cloud storage                                                    |
+| `fxRates.ts`                    | rate de schimb (cache local)                                                      |
+| `settings.ts`                   | preferințe utilizator (theme, lock, AI consent)                                   |
+| `demoData.ts`                   | tranzacții demo pentru onboarding                                                 |
+| `manifestHash.ts`               | hash structură DB pentru invalidare cache                                         |
+| `privacyPolicy.ts`              | sursa unică text confidențialitate (consent + politică)                           |
 
 **Regulă arhitecturală:** `services/` nu importă din `components/`, `app/`, `hooks/`. Logica e portabilă, testabilă, fără dependențe UI.
 
@@ -106,7 +106,15 @@ Harness-ul agentic (vezi `AGENTS.md` → „Bucla de lucru"):
 - `check-pointer-files.mjs` (`npm run check:pointers`) — `CLAUDE.md` rămâne pointer subțire către `AGENTS.md`.
 - `statusline-phase.mjs` — statusline `◉ <fază> · <branch>`, faza dedusă din chitanțele încă valide.
 
+Gate de produs:
+
+- `check-expo-public-secrets.mjs` (`npm run check:secrets`) — nicio variabilă `EXPO_PUBLIC_*` cu nume de secret în `.env`, config Expo sau codul care ajunge în bundle. Singura excepție, cu motiv scris, e token-ul proxy-ului AI.
+
 Toate hook-urile sunt **fail-open**: orice eroare internă → exit 0. Toate au teste în `__tests__/unit/harness/`, rulate ca procese cu stdin de fixture.
+
+### `ai-proxy/` — proxy AI
+
+Server Node fără dependențe (deploy separat pe Danube Rapids), între aplicație și providerul AI. Ține cheia providerului în env-ul serverului. Aplicația are doar URL-ul și un token de aplicație (`EXPO_PUBLIC_FINANTE_AI_URL` / `EXPO_PUBLIC_FINANTE_AI_TOKEN`). Protecții: token obligatoriu comparat în timp constant, un singur model permis, payload reconstruit din câmpuri cunoscute, plafon pe `max_tokens` și pe corp (413 livrat efectiv), limită zilnică per device (`X-App-Device`) și globală. **Nu loghează conținutul cererilor sau al răspunsurilor**, iar un test păzește regula. Prin proxy trece doar text: vision rămâne exclusiv pe cheie proprie. Teste: `npm run test:proxy` (în `npm run check`). Detalii, limite și rollout în `ai-proxy/README.md`.
 
 ### `landing/`
 
@@ -142,10 +150,11 @@ Manifest-hash din `services/manifestHash.ts` permite invalidare cache la schimb�
 
 - **App lock** — biometric (`expo-local-authentication`) sau PIN, configurabil în Setări.
 - **AI consent** — opt-in explicit la onboarding sau în Setări, cu denumire explicită „Mistral AI (Mistral SAS, Franța)" + link la termenii furnizorului. Free tier 20 cereri/zi (cotă built-in). Premium: nelimitat sau cheie proprie (provider `external`).
+- **Finanțe AI prin proxy** — cererile built-in trec prin `ai-proxy/`. Nicio cheie de provider nu mai stă în bundle, iar gate-ul `check:secrets` o ține afară. Token-ul de aplicație din bundle e obfuscare, nu securitate: stopul real e plafonul de cheltuială din contul providerului. Cheia proprie a userului merge direct la providerul lui, fără proxy.
 - **Pre-flight la upload** — pentru import PDF/CSV, `AiPreflightDialog` cere confirmare per-fișier înainte de fiecare trimitere către AI (afișează nume fișier + dimensiune + ce conține).
 - **Politică confidențialitate** — sursa unică `services/privacyPolicy.ts` alimentează ecranul in-app `app/confidentialitate.tsx` și pagina publică `landing/privacy.html` (generată via `npm run build:privacy`). Acoperă cerințele Apple 5.1.1(i)/5.1.2(i): ce date, cui, scopuri, third-party.
 - **Cloud sync** — opțional, opt-in. Fără cont online obligatoriu.
-- **Date externe trimise** — doar la provider AI selectat. Pentru chatbot conversațional, conținutul tranzacțiilor NU se trimite (AI primește doar schema DB; query-ul rulează local). Pentru import extras, conținutul fișierului se trimite explicit cu pre-flight per-upload. Niciun analytics, fără tracking.
+- **Date externe trimise** — doar la provider AI selectat. Pentru chatbot conversațional, conținutul tranzacțiilor NU se trimite (AI primește schema DB plus numele conturilor și categoriilor, fără sume; query-ul rulează local). Pentru import extras, conținutul fișierului se trimite explicit cu pre-flight per-upload. Niciun analytics, fără tracking.
 
 ## Mentenanță
 

@@ -133,3 +133,62 @@ describe('deleteCategory', () => {
     await expect(deleteCategory('c1')).resolves.toBeUndefined();
   });
 });
+
+describe('getMonthlySpending — valută și restituiri', () => {
+  it('restituirea reduce cheltuiala pe categorie (500 - 100 = 400)', async () => {
+    const cats = [
+      {
+        id: 'c1',
+        key: 'food',
+        name: 'Mâncare',
+        icon: null,
+        color: null,
+        parent_id: null,
+        is_system: 1,
+        monthly_limit: null,
+        display_order: 0,
+        archived: 0,
+        created_at: '',
+      },
+    ];
+    (db.db.getAllAsync as jest.Mock)
+      .mockResolvedValueOnce(cats)
+      // -500 cheltuit + 100 restituit = -400
+      .mockResolvedValueOnce([{ category_id: 'c1', total: -400, missing_rate: 0 }]);
+    const result = await getMonthlySpending('2026-05');
+    expect(result[0].spent_ron).toBe(400);
+    expect(result[0].missing_rate_count).toBeUndefined();
+  });
+
+  it('raportează tranzacțiile în valută sărite din lipsă de curs', async () => {
+    const cats = [
+      {
+        id: 'c1',
+        key: 'food',
+        name: 'Mâncare',
+        icon: null,
+        color: null,
+        parent_id: null,
+        is_system: 1,
+        monthly_limit: null,
+        display_order: 0,
+        archived: 0,
+        created_at: '',
+      },
+    ];
+    (db.db.getAllAsync as jest.Mock)
+      .mockResolvedValueOnce(cats)
+      .mockResolvedValueOnce([{ category_id: 'c1', total: -400, missing_rate: 2 }]);
+    const result = await getMonthlySpending('2026-05');
+    expect(result[0].missing_rate_count).toBe(2);
+  });
+
+  it('SQL-ul include restituirile la cheltuieli și evită COALESCE', async () => {
+    (db.db.getAllAsync as jest.Mock).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    await getMonthlySpending('2026-05');
+    const sql = (db.db.getAllAsync as jest.Mock).mock.calls.at(-1)?.[0] as string;
+    expect(sql).toContain('(amount < 0 OR is_refund = 1)');
+    expect(sql).toContain("CASE WHEN currency = 'RON'");
+    expect(sql).not.toContain('COALESCE(amount_ron, amount)');
+  });
+});

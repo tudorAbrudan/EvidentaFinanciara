@@ -109,11 +109,60 @@ export interface AiProviderConfig {
   model: string;
 }
 
-// ─── Cheie inclusă în aplicație ───────────────────────────────────────────────
+// ─── Finanțe AI: proxy propriu ────────────────────────────────────────────────
 
-const BUILTIN_API_KEY = process.env.EXPO_PUBLIC_MISTRAL_API_KEY ?? '';
-const BUILTIN_URL = 'https://api.mistral.ai/v1';
+/**
+ * „Finanțe AI" NU vorbește direct cu providerul. Trece prin proxy-ul propriu
+ * (`ai-proxy/`), care ține cheia providerului pe server.
+ *
+ * Motivul: orice `EXPO_PUBLIC_*` ajunge compilat în bundle-ul din App Store. O
+ * cheie de provider pusă aici e extractibilă și folosibilă de oricine — exact ce
+ * s-a întâmplat cu cheia veche (rate limit permanent, 2026-09-07).
+ *
+ * Token-ul de mai jos NU e o cheie API: doar deschide poarta proxy-ului. Extras
+ * din bundle, nu dă acces la contul providerului, e limitat la un singur model
+ * și la o cotă zilnică, iar accesul se taie server-side, fără release nou.
+ * Vezi ai-proxy/README.md. Gate-ul `npm run check:secrets` ține cheile de
+ * provider în afara bundle-ului.
+ *
+ * Citite la momentul cererii, nu la import: Expo le inlinează oricum în bundle,
+ * iar testele le pot seta per caz.
+ */
+function builtinToken(): string {
+  return process.env.EXPO_PUBLIC_FINANTE_AI_TOKEN ?? '';
+}
+
+function builtinUrl(): string {
+  return (process.env.EXPO_PUBLIC_FINANTE_AI_URL ?? '').replace(/\/$/, '');
+}
+
+/** Singurul model permis de proxy (`ALLOWED_MODELS` din ai-proxy/config.js). */
 const BUILTIN_MODEL = 'mistral-small-latest';
+
+const BUILTIN_UNLIMITED_HINT =
+  'Poți folosi nelimitat configurând propria cheie API din Setări → Asistent AI.';
+
+/**
+ * Identificator anonim de device, folosit DOAR ca găleată de contorizare în
+ * proxy (limita zilnică per device). Nu conține nimic despre user și nu pleacă
+ * nicăieri altundeva. Fără el, proxy-ul cade pe IP, iar pe mobil operatorii pun
+ * mii de abonați în spatele aceluiași IP (CGNAT): userii legitimi și-ar consuma
+ * reciproc cota.
+ */
+const KEY_AI_DEVICE_ID = 'ai_device_id';
+let cachedDeviceId: string | null = null;
+
+async function getAiDeviceId(): Promise<string> {
+  if (cachedDeviceId) return cachedDeviceId;
+  let id = await AsyncStorage.getItem(KEY_AI_DEVICE_ID);
+  if (!id) {
+    const random = () => Math.random().toString(36).slice(2, 12);
+    id = `${Date.now().toString(36)}${random()}${random()}`;
+    await AsyncStorage.setItem(KEY_AI_DEVICE_ID, id);
+  }
+  cachedDeviceId = id;
+  return id;
+}
 
 // ─── Default-uri per provider ─────────────────────────────────────────────────
 
@@ -122,7 +171,8 @@ export const PROVIDER_DEFAULTS: Record<
   { url: string; model: string; label: string }
 > = {
   builtin: {
-    url: BUILTIN_URL,
+    // URL-ul proxy-ului vine din env la momentul cererii; nu îl persistăm.
+    url: '',
     model: BUILTIN_MODEL,
     label: 'Finanțe AI',
   },
@@ -227,8 +277,8 @@ export function validateConfig(config: AiProviderConfig): string | null {
       return 'Modelul AI nu este setat. Verifică Setări → Asistent AI.';
     }
   }
-  if (config.type === 'builtin' && !BUILTIN_API_KEY) {
-    return 'Cheia Finanțe AI nu este disponibilă în această versiune. Setează propria cheie API din Setări → Asistent AI.';
+  if (config.type === 'builtin' && (!builtinToken() || !builtinUrl())) {
+    return 'Finanțe AI nu este disponibil în această versiune. Setează propria cheie API din Setări → Asistent AI.';
   }
   return null;
 }
@@ -246,6 +296,12 @@ export async function isAiAvailable(): Promise<{ ok: boolean; reason?: string }>
 // ─── Helper fetch cu timeout ──────────────────────────────────────────────────
 
 const REQUEST_TIMEOUT_MS = 30_000;
+
+/**
+ * Proxy-ul doarme când nu are trafic (scale-to-zero), iar prima cerere după o
+ * pauză plătește pornirea containerului. 60s o acoperă fără să pice.
+ */
+const BUILTIN_TIMEOUT_MS = 60_000;
 
 async function fetchWithTimeout(
   url: string,
@@ -265,6 +321,96 @@ async function fetchWithTimeout(
     throw e;
   } finally {
     clearTimeout(timeoutId);
+  }
+}
+
+// ─── Destinația cererii ───────────────────────────────────────────────────────
+
+interface RequestTarget {
+  endpoint: string;
+  model: string;
+  headers: Record<string, string>;
+  timeoutMs: number;
+}
+
+async function resolveTarget(config: AiProviderConfig): Promise<RequestTarget> {
+  if (config.type === 'builtin') {
+    return {
+      endpoint: `${builtinUrl()}/chat/completions`,
+      model: BUILTIN_MODEL,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${builtinToken()}`,
+        'X-App-Device': await getAiDeviceId(),
+      },
+      timeoutMs: BUILTIN_TIMEOUT_MS,
+    };
+  }
+  return {
+    endpoint: `${config.url.replace(/\/$/, '')}/chat/completions`,
+    model: config.model,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    timeoutMs: REQUEST_TIMEOUT_MS,
+  };
+}
+
+/** Limita locală e doar pre-check de UX. Autoritatea e proxy-ul (429). */
+async function assertBuiltinQuota(config: AiProviderConfig): Promise<void> {
+  if (config.type !== 'builtin') return;
+  const used = await getAiUsageToday();
+  if (used >= DAILY_AI_LIMIT) {
+    throw new Error(
+      `Ai atins limita de ${DAILY_AI_LIMIT} interogări AI/zi cu Finanțe AI.\n\n${BUILTIN_UNLIMITED_HINT}`
+    );
+  }
+}
+
+// ─── Mesaje de eroare ─────────────────────────────────────────────────────────
+
+/** Mesajul din corpul de eroare OpenAI-compatible (`{ error: { message } }`), dacă există. */
+function extractErrorMessage(errText: string): string | null {
+  try {
+    const parsed: unknown = JSON.parse(errText);
+    if (typeof parsed !== 'object' || parsed === null || !('error' in parsed)) return null;
+    const { error } = parsed as { error?: { message?: unknown } };
+    const message = error?.message;
+    return typeof message === 'string' && message.trim() ? message.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Traduce un răspuns HTTP de eroare într-un mesaj pentru user.
+ *
+ * Pentru Finanțe AI statusurile vin de la proxy-ul nostru și au sens precis
+ * (vezi ai-proxy/server.js): 401 = token rotit, 503 = problema contului nostru
+ * la provider. Userul nu trebuie trimis să repare o cheie care nu e a lui.
+ * Pentru cheia proprie păstrăm răspunsul brut: userul își administrează contul.
+ */
+function describeHttpError(type: AiProviderType, status: number, errText: string): string {
+  if (type !== 'builtin') {
+    return `Eroare AI (${status}): ${errText || 'Răspuns invalid de la server'}`;
+  }
+  const proxyMessage = extractErrorMessage(errText);
+  switch (status) {
+    case 429:
+      return `${proxyMessage ?? 'Ai atins limita zilnică de interogări Finanțe AI.'}\n\n${BUILTIN_UNLIMITED_HINT}`;
+    case 413:
+      return 'Cererea e prea mare pentru Finanțe AI. Împarte extrasul pe perioade mai scurte sau folosește propria cheie API din Setări → Asistent AI.';
+    case 401:
+      return 'Această versiune a aplicației nu mai are acces la Finanțe AI. Actualizează aplicația sau folosește propria cheie API din Setări → Asistent AI.';
+    case 503:
+      return 'Serviciul Finanțe AI e indisponibil momentan. Încearcă mai târziu.';
+    case 502:
+      return 'Serviciul Finanțe AI nu poate contacta providerul AI momentan. Încearcă din nou.';
+    case 504:
+      return 'Providerul AI nu a răspuns la timp. Încearcă din nou.';
+    default:
+      return `Eroare Finanțe AI (${status})${proxyMessage ? `: ${proxyMessage}` : '.'}`;
   }
 }
 
@@ -329,20 +475,8 @@ export async function sendAiRequestWithImage(
   const validationError = validateConfig(config);
   if (validationError) throw new Error(validationError);
 
-  const apiKey = config.type === 'builtin' ? BUILTIN_API_KEY : config.apiKey;
-
-  if (config.type === 'builtin') {
-    const used = await getAiUsageToday();
-    if (used >= DAILY_AI_LIMIT) {
-      throw new Error(
-        `Ai atins limita de ${DAILY_AI_LIMIT} interogări AI/zi cu cheia Finanțe AI.\n\nPoți folosi nelimitat configurând propria cheie API din Setări → Asistent AI.`
-      );
-    }
-  }
-
-  const baseUrl = (config.type === 'builtin' ? BUILTIN_URL : config.url).replace(/\/$/, '');
-  const model = config.type === 'builtin' ? BUILTIN_MODEL : config.model;
-  const endpoint = `${baseUrl}/chat/completions`;
+  await assertBuiltinQuota(config);
+  const target = await resolveTarget(config);
 
   const images = Array.isArray(imageBase64) ? imageBase64 : [imageBase64];
   const imageBlocks = images.map(b64 => ({
@@ -350,25 +484,26 @@ export async function sendAiRequestWithImage(
     image_url: { url: `data:${imageMimeType};base64,${b64}` },
   }));
 
-  const response = await fetchWithTimeout(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+  const response = await fetchWithTimeout(
+    target.endpoint,
+    {
+      method: 'POST',
+      headers: target.headers,
+      body: JSON.stringify({
+        model: target.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [...imageBlocks, { type: 'text', text: userText }],
+          },
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.2,
+      }),
     },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          content: [...imageBlocks, { type: 'text', text: userText }],
-        },
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.2,
-    }),
-  });
+    target.timeoutMs
+  );
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
@@ -377,7 +512,7 @@ export async function sendAiRequestWithImage(
         `Cererea AI depășește contextul (${response.status}): ${errText.slice(0, 200) || 'context length exceeded'}`
       );
     }
-    throw new Error(`Eroare AI (${response.status}): ${errText || 'Răspuns invalid de la server'}`);
+    throw new Error(describeHttpError(config.type, response.status, errText));
   }
 
   const data = (await response.json()) as OpenAiResponse;
@@ -407,41 +542,27 @@ export async function sendAiRequest(
   const validationError = validateConfig(config);
   if (validationError) throw new Error(validationError);
 
-  const apiKey = config.type === 'builtin' ? BUILTIN_API_KEY : config.apiKey;
+  await assertBuiltinQuota(config);
+  const target = await resolveTarget(config);
 
-  // Verifică limita zilnică doar pentru cheia built-in
-  if (config.type === 'builtin') {
-    const used = await getAiUsageToday();
-    if (used >= DAILY_AI_LIMIT) {
-      throw new Error(
-        `Ai atins limita de ${DAILY_AI_LIMIT} interogări AI/zi cu cheia Finanțe AI.\n\nPoți folosi nelimitat configurând propria cheie API din Setări → Asistent AI.`
-      );
-    }
-  }
-
-  const baseUrl = (config.type === 'builtin' ? BUILTIN_URL : config.url).replace(/\/$/, '');
-  const model = config.type === 'builtin' ? BUILTIN_MODEL : config.model;
-  const endpoint = `${baseUrl}/chat/completions`;
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  };
-
-  const response = await fetchWithTimeout(endpoint, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: maxTokens,
-      temperature,
-    }),
-  });
+  const response = await fetchWithTimeout(
+    target.endpoint,
+    {
+      method: 'POST',
+      headers: target.headers,
+      body: JSON.stringify({
+        model: target.model,
+        messages,
+        max_tokens: maxTokens,
+        temperature,
+      }),
+    },
+    target.timeoutMs
+  );
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
-    throw new Error(`Eroare AI (${response.status}): ${errText || 'Răspuns invalid de la server'}`);
+    throw new Error(describeHttpError(config.type, response.status, errText));
   }
 
   const data = (await response.json()) as OpenAiResponse;

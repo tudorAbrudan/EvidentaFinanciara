@@ -1,5 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Linking,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -27,6 +35,10 @@ interface Props {
 export default function AiPreflightDialog({ visible, info, onCancel, onConfirm }: Props) {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const C = Colors[scheme];
+  // La Dynamic Type mare două pilule alăturate nu mai încap: le stivuim, cu
+  // confirmarea sus (column-reverse păstrează Anulează primul în ordinea DOM).
+  const { fontScale } = useWindowDimensions();
+  const stacked = fontScale > 1.2;
 
   if (!info) return null;
 
@@ -72,12 +84,13 @@ export default function AiPreflightDialog({ visible, info, onCancel, onConfirm }
             <Text style={[styles.termsLink, { color: C.tint }]}>Termenii {AI_PROVIDER_NAME}</Text>
           </Pressable>
 
-          <View style={styles.actions}>
+          <View style={[styles.actions, stacked && styles.actionsStacked]}>
             <Pressable
               onPress={onCancel}
               style={({ pressed }) => [
                 styles.btn,
                 styles.btnCancel,
+                stacked && styles.btnStacked,
                 { borderColor: C.border, opacity: pressed ? 0.85 : 1 },
               ]}
             >
@@ -87,6 +100,7 @@ export default function AiPreflightDialog({ visible, info, onCancel, onConfirm }
               onPress={onConfirm}
               style={({ pressed }) => [
                 styles.btn,
+                stacked && styles.btnStacked,
                 { backgroundColor: primary, opacity: pressed ? 0.85 : 1 },
               ]}
             >
@@ -133,13 +147,20 @@ const styles = StyleSheet.create({
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
   termsLink: { fontSize: 13, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: 10 },
+  actionsStacked: { flexDirection: 'column-reverse' },
+  // Pe verticală înălțimea vine din conținut. `flex: 0` (nu `flexBasis: 'auto'`) —
+  // în Yoga flexBasis auto recade pe 0 cât timp flex rămâne > 0, iar butonul s-ar turti.
+  btnStacked: { flex: 0 },
   btn: {
     flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 14,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnCancel: { borderWidth: 1.5 },
-  btnText: { fontSize: 14, fontWeight: '700' },
+  // alignSelf stretch leagă lățimea textului de cea a butonului, altfel Text-ul
+  // se măsoară la lățimea lui intrinsecă și iese din pilulă în loc să se rupă.
+  btnText: { fontSize: 14, fontWeight: '700', textAlign: 'center', alignSelf: 'stretch' },
 });

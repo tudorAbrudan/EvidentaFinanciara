@@ -3,6 +3,7 @@ import {
   bulkDeleteTransactions,
   findDuplicateCandidates,
   findInternalTransferCandidates,
+  getCategoryMonthlySeries,
   getMonthlyIncomeSeries,
   getMonthlyTotals,
   getTransaction,
@@ -167,6 +168,14 @@ describe('findInternalTransferCandidates', () => {
 });
 
 describe('getMonthlyTotals', () => {
+  // Explicit, nu prin scurgere: `getAllAsync` e folosit acum și de regula
+  // numerarului. Fără setarea asta, testele treceau doar fiindcă mock-ul
+  // păstra o valoare lăsată de un test anterior — adică din ordinea de rulare.
+  beforeEach(() => {
+    (db.db.getAllAsync as jest.Mock).mockReset();
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+  });
+
   it('returns income, expense, and net from sql aggregate', async () => {
     (db.db.getFirstAsync as jest.Mock).mockResolvedValue({
       income: 5000,
@@ -422,5 +431,217 @@ describe('getMonthlyIncomeSeries', () => {
     const series = await getMonthlyIncomeSeries(0);
     expect(series).toEqual([]);
     expect(db.db.getAllAsync as jest.Mock).not.toHaveBeenCalled();
+  });
+});
+
+describe('potrivire transferuri: comision și valută', () => {
+  it('leagă 1000 ieșit de 995 intrat + 5 comision, marcat ca sugestie', async () => {
+    const rows: Row[] = [
+      row({ id: 'out', date: '2026-05-01', amount: -1000, account_id: 'a1' }),
+      row({ id: 'in', date: '2026-05-01', amount: 995, account_id: 'a2' }),
+      row({
+        id: 'fee',
+        date: '2026-05-01',
+        amount: -5,
+        account_id: 'a1',
+        description: 'Comision transfer',
+      }),
+    ];
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue(rows);
+    const result = await findInternalTransferCandidates();
+    expect(result).toHaveLength(1);
+    expect(result[0].outflow.id).toBe('out');
+    expect(result[0].inflow.id).toBe('in');
+    expect(result[0].kind).toBe('fee');
+    expect(result[0].fees?.map(f => f.id)).toEqual(['fee']);
+  });
+
+  it('nu leagă când diferența nu e explicată de un comision', async () => {
+    const rows: Row[] = [
+      row({ id: 'out', date: '2026-05-01', amount: -1000, account_id: 'a1' }),
+      row({ id: 'in', date: '2026-05-01', amount: 900, account_id: 'a2' }),
+    ];
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue(rows);
+    expect(await findInternalTransferCandidates()).toHaveLength(0);
+  });
+
+  it('potrivește RON→EUR prin valorile convertite, ca sugestie', async () => {
+    const rows: Row[] = [
+      row({ id: 'out', date: '2026-05-01', amount: -4970, account_id: 'a1', amount_ron: -4970 }),
+      row({
+        id: 'in',
+        date: '2026-05-01',
+        amount: 1000,
+        currency: 'EUR',
+        account_id: 'a2',
+        amount_ron: 4970,
+      }),
+    ];
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue(rows);
+    const result = await findInternalTransferCandidates();
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe('fx');
+  });
+
+  it('nu potrivește valutar când lipsește cursul (amount_ron NULL)', async () => {
+    const rows: Row[] = [
+      row({ id: 'out', date: '2026-05-01', amount: -4970, account_id: 'a1' }),
+      row({ id: 'in', date: '2026-05-01', amount: 1000, currency: 'EUR', account_id: 'a2' }),
+    ];
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue(rows);
+    expect(await findInternalTransferCandidates()).toHaveLength(0);
+  });
+
+  it('potrivirea exactă rămâne marcată exact, deci se leagă automat', async () => {
+    const rows: Row[] = [
+      row({ id: 'out', date: '2026-05-01', amount: -500, account_id: 'a1' }),
+      row({ id: 'in', date: '2026-05-01', amount: 500, account_id: 'a2' }),
+    ];
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue(rows);
+    const result = await findInternalTransferCandidates();
+    expect(result[0].kind).toBe('exact');
+  });
+
+  it('plata la comerciant nu devine niciodată candidat', async () => {
+    const rows: Row[] = [
+      row({ id: 'lidl', date: '2026-05-01', amount: -187.4, account_id: 'a1', merchant: 'Lidl' }),
+    ];
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue(rows);
+    expect(await findInternalTransferCandidates()).toHaveLength(0);
+  });
+
+  it('comisionul nu e tratat el însuși ca latură de transfer', async () => {
+    const rows: Row[] = [
+      row({
+        id: 'fee',
+        date: '2026-05-01',
+        amount: -5,
+        account_id: 'a1',
+        description: 'Comision administrare',
+      }),
+      row({ id: 'in', date: '2026-05-01', amount: 5, account_id: 'a2' }),
+    ];
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue(rows);
+    expect(await findInternalTransferCandidates()).toHaveLength(0);
+  });
+});
+
+describe('getCategoryMonthlySeries', () => {
+  beforeEach(() => {
+    (db.db.getAllAsync as jest.Mock).mockReset();
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('grupează pe lună și categorie, într-o singură interogare', async () => {
+    await getCategoryMonthlySeries('2025-09', '2026-08');
+    expect((db.db.getAllAsync as jest.Mock).mock.calls).toHaveLength(1);
+    const sql = (db.db.getAllAsync as jest.Mock).mock.calls[0][0] as string;
+    expect(sql).toMatch(/GROUP BY ym, t\.category_id/);
+    expect(sql).toMatch(/COUNT\(\*\) AS cnt/);
+  });
+
+  it('limitează intervalul la lunile cerute', async () => {
+    await getCategoryMonthlySeries('2025-09', '2026-08');
+    const params = (db.db.getAllAsync as jest.Mock).mock.calls[0][1] as string[];
+    expect(params[0]).toBe('2025-09');
+    expect(params[1]).toBe('2026-08');
+  });
+
+  it('exclude duplicatele, transferurile interne și veniturile', async () => {
+    await getCategoryMonthlySeries('2025-09', '2026-08');
+    const sql = (db.db.getAllAsync as jest.Mock).mock.calls[0][0] as string;
+    expect(sql).toMatch(/duplicate_of_id IS NULL/);
+    expect(sql).toMatch(/is_internal_transfer = 0/);
+    expect(sql).toMatch(/amount < 0/);
+  });
+
+  it('întoarce sume pozitive și nume implicit pentru necategorizat', async () => {
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([
+      { ym: '2026-08', category_id: null, category_name: null, total: -450.5, cnt: 3 },
+    ]);
+    const series = await getCategoryMonthlySeries('2025-09', '2026-08');
+    expect(series).toEqual([
+      {
+        yearMonth: '2026-08',
+        category_id: null,
+        category_name: 'Necategorizat',
+        total_ron: 450.5,
+        transaction_count: 3,
+      },
+    ]);
+  });
+});
+
+describe('getMonthlyTotals — valută și restituiri', () => {
+  beforeEach(() => {
+    (db.db.getAllAsync as jest.Mock).mockReset();
+    (db.db.getAllAsync as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('nu adună suma brută în valută când lipsește cursul, și o raportează', async () => {
+    (db.db.getFirstAsync as jest.Mock).mockResolvedValue({
+      income: 0,
+      expense: -100,
+      cnt: 2,
+      missing_rate: 1,
+    });
+    const totals = await getMonthlyTotals('2026-05');
+    expect(totals.expense_ron).toBe(100);
+    expect(totals.missing_rate_count).toBe(1);
+  });
+
+  it('nu raportează missing_rate_count când totul are curs', async () => {
+    (db.db.getFirstAsync as jest.Mock).mockResolvedValue({
+      income: 500,
+      expense: -100,
+      cnt: 3,
+      missing_rate: 0,
+    });
+    const totals = await getMonthlyTotals('2026-05');
+    expect(totals.missing_rate_count).toBeUndefined();
+  });
+
+  it('SQL-ul folosește CASE pe currency, nu COALESCE', async () => {
+    (db.db.getFirstAsync as jest.Mock).mockResolvedValue({
+      income: 0,
+      expense: 0,
+      cnt: 0,
+      missing_rate: 0,
+    });
+    await getMonthlyTotals('2026-05');
+    const sql = (db.db.getFirstAsync as jest.Mock).mock.calls.at(-1)?.[0] as string;
+    expect(sql).toContain("CASE WHEN currency = 'RON'");
+    expect(sql).not.toContain('COALESCE(amount_ron, amount)');
+  });
+
+  it('restituirile ies din venituri și intră ca reducere de cheltuială', async () => {
+    (db.db.getFirstAsync as jest.Mock).mockResolvedValue({
+      income: 0,
+      expense: 0,
+      cnt: 0,
+      missing_rate: 0,
+    });
+    await getMonthlyTotals('2026-05');
+    const sql = (db.db.getFirstAsync as jest.Mock).mock.calls.at(-1)?.[0] as string;
+    // Verificăm regulile, nu forma exactă a expresiei: varianta anterioară fixa
+    // paranteza întreagă și s-a rupt la prima schimbare legitimă a ei.
+    expect(sql).toContain('is_refund = 0'); // venitul exclude restituirile
+    expect(sql).toContain('is_refund = 1'); // cheltuiala le include
+  });
+
+  it('ajustările de sold nu intră nici la venituri, nici la cheltuieli', async () => {
+    // „Aliniază la extras" creează o tranzacție care corectează soldul. E o
+    // recunoaștere că lipsea ceva, nu o plată: dacă ar intra în agregări, ar
+    // apărea ca o cheltuială sau un venit pe care userul nu l-a făcut.
+    (db.db.getFirstAsync as jest.Mock).mockResolvedValue({
+      income: 0,
+      expense: 0,
+      cnt: 0,
+      missing_rate: 0,
+    });
+    await getMonthlyTotals('2026-05');
+    const sql = (db.db.getFirstAsync as jest.Mock).mock.calls.at(-1)?.[0] as string;
+    const occurrences = sql.split("source != 'adjustment'").length - 1;
+    expect(occurrences).toBe(2); // o dată la venituri, o dată la cheltuieli
   });
 });

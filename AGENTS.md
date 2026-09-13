@@ -9,24 +9,27 @@ Limba UI și docs: română.
 
 ## Comenzi uzuale
 
-| Comandă                  | Ce face                                                                                             |
-| ------------------------ | --------------------------------------------------------------------------------------------------- |
-| `npm start`              | Pornește Expo dev server                                                                            |
-| `npm run ios`            | Build și rulare iOS simulator (Debug)                                                               |
-| `npm run ios:release`    | Build Release + instalare + launch pe simulator (JS bundled)                                        |
-| `npm run ios:dist:sim`   | `.app` Release standalone pentru simulator (gata de Distribute / partajat)                          |
-| `npm run android`        | Build și rulare Android emulator                                                                    |
-| `npm run lint`           | ESLint pe `.ts`/`.tsx`                                                                              |
-| `npm run lint:fix`       | ESLint cu auto-fix                                                                                  |
-| `npm run type-check`     | `tsc --noEmit`                                                                                      |
-| `npm test`               | Jest                                                                                                |
-| `npm run test:watch`     | Jest în watch mode                                                                                  |
-| `npm run evals:ai`       | Doar AI eval harness (`__tests__/evals/`) — parser + schema + sanitizare prompt-uri                 |
-| `npm run parse:pdf`      | Rulează extractor + parser pe un PDF local și tipărește raportul de reconciliere                    |
-| `npm run format`         | Prettier write                                                                                      |
-| `npm run check:pointers` | Verifică că `CLAUDE.md` a rămas pointer subțire către `AGENTS.md`                                   |
-| `npm run check:workflow` | Gate de pre-push: chitanțe de fază valide + `LEARNINGS.md` atins la diff de feature                 |
-| `npm run check`          | Tot lanțul: pointers + lint + type-check + type-coverage + test + knip + madge + dep-cruise + audit |
+| Comandă                  | Ce face                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `npm start`              | Pornește Expo dev server                                                                                              |
+| `npm run ios`            | Build și rulare iOS simulator (Debug)                                                                                 |
+| `npm run ios:release`    | Build Release + instalare + launch pe simulator (JS bundled)                                                          |
+| `npm run ios:dist:sim`   | `.app` Release standalone pentru simulator (gata de Distribute / partajat)                                            |
+| `npm run ios:device`     | Build Release pe iPhone-ul conectat — **singura** variantă care merge fără Metro pornit                               |
+| `npm run android`        | Build și rulare Android emulator                                                                                      |
+| `npm run lint`           | ESLint pe `.ts`/`.tsx`                                                                                                |
+| `npm run lint:fix`       | ESLint cu auto-fix                                                                                                    |
+| `npm run type-check`     | `tsc --noEmit`                                                                                                        |
+| `npm test`               | Jest                                                                                                                  |
+| `npm run test:watch`     | Jest în watch mode                                                                                                    |
+| `npm run evals:ai`       | Doar AI eval harness (`__tests__/evals/`) — parser + schema + sanitizare prompt-uri                                   |
+| `npm run parse:pdf`      | Rulează extractor + parser pe un PDF local și tipărește raportul de reconciliere                                      |
+| `npm run format`         | Prettier write                                                                                                        |
+| `npm run check:pointers` | Verifică că `CLAUDE.md` a rămas pointer subțire către `AGENTS.md`                                                     |
+| `npm run check:secrets`  | Niciun `EXPO_PUBLIC_*` cu nume de secret în `.env`, config Expo sau codul din bundle                                  |
+| `npm run check:workflow` | Gate de pre-push: chitanțe de fază valide + `LEARNINGS.md` atins la diff de feature                                   |
+| `npm run test:proxy`     | Testele proxy-ului AI (`ai-proxy/`, `node --test`, fără rețea)                                                        |
+| `npm run check`          | Tot lanțul: pointers + secrets + lint + type-check + type-coverage + test + proxy + knip + madge + dep-cruise + audit |
 
 ## Convenții cod
 

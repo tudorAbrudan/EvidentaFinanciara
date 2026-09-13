@@ -20,7 +20,15 @@ import { useCategories } from '@/hooks/useCategories';
 import { useFinancialAccounts } from '@/hooks/useFinancialAccounts';
 import { useTransactions } from '@/hooks/useTransactions';
 import { AI_CONSENT_KEY, getAiConfig } from '@/services/aiProvider';
+import {
+  alignToStatement,
+  clearDuplicateSuspect,
+  loadLatestBalanceCheck,
+  type StatementBalanceCheck,
+} from '@/services/balanceCheck';
 import { getBankStatementsForAccount, deleteBankStatement } from '@/services/bankStatements';
+import { getCoverageMutedAccounts, setCoverageMuted } from '@/services/settings';
+import { loadCoverageReport, type AccountCoverage } from '@/services/statementCoverage';
 import {
   backfillMissingRates,
   countMissingRates,
@@ -50,6 +58,9 @@ export default function FinancialAccountDetailScreen() {
   const [missingRates, setMissingRates] = useState(0);
   const [backfilling, setBackfilling] = useState(false);
   const [reanalyzing, setReanalyzing] = useState<string | null>(null);
+  const [coverage, setCoverage] = useState<AccountCoverage | null>(null);
+  const [muted, setMuted] = useState(false);
+  const [balanceCheck, setBalanceCheck] = useState<StatementBalanceCheck | null>(null);
 
   const categoryMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -63,6 +74,27 @@ export default function FinancialAccountDetailScreen() {
       setStatements(rows);
     } catch {
       setStatements([]);
+    }
+  }, [accountId]);
+
+  const loadCoverage = useCallback(async () => {
+    try {
+      const [report, mutedIds] = await Promise.all([
+        loadCoverageReport(),
+        getCoverageMutedAccounts(),
+      ]);
+      setMuted(mutedIds.includes(accountId));
+      setCoverage(report.accounts.find(a => a.account_id === accountId) ?? null);
+    } catch {
+      setCoverage(null);
+    }
+  }, [accountId]);
+
+  const loadBalance = useCallback(async () => {
+    try {
+      setBalanceCheck(await loadLatestBalanceCheck(accountId));
+    } catch {
+      setBalanceCheck(null);
     }
   }, [accountId]);
 
@@ -80,7 +112,9 @@ export default function FinancialAccountDetailScreen() {
       void refresh();
       void loadStatements();
       void loadMissingRates();
-    }, [loadStatements, loadMissingRates, refresh, refreshAccounts])
+      void loadCoverage();
+      void loadBalance();
+    }, [loadStatements, loadMissingRates, loadCoverage, loadBalance, refresh, refreshAccounts])
   );
 
   async function handleBackfillRates() {
@@ -438,6 +472,133 @@ export default function FinancialAccountDetailScreen() {
                 onDelete={() => handleDeleteStatement(s)}
               />
             ))}
+
+            {coverage !== null &&
+              coverage.messages.map(msg => (
+                <RNView
+                  key={msg}
+                  style={[
+                    styles.covRow,
+                    { backgroundColor: C.card, borderColor: statusColors.warning },
+                  ]}
+                >
+                  <Ionicons name="alert-circle-outline" size={16} color={statusColors.warning} />
+                  <RNText style={[styles.covText, { color: C.text }]}>{msg}</RNText>
+                </RNView>
+              ))}
+
+            {balanceCheck !== null &&
+              (balanceCheck.check.diagnosis === 'before_statement' ||
+                balanceCheck.check.diagnosis === 'inside_statement') && (
+                <RNView
+                  style={[
+                    styles.balCard,
+                    { backgroundColor: C.card, borderColor: statusColors.critical },
+                  ]}
+                >
+                  <RNText style={[styles.balText, { color: C.text }]}>
+                    {balanceCheck.check.message}
+                  </RNText>
+                  <RNView style={styles.balActions}>
+                    {balanceCheck.check.diagnosis === 'before_statement' && (
+                      <BalanceAction
+                        label="Corectează soldul inițial"
+                        C={C}
+                        onPress={() =>
+                          router.push({ pathname: '/conturi/edit', params: { id: accountId } })
+                        }
+                      />
+                    )}
+                    {balanceCheck.check.duplicate_suspect !== null && (
+                      <BalanceAction
+                        label="Nu e duplicat"
+                        C={C}
+                        onPress={() => {
+                          void (async () => {
+                            try {
+                              await clearDuplicateSuspect(balanceCheck.check);
+                              await Promise.all([refresh(), loadBalance(), refreshAccounts()]);
+                            } catch (e) {
+                              Alert.alert(
+                                'Eroare',
+                                e instanceof Error ? e.message : 'Nu s-a putut anula marcajul.'
+                              );
+                            }
+                          })();
+                        }}
+                      />
+                    )}
+                    {balanceCheck.check.diagnosis === 'inside_statement' && (
+                      <BalanceAction
+                        label="Re-importă extrasul"
+                        C={C}
+                        onPress={() => handleReanalyze(balanceCheck.statement)}
+                      />
+                    )}
+                    <BalanceAction
+                      label="Aliniază la extras"
+                      C={C}
+                      onPress={() => {
+                        const diff = balanceCheck.check.closing_diff ?? 0;
+                        Alert.alert(
+                          'Aliniază la extras',
+                          `Se creează tranzacția „${'Ajustare sold la extras'}" pe ${balanceCheck.statement.period_to}, cu ${diff.toFixed(2)} ${account.currency}. Corectează soldul, dar nu intră în cheltuieli sau venituri.`,
+                          [
+                            { text: 'Anulează', style: 'cancel' },
+                            {
+                              text: 'Creează',
+                              onPress: () => {
+                                void (async () => {
+                                  try {
+                                    await alignToStatement(balanceCheck.statement, accountId, diff);
+                                    await Promise.all([
+                                      refresh(),
+                                      loadBalance(),
+                                      refreshAccounts(),
+                                    ]);
+                                  } catch (e) {
+                                    Alert.alert(
+                                      'Eroare',
+                                      e instanceof Error
+                                        ? e.message
+                                        : 'Nu s-a putut crea ajustarea.'
+                                    );
+                                  }
+                                })();
+                              },
+                            },
+                          ]
+                        );
+                      }}
+                    />
+                  </RNView>
+                </RNView>
+              )}
+
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: muted }}
+              onPress={() => {
+                void (async () => {
+                  try {
+                    await setCoverageMuted(accountId, !muted);
+                    await loadCoverage();
+                  } catch {
+                    Alert.alert('Eroare', 'Nu s-a putut salva preferința.');
+                  }
+                })();
+              }}
+              style={({ pressed }) => [styles.covToggle, pressed && { opacity: 0.7 }]}
+            >
+              <Ionicons
+                name={muted ? 'checkbox-outline' : 'square-outline'}
+                size={18}
+                color={C.textSecondary}
+              />
+              <RNText style={[styles.covToggleText, { color: C.textSecondary }]}>
+                Nu import extrase pentru acest cont
+              </RNText>
+            </Pressable>
           </>
         )}
 
@@ -541,6 +702,30 @@ export default function FinancialAccountDetailScreen() {
         safeArea
       />
     </RNView>
+  );
+}
+
+function BalanceAction({
+  label,
+  C,
+  onPress,
+}: {
+  label: string;
+  C: typeof Colors.light;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.balBtn,
+        { borderColor: C.border, backgroundColor: C.background },
+        pressed && { opacity: 0.7 },
+      ]}
+    >
+      <RNText style={[styles.balBtnText, { color: C.text }]}>{label}</RNText>
+    </Pressable>
   );
 }
 
@@ -666,6 +851,40 @@ function TransactionRow({
 }
 
 const styles = StyleSheet.create({
+  covRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    marginBottom: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  covText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  covToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  covToggleText: { fontSize: 13 },
+  balCard: {
+    padding: 12,
+    marginBottom: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 10,
+  },
+  balText: { fontSize: 13, lineHeight: 19 },
+  balActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  balBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  balBtnText: { fontSize: 13, fontWeight: '600' },
   container: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 96 },
 

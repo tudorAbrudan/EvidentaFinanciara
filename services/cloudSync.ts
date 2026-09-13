@@ -89,6 +89,9 @@ async function getAllBankStatements() {
     total_outflow: number;
     notes: string | null;
     created_at: string;
+    period_source: string | null;
+    opening_balance: number | null;
+    closing_balance: number | null;
   }>('SELECT * FROM bank_statements ORDER BY period_to DESC, imported_at DESC');
 }
 
@@ -126,6 +129,9 @@ async function buildManifestPayload(): Promise<BackupPayload> {
       total_outflow: r.total_outflow,
       notes: r.notes ?? undefined,
       createdAt: r.created_at,
+      period_source: r.period_source === 'header' ? 'header' : 'inferred',
+      opening_balance: r.opening_balance ?? undefined,
+      closing_balance: r.closing_balance ?? undefined,
     })),
     fxRates: fxRows ?? [],
   };

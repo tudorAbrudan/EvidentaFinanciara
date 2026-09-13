@@ -1,6 +1,12 @@
-import { getAiUsageStats, recordAiTokens, sendAiRequest } from '@/services/aiProvider';
+import {
+  getAiUsageStats,
+  recordAiTokens,
+  sendAiRequest,
+  validateConfig,
+  type AiProviderConfig,
+} from '@/services/aiProvider';
 
-// Stub minimal pentru config + usage; testăm doar că temperature 0 e default.
+// Stub minimal pentru config + usage.
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
   default: {
@@ -10,19 +16,21 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
+// Cheia proprie a userului (provider `external`). Nu are voie să plece spre proxy.
 jest.mock('expo-secure-store', () => ({
-  getItemAsync: jest.fn().mockResolvedValue('test-key'),
+  getItemAsync: jest.fn().mockResolvedValue('cheia-proprie-a-userului'),
   setItemAsync: jest.fn().mockResolvedValue(undefined),
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
 const mockFetch = jest.fn();
 let inMemoryStore: Record<string, string> = {};
+let providerType = 'external';
 
 beforeAll(() => {
   const AsyncStorage = jest.requireMock('@react-native-async-storage/async-storage').default;
   (AsyncStorage.getItem as jest.Mock).mockImplementation((key: string) => {
-    if (key === 'ai_provider_type') return Promise.resolve('external');
+    if (key === 'ai_provider_type') return Promise.resolve(providerType);
     if (key === 'ai_provider_url') return Promise.resolve('https://api.test/v1');
     if (key === 'ai_provider_model') return Promise.resolve('test-model');
     return Promise.resolve(inMemoryStore[key] ?? null);
@@ -35,12 +43,24 @@ beforeAll(() => {
 
 beforeEach(() => {
   inMemoryStore = {};
+  providerType = 'external';
   mockFetch.mockReset();
   mockFetch.mockResolvedValue({
     ok: true,
     json: async () => ({ choices: [{ message: { content: '{}' } }] }),
   } as unknown as Response);
 });
+
+const errorResponse = (status: number, body: string) =>
+  ({ ok: false, status, text: async () => body }) as unknown as Response;
+
+function lastRequest(): { url: string; init: RequestInit; headers: Record<string, string> } {
+  const [url, init] = mockFetch.mock.calls[mockFetch.mock.calls.length - 1] as [
+    string,
+    RequestInit,
+  ];
+  return { url, init, headers: init.headers as Record<string, string> };
+}
 
 describe('sendAiRequest', () => {
   it('temperature default 0 (deterministic pentru output structurat)', async () => {
@@ -111,6 +131,122 @@ describe('sendAiRequest', () => {
 
     const stats = await getAiUsageStats();
     expect(stats.totalTokensToday).toBe(0);
+  });
+});
+
+describe('cheie proprie (external)', () => {
+  it('merge direct la providerul userului, fără X-App-Device', async () => {
+    await sendAiRequest([{ role: 'user', content: 'test' }]);
+    const { url, headers } = lastRequest();
+    expect(url).toBe('https://api.test/v1/chat/completions');
+    expect(headers.Authorization).toBe('Bearer cheia-proprie-a-userului');
+    expect(headers['X-App-Device']).toBeUndefined();
+  });
+
+  it('păstrează răspunsul brut al providerului la eroare', async () => {
+    mockFetch.mockResolvedValueOnce(errorResponse(429, 'rate limited by provider'));
+    await expect(sendAiRequest([{ role: 'user', content: 'test' }])).rejects.toThrow(
+      'Eroare AI (429): rate limited by provider'
+    );
+  });
+});
+
+describe('Finanțe AI prin proxy (builtin)', () => {
+  const savedUrl = process.env.EXPO_PUBLIC_FINANTE_AI_URL;
+  const savedToken = process.env.EXPO_PUBLIC_FINANTE_AI_TOKEN;
+
+  beforeEach(() => {
+    providerType = 'builtin';
+    process.env.EXPO_PUBLIC_FINANTE_AI_URL = 'https://proxy.test/v1/';
+    process.env.EXPO_PUBLIC_FINANTE_AI_TOKEN = 'token-aplicatie';
+  });
+
+  afterEach(() => {
+    if (savedUrl === undefined) delete process.env.EXPO_PUBLIC_FINANTE_AI_URL;
+    else process.env.EXPO_PUBLIC_FINANTE_AI_URL = savedUrl;
+    if (savedToken === undefined) delete process.env.EXPO_PUBLIC_FINANTE_AI_TOKEN;
+    else process.env.EXPO_PUBLIC_FINANTE_AI_TOKEN = savedToken;
+  });
+
+  it('trimite la proxy, cu token-ul de aplicație și modelul permis', async () => {
+    await sendAiRequest([{ role: 'user', content: 'test' }]);
+    const { url, init, headers } = lastRequest();
+    expect(url).toBe('https://proxy.test/v1/chat/completions');
+    expect(headers.Authorization).toBe('Bearer token-aplicatie');
+    expect(JSON.parse(init.body as string).model).toBe('mistral-small-latest');
+  });
+
+  it('nu trimite cheia proprie a userului către proxy', async () => {
+    await sendAiRequest([{ role: 'user', content: 'test' }]);
+    const { init } = lastRequest();
+    expect(JSON.stringify(init)).not.toContain('cheia-proprie-a-userului');
+  });
+
+  it('trimite un X-App-Device anonim, stabil între cereri', async () => {
+    await sendAiRequest([{ role: 'user', content: '1' }]);
+    const first = lastRequest().headers['X-App-Device'];
+    await sendAiRequest([{ role: 'user', content: '2' }]);
+    const second = lastRequest().headers['X-App-Device'];
+    expect(first.length).toBeGreaterThanOrEqual(8);
+    expect(first.length).toBeLessThanOrEqual(128);
+    expect(second).toBe(first);
+  });
+
+  it.each([
+    [
+      429,
+      '{"error":{"message":"Ai atins limita de 20 interogări pe zi."}}',
+      /limita de 20[\s\S]*cheie API/,
+    ],
+    [
+      429,
+      '{"error":{"message":"Serviciul a atins plafonul zilnic. Încearcă mâine."}}',
+      /plafonul zilnic/,
+    ],
+    [
+      503,
+      '{"error":{"message":"Serviciul AI inclus e indisponibil momentan."}}',
+      /Finanțe AI e indisponibil/,
+    ],
+    [401, '{"error":{"message":"Neautorizat."}}', /Actualizează aplicația/],
+    [413, '{"error":{"message":"Cerere prea mare."}}', /prea mare pentru Finanțe AI/],
+    [502, '{"error":{"message":"Providerul AI nu e disponibil."}}', /nu poate contacta providerul/],
+    [504, '', /nu a răspuns la timp/],
+  ])('status %i → mesaj pentru user, fără JSON brut', async (status, body, expected) => {
+    mockFetch.mockResolvedValueOnce(errorResponse(status, body));
+    const error = await sendAiRequest([{ role: 'user', content: 'test' }]).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toMatch(expected);
+    expect((error as Error).message).not.toContain('{"error"');
+  });
+
+  it('fără URL de proxy configurat → nu face nicio cerere', async () => {
+    delete process.env.EXPO_PUBLIC_FINANTE_AI_URL;
+    await expect(sendAiRequest([{ role: 'user', content: 'test' }])).rejects.toThrow(
+      /Finanțe AI nu este disponibil/
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('validateConfig pentru builtin', () => {
+  const builtin: AiProviderConfig = { type: 'builtin', url: '', apiKey: '', model: '' };
+
+  afterEach(() => {
+    delete process.env.EXPO_PUBLIC_FINANTE_AI_URL;
+    delete process.env.EXPO_PUBLIC_FINANTE_AI_TOKEN;
+  });
+
+  it('cere și URL-ul, și token-ul proxy-ului', () => {
+    process.env.EXPO_PUBLIC_FINANTE_AI_TOKEN = 'token';
+    expect(validateConfig(builtin)).toMatch(/Finanțe AI nu este disponibil/);
+
+    delete process.env.EXPO_PUBLIC_FINANTE_AI_TOKEN;
+    process.env.EXPO_PUBLIC_FINANTE_AI_URL = 'https://proxy.test/v1';
+    expect(validateConfig(builtin)).toMatch(/Finanțe AI nu este disponibil/);
+
+    process.env.EXPO_PUBLIC_FINANTE_AI_TOKEN = 'token';
+    expect(validateConfig(builtin)).toBeNull();
   });
 });
 

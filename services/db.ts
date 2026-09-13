@@ -23,6 +23,21 @@ try {
   // tabela nu există încă (fresh install) sau coloana există deja
 }
 
+// Extrasele știu de unde le vine perioada și ce solduri tipărește banca.
+// Rândurile existente rămân `inferred`: perioada lor a fost dedusă din prima și
+// ultima tranzacție, nu citită din antet.
+for (const ddl of [
+  `ALTER TABLE bank_statements ADD COLUMN period_source TEXT NOT NULL DEFAULT 'inferred'`,
+  `ALTER TABLE bank_statements ADD COLUMN opening_balance REAL`,
+  `ALTER TABLE bank_statements ADD COLUMN closing_balance REAL`,
+]) {
+  try {
+    db.execSync(ddl);
+  } catch {
+    // tabela nu există încă (fresh install) sau coloana există deja
+  }
+}
+
 db.execSync(`
   PRAGMA journal_mode = WAL;
 
@@ -93,6 +108,9 @@ db.execSync(`
     account_id TEXT NOT NULL,
     period_from TEXT NOT NULL,
     period_to TEXT NOT NULL,
+    period_source TEXT NOT NULL DEFAULT 'inferred',
+    opening_balance REAL,
+    closing_balance REAL,
     file_path TEXT,
     file_hash TEXT,
     imported_at TEXT NOT NULL,

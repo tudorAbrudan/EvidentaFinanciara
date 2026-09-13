@@ -1,4 +1,6 @@
-import { db } from './db';
+import type { PdfStatementInfo } from './bankStatementPdfParser';
+import { db, generateId } from './db';
+import { resolveStatementFacts } from './statementPeriod';
 
 import type { BankStatement } from '@/types';
 
@@ -7,6 +9,9 @@ type Row = {
   account_id: string;
   period_from: string;
   period_to: string;
+  period_source: string | null;
+  opening_balance: number | null;
+  closing_balance: number | null;
   file_path: string | null;
   file_hash: string | null;
   imported_at: string;
@@ -23,6 +28,9 @@ function mapRow(r: Row): BankStatement {
     account_id: r.account_id,
     period_from: r.period_from,
     period_to: r.period_to,
+    period_source: r.period_source === 'header' ? 'header' : 'inferred',
+    opening_balance: r.opening_balance ?? undefined,
+    closing_balance: r.closing_balance ?? undefined,
     file_path: r.file_path ?? undefined,
     file_hash: r.file_hash ?? undefined,
     imported_at: r.imported_at,
@@ -42,6 +50,73 @@ export async function getBankStatementsForAccount(accountId: string): Promise<Ba
     [accountId]
   );
   return rows.map(mapRow);
+}
+
+/**
+ * Toate extrasele, din toate conturile.
+ *
+ * Acoperirea se calculează pe reuniunea intervalelor per cont, deci are nevoie
+ * de tot istoricul deodată; o citire per cont ar face N interogări ca să ajungă
+ * la același rezultat.
+ */
+export async function getAllBankStatements(): Promise<BankStatement[]> {
+  const rows = await db.getAllAsync<Row>(
+    `SELECT * FROM bank_statements ORDER BY account_id, period_from`
+  );
+  return rows.map(mapRow);
+}
+
+export interface NewBankStatement {
+  accountId: string;
+  /** Datele tranzacțiilor importate, pentru perioada dedusă când antetul lipsește. */
+  rowDates: string[];
+  /** Ce a citit parserul din antetul extrasului; lipsește la CSV, AI sau PDF generic. */
+  statementInfo?: PdfStatementInfo | null;
+  /** Valuta contului în care se importă — soldurile se rețin doar dacă se potrivesc. */
+  accountCurrency?: string | null;
+  transactionCount: number;
+  totalInflow: number;
+  totalOutflow: number;
+  notes: string | null;
+}
+
+/**
+ * Înregistrează un import de extras și întoarce id-ul lui.
+ *
+ * Perioada și soldurile vin din `resolveStatementFacts`: antetul extrasului când
+ * a fost validat, altfel intervalul tranzacțiilor, marcat ca atare.
+ */
+export async function recordBankStatement(input: NewBankStatement): Promise<string> {
+  const facts = resolveStatementFacts(input.rowDates, input.statementInfo, input.accountCurrency);
+  if (!facts) {
+    throw new Error('Extrasul nu are nicio tranzacție datată și nici perioadă în antet.');
+  }
+
+  const id = generateId();
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `INSERT INTO bank_statements
+       (id, account_id, period_from, period_to, period_source, opening_balance, closing_balance,
+        file_path, file_hash, imported_at, transaction_count, total_inflow, total_outflow,
+        notes, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.accountId,
+      facts.period_from,
+      facts.period_to,
+      facts.period_source,
+      facts.opening_balance,
+      facts.closing_balance,
+      now,
+      input.transactionCount,
+      input.totalInflow,
+      input.totalOutflow,
+      input.notes,
+      now,
+    ]
+  );
+  return id;
 }
 
 /**

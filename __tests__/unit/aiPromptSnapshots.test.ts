@@ -11,17 +11,23 @@
  *   3. Re-rulează eval harness (`npm run evals:ai`) și verifică că pass rate nu scade.
  */
 
-import { buildMessages, buildSystemPrompt } from '@/services/aiChatPrompt';
+import { buildMessages, buildSystemPrompt, type PromptContext } from '@/services/aiChatPrompt';
 import { buildPrompt as buildStatementPrompt } from '@/services/aiStatementMapper';
 import { buildVisionUserText, VISION_SYSTEM_PROMPT } from '@/services/aiStatementVisionMapper';
 
+const CTX: PromptContext = {
+  today: '2026-09-03',
+  accounts: [{ id: 'acc-bt', name: 'BT_curent_ron', currency: 'RON' }],
+  categories: [{ id: 'cat-sys-vehicle', name: 'Mașină', key: 'vehicle' }],
+};
+
 describe('Chat prompts', () => {
-  it('buildSystemPrompt() — snapshot', () => {
-    expect(buildSystemPrompt()).toMatchSnapshot();
+  it('buildSystemPrompt(CTX) — snapshot', () => {
+    expect(buildSystemPrompt(CTX)).toMatchSnapshot();
   });
 
   it('buildMessages() fără istoric — snapshot', () => {
-    expect(buildMessages([], 'Cât am cheltuit luna asta?')).toMatchSnapshot();
+    expect(buildMessages(CTX, [], 'Cât am cheltuit luna asta?')).toMatchSnapshot();
   });
 
   it('buildMessages() cu istoric scurt — snapshot', () => {
@@ -43,7 +49,7 @@ describe('Chat prompts', () => {
         },
       },
     ];
-    expect(buildMessages(history, 'Și pe distracție?')).toMatchSnapshot();
+    expect(buildMessages(CTX, history, 'Și pe distracție?')).toMatchSnapshot();
   });
 });
 

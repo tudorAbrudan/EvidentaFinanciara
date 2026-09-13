@@ -28,4 +28,17 @@ describe('schema DB', () => {
     expect(indexIdx).toBeGreaterThan(-1);
     expect(alterIdx).toBeLessThan(indexIdx);
   });
+
+  it('bank_statements are perioada din antet și soldurile, și la instalare nouă, și la migrare', () => {
+    const createStart = dbSource.indexOf('CREATE TABLE IF NOT EXISTS bank_statements');
+    expect(createStart).toBeGreaterThan(-1);
+    const createBlock = dbSource.slice(createStart, dbSource.indexOf(');', createStart));
+    expect(createBlock).toMatch(/period_source TEXT NOT NULL DEFAULT 'inferred'/);
+    expect(createBlock).toMatch(/opening_balance REAL/);
+    expect(createBlock).toMatch(/closing_balance REAL/);
+
+    for (const column of ['period_source', 'opening_balance', 'closing_balance']) {
+      expect(dbSource).toMatch(new RegExp(`ALTER TABLE bank_statements ADD COLUMN ${column}\\b`));
+    }
+  });
 });

@@ -1,6 +1,15 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
+import {
+  AccountSchema,
+  BackupEnvelopeSchema,
+  CategorySchema,
+  FxRateSchema,
+  StatementSchema,
+  TransactionSchema,
+  validateItem,
+} from './backupSchemas';
 import * as categories from './categories';
 import { db, generateId } from './db';
 import * as financialAccounts from './financialAccounts';
@@ -55,6 +64,9 @@ async function getAllBankStatements(): Promise<BankStatement[]> {
       total_outflow: number;
       notes: string | null;
       created_at: string;
+      period_source: string | null;
+      opening_balance: number | null;
+      closing_balance: number | null;
     }>('SELECT * FROM bank_statements ORDER BY period_to DESC, imported_at DESC')) ?? [];
   return rows.map(r => ({
     id: r.id,
@@ -69,7 +81,22 @@ async function getAllBankStatements(): Promise<BankStatement[]> {
     total_outflow: r.total_outflow,
     notes: r.notes ?? undefined,
     createdAt: r.created_at,
+    period_source: r.period_source === 'header' ? 'header' : 'inferred',
+    opening_balance: r.opening_balance ?? undefined,
+    closing_balance: r.closing_balance ?? undefined,
   }));
+}
+
+/**
+ * Coloanele de extras apărute după backup-urile vechi. Când lipsesc, perioada a
+ * fost dedusă din tranzacții (`inferred`) și nu există solduri de comparat.
+ */
+function statementExtrasFromBackup(s: AnyRecord): [string, number | null, number | null] {
+  return [
+    s.period_source === 'header' ? 'header' : 'inferred',
+    typeof s.opening_balance === 'number' ? s.opening_balance : null,
+    typeof s.closing_balance === 'number' ? s.closing_balance : null,
+  ];
 }
 
 export async function exportBackup(): Promise<string> {
@@ -114,16 +141,30 @@ export async function importBackup(path: string): Promise<BackupSummary> {
   } catch {
     throw new Error('Fișierul nu este un JSON valid.');
   }
+  const errors: string[] = [];
   const payload = (raw ?? {}) as Record<string, unknown>;
-  if (payload.app !== APP_TAG) {
+  const envelope = BackupEnvelopeSchema.safeParse(payload);
+  if (!envelope.success || envelope.data.app !== APP_TAG) {
     throw new Error('Backup-ul nu provine din aplicația Finanțe Personale.');
   }
-  const version = payload.version;
-  if (typeof version !== 'number' || version > BACKUP_VERSION) {
+  if (envelope.data.version > BACKUP_VERSION) {
     throw new Error('Versiune backup neacceptată.');
   }
 
-  const errors: string[] = [];
+  /**
+   * Colecțiile lipsă devin liste goale (backup-uri vechi rămân importabile), iar
+   * o colecție care nu e listă e raportată o dată, nu de N ori.
+   */
+  function collection(key: string): AnyRecord[] {
+    const v = payload[key];
+    if (v === undefined || v === null) return [];
+    if (!Array.isArray(v)) {
+      errors.push(`Secțiunea „${key}" nu e o listă — ignorată.`);
+      return [];
+    }
+    return v as AnyRecord[];
+  }
+
   let imported = 0;
   let skipped = 0;
 
@@ -138,7 +179,13 @@ export async function importBackup(path: string): Promise<BackupSummary> {
     existingAccounts.map(a => [`${a.name.toLowerCase().trim()}|${a.type}`, a.id])
   );
 
-  for (const a of (payload.financialAccounts as AnyRecord[] | undefined) ?? []) {
+  for (const a of collection('financialAccounts')) {
+    const valid = validateItem(AccountSchema, a);
+    if (!valid.ok) {
+      errors.push(`Cont sărit — ${valid.reason}`);
+      skipped++;
+      continue;
+    }
     try {
       const name = ((a.name as string) || '').trim() || 'Cont';
       const type = (a.type as FinancialAccountType) || 'bank';
@@ -181,7 +228,13 @@ export async function importBackup(path: string): Promise<BackupSummary> {
     else existingCategoryByName.set(c.name.toLowerCase().trim(), c.id);
   }
 
-  for (const c of (payload.expenseCategories as AnyRecord[] | undefined) ?? []) {
+  for (const c of collection('expenseCategories')) {
+    const valid = validateItem(CategorySchema, c);
+    if (!valid.ok) {
+      errors.push(`Categorie sărită — ${valid.reason}`);
+      skipped++;
+      continue;
+    }
     try {
       const oldId = c.id as string | undefined;
       const isSystem = c.is_system === true || c.is_system === 1;
@@ -243,7 +296,13 @@ export async function importBackup(path: string): Promise<BackupSummary> {
     ])
   );
 
-  for (const s of (payload.bankStatements as AnyRecord[] | undefined) ?? []) {
+  for (const s of collection('bankStatements')) {
+    const valid = validateItem(StatementSchema, s);
+    if (!valid.ok) {
+      errors.push(`Extras sărit — ${valid.reason}`);
+      skipped++;
+      continue;
+    }
     try {
       const oldAccountId = s.account_id as string | undefined;
       if (!oldAccountId) continue;
@@ -264,14 +323,16 @@ export async function importBackup(path: string): Promise<BackupSummary> {
       const newId = generateId();
       await db.runAsync(
         `INSERT INTO bank_statements
-           (id, account_id, period_from, period_to, file_path, file_hash,
-            imported_at, transaction_count, total_inflow, total_outflow, notes, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, account_id, period_from, period_to, period_source, opening_balance,
+            closing_balance, file_path, file_hash, imported_at, transaction_count,
+            total_inflow, total_outflow, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           newId,
           newAccountId,
           periodFrom,
           periodTo,
+          ...statementExtrasFromBackup(s),
           (s.file_path as string | null) ?? null,
           (s.file_hash as string | null) ?? null,
           (s.imported_at as string) || new Date().toISOString(),
@@ -305,7 +366,13 @@ export async function importBackup(path: string): Promise<BackupSummary> {
   const txWithLink: { newId: string; oldLinkedId: string }[] = [];
   const txDuplicates: { newId: string; oldOriginalId: string }[] = [];
 
-  for (const t of (payload.transactions as AnyRecord[] | undefined) ?? []) {
+  for (const t of collection('transactions')) {
+    const valid = validateItem(TransactionSchema, t);
+    if (!valid.ok) {
+      errors.push(`Tranzacție sărită — ${valid.reason}`);
+      skipped++;
+      continue;
+    }
     try {
       const oldId = t.id as string | undefined;
       const oldAccountId = t.account_id as string | undefined;
@@ -389,7 +456,13 @@ export async function importBackup(path: string): Promise<BackupSummary> {
   }
 
   // 6. Cursuri valutare — best-effort
-  for (const r of (payload.fxRates as AnyRecord[] | undefined) ?? []) {
+  for (const r of collection('fxRates')) {
+    const valid = validateItem(FxRateSchema, r);
+    if (!valid.ok) {
+      errors.push(`Curs valutar sărit — ${valid.reason}`);
+      skipped++;
+      continue;
+    }
     try {
       await db.runAsync(
         'INSERT OR IGNORE INTO fx_rates (date, currency, rate, fetched_at) VALUES (?, ?, ?, ?)',
@@ -475,11 +548,15 @@ export async function applyManifest(
   }
 
   const wipe = opts.wipeFirst !== false;
-  const accounts = (payload.financialAccounts as AnyRecord[] | undefined) ?? [];
-  const cats = (payload.expenseCategories as AnyRecord[] | undefined) ?? [];
-  const txs = (payload.transactions as AnyRecord[] | undefined) ?? [];
-  const stmts = (payload.bankStatements as AnyRecord[] | undefined) ?? [];
-  const fxs = (payload.fxRates as AnyRecord[] | undefined) ?? [];
+  const asList = (key: string): AnyRecord[] => {
+    const v = payload[key];
+    return Array.isArray(v) ? (v as AnyRecord[]) : [];
+  };
+  const accounts = asList('financialAccounts');
+  const cats = asList('expenseCategories');
+  const txs = asList('transactions');
+  const stmts = asList('bankStatements');
+  const fxs = asList('fxRates');
   const rules = (payload.merchantCategoryRules as AnyRecord[] | undefined) ?? [];
 
   await db.withTransactionAsync(async () => {
@@ -541,14 +618,16 @@ export async function applyManifest(
     for (const s of stmts) {
       await db.runAsync(
         `INSERT OR REPLACE INTO bank_statements
-           (id, account_id, period_from, period_to, file_path, file_hash,
-            imported_at, transaction_count, total_inflow, total_outflow, notes, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, account_id, period_from, period_to, period_source, opening_balance,
+            closing_balance, file_path, file_hash, imported_at, transaction_count,
+            total_inflow, total_outflow, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           (s.id as string) || generateId(),
           s.account_id as string,
           s.period_from as string,
           s.period_to as string,
+          ...statementExtrasFromBackup(s),
           (s.file_path as string | null) ?? null,
           (s.file_hash as string | null) ?? null,
           (s.imported_at as string) || new Date().toISOString(),

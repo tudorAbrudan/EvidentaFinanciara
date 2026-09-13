@@ -8,6 +8,12 @@ import { statusColors } from '@/theme/colors';
 
 interface Props {
   insights: MonthlyInsight[];
+  /**
+   * Când luna nu e acoperită integral de extrase, afirmațiile comparative nu se
+   * mai afișează deloc: „cheltuiești cu 40% mai puțin" pe o lună cu un extras
+   * lipsă e pur și simplu falsă. Arătăm în locul lor motivul.
+   */
+  incompleteNote?: string | null;
 }
 
 function iconFor(insight: MonthlyInsight): keyof typeof Ionicons.glyphMap {
@@ -22,9 +28,21 @@ function colorFor(insight: MonthlyInsight, fallback: string): string {
   return fallback;
 }
 
-export default function InsightsCard({ insights }: Props) {
+export default function InsightsCard({ insights, incompleteNote }: Props) {
   const scheme = (useColorScheme() ?? 'light') as 'light' | 'dark';
   const C = Colors[scheme];
+
+  if (incompleteNote != null && incompleteNote !== '') {
+    return (
+      <View style={[styles.card, { backgroundColor: C.card, borderColor: statusColors.warning }]}>
+        <View style={styles.header}>
+          <Ionicons name="alert-circle-outline" size={16} color={statusColors.warning} />
+          <Text style={[styles.title, { color: C.text }]}>Date incomplete</Text>
+        </View>
+        <Text style={[styles.rowText, { color: C.textSecondary }]}>{incompleteNote}</Text>
+      </View>
+    );
+  }
 
   if (insights.length === 0) return null;
 
