@@ -319,3 +319,40 @@ ar fi trecut și ar fi consfințit bug-ul — intervalele n-ar fi avut ce contop
 
 **Promovat în:** `services/statementCoverage.ts` (`stopsBefore` calculat pe `iv.to`), test
 „prinde extrasul exportat înainte de sfârșitul lunii".
+
+### 2026-09-13 — Versiunea de marketing nu e a mea de ales: depinde de o stare pe care n-o pot citi
+
+**Context:** pregăteam livrarea pașilor 1–7 și am setat `version` la `1.1.0` în `app.json`, ca
+bump firesc peste `1.0.0`. Build-ul a fost respins de App Store Connect de două ori, cu două erori
+care spun același lucru: „the train version '1.1.0' is closed for new build submissions" și
+„CFBundleShortVersionString [1.1.0] must contain a higher version than the previously approved
+version [1.1.0]". Versiunea era deja aprobată și publicată.
+
+**Lecția:** `version` din `app.json` arată ca o decizie locală, dar nu e: valoarea legală depinde
+de ce e deja aprobat în App Store Connect, la care nu am acces din terminal. Am tratat o valoare
+neverificabilă ca pe una cunoscută — același tipar prin care, în aceeași zi, am citit `test26` din
+URL-ul proxy-ului ca „mediu de test", când era namespace-ul contului. Regula: înainte de a scrie o
+valoare care pleacă într-un sistem extern pe care nu-l pot interoga, întreb care e starea acolo;
+costul întrebării e o propoziție, costul ghicitului a fost două respingeri și un build irosit.
+
+**Corolar:** creșterea corectă nu e automat `+0.0.1`. Livrarea conținea funcționalități noi, deci
+`1.2.0`; un increment de patch ar fi descris greșit ce primește userul.
+
+**Promovat în:** `app.json` (1.2.0 / build 16).
+
+### 2026-09-25 — Două gate-uri care cer „aceeași" dovadă se pot lega de obiecte diferite
+
+**Context:** stop-gate-ul cere chitanțe legate de **amprenta diff-ului** din arborele de lucru.
+Le-am înregistrat înainte de commit, deliberat: după commit diff-ul devine gol, iar gate-ul ar fi
+trecut fiindcă nu mai avea ce inspecta — o trecere obținută prin ștergerea dovezii, nu prin
+producerea ei. Douăsprezece zile mai târziu, `git push` a eșuat: pre-push-ul verifică `chitanta.head
+=== headSha()` (`scripts/check-workflow.mjs:131`), iar chitanțele mele purtau SHA-ul commit-ului
+dinainte.
+
+**Lecția:** raționamentul „înregistrez înainte de commit ca dovada să fie reală" era corect pentru
+gate-ul pe care îl aveam în față și greșit pentru celălalt, fiindcă cele două se ancorează diferit:
+unul în conținutul necommit-uit, celălalt în identitatea commit-ului. Când două verificări cer
+„aceeași" dovadă, nu presupune că o satisfac amândouă la fel — citește ce compară fiecare. Ordinea
+care le mulțumește pe amândouă e: lecția în `LEARNINGS.md` → commit → chitanțe pe HEAD-ul nou.
+
+**Promovat în:** `LEARNINGS.md` (intrarea de față), procedura de închidere a livrării.
